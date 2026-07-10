@@ -6,12 +6,12 @@ on:
   workflow_dispatch:        # ejecución manual desde GitHub
 
 env:
-  OUTPUT_DIR:        data
-  MAX_PAGES_IMPORT:  "5"    # páginas por query en fuentes de importación
-  MAX_PAGES_COMP:    "30"   # páginas por query en fuentes de competencia
+  OUTPUT_DIR:        data/raw          # ✅ FIX 1: ruta correcta
+  MAX_PAGES_IMPORT:  "5"
+  MAX_PAGES_COMP:    "30"
   DELAY_REQ:         "2.5"
   DELAY_CAT:         "5.0"
-  EBAY_APP_ID:       ${{ secrets.EBAY_APP_ID }}   # opcional
+  EBAY_APP_ID:       ${{ secrets.EBAY_APP_ID }}
 
 jobs:
   scrape:
@@ -19,13 +19,13 @@ jobs:
     timeout-minutes: 90
 
     steps:
-      # ── 1. Checkout ──────────────────────────────────────────────────────
+      # ── 1. Checkout ────────────────────────────────────────────────────
       - name: Checkout repo
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      # ── 2. Python ────────────────────────────────────────────────────────
+      # ── 2. Python ──────────────────────────────────────────────────────
       - name: Setup Python 3.11
         uses: actions/setup-python@v5
         with:
@@ -35,49 +35,56 @@ jobs:
       - name: Instalar dependencias
         run: pip install -r requirements.txt
 
-      # ── 3. Crear carpeta data ─────────────────────────────────────────────
-      - name: Preparar carpeta data
-        run: mkdir -p data
+      # ── 3. Crear carpeta data/raw ──────────────────────────────────────
+      - name: Preparar carpeta data/raw
+        run: mkdir -p data/raw            # ✅ FIX 3: carpeta correcta
 
-      # ── 4. Ejecutar scraper completo ──────────────────────────────────────
+      # ── 4. Ejecutar pipeline completo ─────────────────────────────────
       - name: Run pipeline completo
         id: pipeline
         run: |
-          python main.py --only ambos 2>&1 | tee data/pipeline.log
-          # Capturar outputs
-          BATCH_ID=$(grep "^BATCH_ID=" data/pipeline.log | tail -1 | cut -d= -f2)
-          TOTAL_IMPORT=$(grep "^TOTAL_IMPORT=" data/pipeline.log | tail -1 | cut -d= -f2)
-          TOTAL_COMP=$(grep "^TOTAL_COMP=" data/pipeline.log | tail -1 | cut -d= -f2)
-          TC=$(grep "^TIPO_CAMBIO=" data/pipeline.log | tail -1 | cut -d= -f2)
-          echo "batch_id=$BATCH_ID"       >> $GITHUB_OUTPUT
+          python agent/main.py --only ambos 2>&1 | tee data/raw/pipeline.log   # ✅ FIX 2
+          BATCH_ID=$(grep "^BATCH_ID=" data/raw/pipeline.log | tail -1 | cut -d= -f2)
+          TOTAL_IMPORT=$(grep "^TOTAL_IMPORT=" data/raw/pipeline.log | tail -1 | cut -d= -f2)
+          TOTAL_COMP=$(grep "^TOTAL_COMP=" data/raw/pipeline.log | tail -1 | cut -d= -f2)
+          TC=$(grep "^TIPO_CAMBIO=" data/raw/pipeline.log | tail -1 | cut -d= -f2)
+          echo "batch_id=$BATCH_ID"         >> $GITHUB_OUTPUT
           echo "total_import=$TOTAL_IMPORT" >> $GITHUB_OUTPUT
-          echo "total_comp=$TOTAL_COMP"   >> $GITHUB_OUTPUT
-          echo "tipo_cambio=$TC"          >> $GITHUB_OUTPUT
+          echo "total_comp=$TOTAL_COMP"     >> $GITHUB_OUTPUT
+          echo "tipo_cambio=$TC"            >> $GITHUB_OUTPUT
 
-      # ── 5. Estadísticas del master.csv ────────────────────────────────────
-      - name: Stats master.csv
+      # ── 5. Estadísticas del MASTER CSV ────────────────────────────────
+      - name: Stats MASTER_hardware_peru.csv
         run: |
           echo "=== MASTER CSV ==="
-          if [ -f data/master.csv ]; then
-            echo "Total filas: $(wc -l < data/master.csv)"
+          if [ -f data/raw/MASTER_hardware_peru.csv ]; then    # ✅ FIX 4
+            echo "Total filas: $(wc -l < data/raw/MASTER_hardware_peru.csv)"
             echo "Items IMPORTAR_AHORA:"
-            grep -c "IMPORTAR_AHORA" data/master.csv || echo "0"
+            grep -c "IMPORTAR_AHORA" data/raw/MASTER_hardware_peru.csv || echo "0"
             echo "Top 5 ROI más alto:"
             python3 -c "
           import csv
           rows = []
-          with open('data/master.csv') as f:
+          with open('data/raw/MASTER_hardware_peru.csv') as f:   # ✅ FIX 4
               for r in csv.DictReader(f):
                   try:
-                      rows.append((float(r.get('roi_pct',0)), r.get('title','')[:50], r.get('source',''), r.get('category','')))
-                  except: pass
+                      rows.append((
+                          float(r.get('roi_pct', 0)),
+                          r.get('title', '')[:50],
+                          r.get('source', ''),
+                          r.get('category', '')
+                      ))
+                  except:
+                      pass
           rows.sort(reverse=True)
           for roi, title, src, cat in rows[:5]:
               print(f'  ROI {roi:.1f}% | {cat} | {src} | {title}')
           "
+          else
+            echo "MASTER CSV aún no existe — primer batch"
           fi
 
-      # ── 6. Commit y push de datos ─────────────────────────────────────────
+      # ── 6. Commit y push de datos ─────────────────────────────────────
       - name: Commit data
         run: |
           git config user.name  "github-actions[bot]"
@@ -86,7 +93,7 @@ jobs:
           git diff --staged --quiet || git commit -m "📦 batch ${{ steps.pipeline.outputs.batch_id }} | import=${{ steps.pipeline.outputs.total_import }} comp=${{ steps.pipeline.outputs.total_comp }} TC=${{ steps.pipeline.outputs.tipo_cambio }}"
           git push
 
-      # ── 7. Summary en GitHub Actions ─────────────────────────────────────
+      # ── 7. Job Summary ────────────────────────────────────────────────
       - name: Job Summary
         run: |
           echo "## 📊 Batch ${{ steps.pipeline.outputs.batch_id }}" >> $GITHUB_STEP_SUMMARY
