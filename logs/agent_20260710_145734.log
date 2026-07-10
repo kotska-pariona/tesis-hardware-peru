@@ -1,0 +1,29 @@
+2026-07-10 14:57:34,362 [INFO] ==================================================
+2026-07-10 14:57:34,362 [INFO] MODO TEST - Verificando configuracion v2.2
+2026-07-10 14:57:34,362 [INFO] ==================================================
+2026-07-10 14:57:34,362 [INFO] BASE_DIR  : /home/runner/work/tesis-hardware-peru/tesis-hardware-peru (OK)
+2026-07-10 14:57:34,362 [INFO] DATA_DIR  : /home/runner/work/tesis-hardware-peru/tesis-hardware-peru/data/raw (OK)
+2026-07-10 14:57:34,362 [INFO] LOG_DIR   : /home/runner/work/tesis-hardware-peru/tesis-hardware-peru/logs  (OK)
+2026-07-10 14:57:34,481 [INFO] scraper.py: OK - BatchOrchestrator importado
+2026-07-10 14:57:34,481 [INFO] Categorias: ['CPU', 'GPU', 'RAM', 'SSD', 'MOTHERBOARD', 'PSU', 'COOLER', 'CASE']
+2026-07-10 14:57:34,481 [INFO] pandas    : OK v2.2.2
+2026-07-10 14:57:34,481 [INFO] Python    : 3.11.15
+2026-07-10 14:57:34,481 [INFO] ==================================================
+2026-07-10 14:57:34,481 [INFO] TEST OK - Sistema listo para produccion
+2026-07-10 14:57:34,867 [INFO] ============================================================
+2026-07-10 14:57:34,867 [INFO] INICIANDO PIPELINE AGENTE ROI v2.2
+2026-07-10 14:57:34,867 [INFO] Fecha    : 2026-07-10 14:57:34
+2026-07-10 14:57:34,867 [INFO] DATA_DIR : /home/runner/work/tesis-hardware-peru/tesis-hardware-peru/data/raw
+2026-07-10 14:57:34,867 [INFO] ============================================================
+2026-07-10 14:57:34,867 [INFO] FASE 1: Scraping de datos...
+2026-07-10 14:57:34,984 [ERROR]   ERROR en scraping: 'BatchOrchestrator' object has no attribute 'run_batch'
+2026-07-10 14:57:34,984 [INFO] FASE 2: Leyendo Master CSV...
+2026-07-10 14:57:34,987 [INFO]   OK Master CSV: 0 registros
+2026-07-10 14:57:34,987 [INFO] FASE 3: Generando reporte...
+2026-07-10 14:57:34,987 [INFO]   OK Reporte: /home/runner/work/tesis-hardware-peru/tesis-hardware-peru/data/raw/report_20260710_145734.json
+2026-07-10 14:57:34,988 [INFO] ============================================================
+2026-07-10 14:57:34,988 [INFO] PIPELINE COMPLETADO
+2026-07-10 14:57:34,988 [INFO]   [WARN] scraping: error
+2026-07-10 14:57:34,988 [INFO]   [OK] consolidation: ok
+2026-07-10 14:57:34,988 [INFO]   [OK] report: ok
+2026-07-10 14:57:34,988 [INFO] ============================================================
