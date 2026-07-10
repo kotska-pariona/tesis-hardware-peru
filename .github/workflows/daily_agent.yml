@@ -41,13 +41,22 @@ jobs:
       - name: Ejecutar batch completo
         timeout-minutes: 240
         run: |
-          PAGES=${{ github.event.inputs.pages || '20' }}
+          PAGES="${{ github.event.inputs.pages }}"
+          PAGES="${PAGES:-20}"
           echo "Ejecutando batch con $PAGES paginas..."
-          python agent/main.py --batch --pages $PAGES
+          python agent/main.py --batch --pages "$PAGES"
 
       - name: Mostrar estadisticas
         if: always()
         run: python agent/main.py --stats || echo "Sin datos aun"
+
+      - name: Resumen de archivos generados
+        if: always()
+        run: |
+          echo "=== ARCHIVOS GENERADOS ==="
+          echo "Run #${{ github.run_number }} - $(date +'%Y-%m-%d %H:%M') UTC"
+          ls -lh data/raw/ 2>/dev/null || echo "Sin archivos en data/raw/"
+          ls -lh logs/     2>/dev/null || echo "Sin logs"
 
       - name: Guardar datos como artifact
         uses: actions/upload-artifact@v4
@@ -64,7 +73,7 @@ jobs:
         run: |
           git config user.name "Agente ROI Bot"
           git config user.email "actions@github.com"
-          git add data/ logs/ || true
+          git add data/raw/*.csv data/raw/*.json logs/*.log || true
           if git diff --staged --quiet; then
             echo "Sin cambios nuevos para commitear"
           else
