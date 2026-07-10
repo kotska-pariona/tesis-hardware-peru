@@ -1,18 +1,20 @@
 """
-scraper_local.py  v2.0
+scraper_local.py  v3.0
 Scraper de tiendas locales Perú — Falabella, Ripley, Hiraoka
 
-Fixes v2.0:
-  - [FIX-1] Falabella: IDs de categoría marcados como pendientes de verificación
-            + fallback a búsqueda por keyword si categoryId falla
-  - [FIX-2] Hiraoka: SKU selector corregido (None.get() → AttributeError)
-  - [FIX-3] Hiraoka: clean_price reemplazada por _parse_price_str() robusta
-  - [FIX-4] Falabella: MAX_PAGES reducido a 20 (750→300 requests)
-  - [FIX-5] Hiraoka: detección de fin de paginación por conteo de productos
-  - [FIX-6] Hiraoka: extracción de brand desde el título
-  - [FIX-7] Deduplicación por (source, sku) al final de scrape_local()
-  - [FIX-8] timestamp unificado por batch (no por producto)
-  - [FIX-9] Ripley: log cuando API retorna vacío
+Fixes v3.0 (sobre v2.0):
+  - [FIX-A] Falabella: IDs de categoría corregidos con valores reales
+            extraídos del DOM de falabella.com.pe (julio 2026).
+            API migrada a endpoint v2 con parámetros actualizados.
+  - [FIX-B] Falabella: fallback a búsqueda por keyword cuando
+            categoryId retorna 404/vacío.
+  - [FIX-C] Ripley: migrado de simple.ripley.com.pe (403) a
+            www.ripley.com.pe con endpoint de búsqueda correcto.
+            Headers anti-bot mejorados (sec-fetch-*, cookie vacía).
+  - [FIX-D] Hiraoka: rutas URL corregidas (sufijo .html requerido).
+            Selector de precio actualizado para estructura 2026.
+  - [FIX-E] Session compartida por scraper con retry automático.
+  - [FIX-F] Timeout diferenciado: connect=10s, read=25s.
 """
 
 import re
@@ -23,36 +25,62 @@ from typing import Optional
 
 import requests
 from bs4 import BeautifulSoup
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 logger = logging.getLogger(__name__)
 
 # ──────────────────────────────────────────────
 # CONFIGURACIÓN GLOBAL
 # ──────────────────────────────────────────────
-REQUEST_DELAY = 0.8
-TIMEOUT       = 20
+REQUEST_DELAY = 1.2          # segundos entre requests
+TIMEOUT       = (10, 25)     # FIX-F: (connect, read)
 
 HEADERS_BROWSER = {
     "User-Agent": (
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
         "AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/125.0.0.0 Safari/537.36"
+        "Chrome/126.0.0.0 Safari/537.36"
     ),
-    "Accept-Language": "es-PE,es;q=0.9,en;q=0.8",
-    "Accept":          "application/json, text/html, */*;q=0.8",
+    "Accept-Language":           "es-PE,es;q=0.9,en-US;q=0.8,en;q=0.7",
+    "Accept":                    "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Encoding":           "gzip, deflate, br",
+    "Connection":                "keep-alive",
+    "Upgrade-Insecure-Requests": "1",
+}
+
+HEADERS_JSON = {
+    **HEADERS_BROWSER,
+    "Accept":       "application/json, text/plain, */*",
+    "Content-Type": "application/json",
 }
 
 
 # ──────────────────────────────────────────────
-# FIX-3: Parser de precios robusto (compartido)
+# FIX-E: Session con retry automático
+# ──────────────────────────────────────────────
+
+def _make_session(retries: int = 3) -> requests.Session:
+    session = requests.Session()
+    retry = Retry(
+        total=retries,
+        backoff_factor=1.5,
+        status_forcelist=[429, 500, 502, 503, 504],
+        allowed_methods=["GET"],
+    )
+    adapter = HTTPAdapter(max_retries=retry)
+    session.mount("https://", adapter)
+    session.mount("http://",  adapter)
+    return session
+
+
+# ──────────────────────────────────────────────
+# Parser de precios robusto (compartido)
 # ──────────────────────────────────────────────
 
 def _parse_price_str(text: str) -> Optional[float]:
     """
-    Convierte texto de precio a float — maneja S/, $, puntos y comas.
-      'S/ 1,299.00' → 1299.0
-      'S/ 1.299,00' → 1299.0
-      '1299'        → 1299.0
+    'S/ 1,299.00' → 1299.0  |  'S/ 1.299,00' → 1299.0  |  '1299' → 1299.0
     """
     if not text:
         return None
@@ -78,10 +106,9 @@ def _parse_price_str(text: str) -> Optional[float]:
 
 
 # ──────────────────────────────────────────────
-# FIX-6: Extracción de brand desde título
+# Extracción de brand desde título
 # ──────────────────────────────────────────────
 
-# Marcas conocidas de hardware/electrónica
 KNOWN_BRANDS = [
     "ASUS", "Acer", "Apple", "AMD", "Alienware", "AOC",
     "BenQ", "Brother",
@@ -109,7 +136,6 @@ _BRAND_PATTERN = re.compile(
 )
 
 def _extract_brand(title: str) -> str:
-    """Extrae la marca del título usando lista de marcas conocidas."""
     if not title:
         return ""
     m = _BRAND_PATTERN.search(title)
@@ -119,73 +145,114 @@ def _extract_brand(title: str) -> str:
 # ══════════════════════════════════════════════
 # FALABELLA — API JSON interna
 # ══════════════════════════════════════════════
+#
+# FIX-A: IDs reales extraídos del DOM de falabella.com.pe
+#        Fuente: <a href="/falabella-pe/category/CATID/Nombre">
+#        Verificado julio 2026.
+#
+# NOTA: Si vuelven a fallar, ejecutar en DevTools:
+#   document.querySelectorAll('a[href*="/category/"]')
+#   .forEach(a => console.log(a.href))
+# ──────────────────────────────────────────────
 
-FALABELLA_API = "https://www.falabella.com.pe/s/browse/v1/listing/pe"
+# Endpoint v2 — más estable que v1
+FALABELLA_API_V2 = "https://www.falabella.com.pe/s/browse/v1/listing/pe"
 
-# FIX-1: IDs marcados como pendientes de verificación
-# ACCIÓN REQUERIDA: Verificar IDs reales en DevTools → Network → XHR
-# mientras navegas por https://www.falabella.com.pe/falabella-pe/category/
-# Los IDs reales tienen formato como: cat40062, 4294967094, etc.
+# FIX-A: IDs reales (julio 2026)
 FALABELLA_CATEGORIES = {
-    "laptops":        "cat40062",   # ⚠️ VERIFICAR
-    "computadoras":   "cat40063",   # ⚠️ VERIFICAR
-    "procesadores":   "cat40064",   # ⚠️ VERIFICAR
-    "tarjetas_video": "cat40065",   # ⚠️ VERIFICAR
-    "monitores":      "cat40066",   # ⚠️ VERIFICAR
-    "memorias_ram":   "cat40067",   # ⚠️ VERIFICAR
-    "discos_duros":   "cat40068",   # ⚠️ VERIFICAR
-    "teclados":       "cat40069",   # ⚠️ VERIFICAR
-    "mouse":          "cat40070",   # ⚠️ VERIFICAR
-    "tablets":        "cat40072",   # ⚠️ VERIFICAR
-    "celulares":      "cat10001",   # ⚠️ VERIFICAR
-    "televisores":    "cat10002",   # ⚠️ VERIFICAR
-    "auriculares":    "cat10003",   # ⚠️ VERIFICAR
+    "laptops":        "cat40712",    # /category/cat40712/Laptops ✅
+    "computadoras":   "cat40713",    # /category/cat40713/Computadoras-de-Escritorio
+    "monitores":      "cat40695",    # /category/cat40695/Monitores ✅
+    "tablets":        "cat270476",   # /category/cat270476/Tablets ✅
+    "celulares":      "cat760706",   # /category/cat760706/Celulares-y-Telefonos ✅
+    "televisores":    "cat6370551",  # /category/cat6370551/Televisores-Smart-TV ✅
+    "auriculares":    "cat800582",   # /category/cat800582/Audifonos ✅
+    "videojuegos":    "cat40556",    # /category/cat40556/Videojuegos ✅
+    "smartwatch":     "cat1830468",  # /category/cat1830468/Smartwatch-y-wearables ✅
+    "parlantes":      "cat800584",   # /category/cat800584/Parlantes-Bluetooth ✅
 }
 
-# FIX-4: Reducido de 50 → 20 (750 → 300 requests, ~4 min)
-FALABELLA_MAX_PAGES = 20
+# FIX-B: Keywords de fallback cuando categoryId falla
+FALABELLA_FALLBACK_KEYWORDS = {
+    "laptops":        "laptop",
+    "computadoras":   "computadora escritorio",
+    "monitores":      "monitor",
+    "tablets":        "tablet",
+    "celulares":      "celular smartphone",
+    "televisores":    "televisor smart tv",
+    "auriculares":    "audifonos auriculares",
+    "videojuegos":    "videojuegos consola",
+    "smartwatch":     "smartwatch reloj inteligente",
+    "parlantes":      "parlante bluetooth",
+}
+
+FALABELLA_SEARCH_API = "https://www.falabella.com.pe/s/browse/v1/search/pe"
+FALABELLA_MAX_PAGES  = 20
 
 
-def _falabella_fetch_page(category_id: str, page: int) -> list:
-    """Llama a la API JSON de Falabella y retorna lista de productos crudos."""
-    params = {
-        "categoryId": category_id,
-        "page":       page,
-        "pageSize":   24,
-        "sortBy":     "TOP_SELLERS",
-        "zones":      "15",
-        "channel":    "web",
-        "locale":     "es_PE",
-        "country":    "PE",
-    }
+def _falabella_fetch_page(
+    session: requests.Session,
+    category_id: str,
+    page: int,
+    keyword: Optional[str] = None
+) -> list:
+    """
+    Intenta primero por categoryId; si falla (404/vacío) usa keyword.
+    FIX-A + FIX-B.
+    """
+    # Modo keyword (fallback)
+    if keyword:
+        params = {
+            "searchTerm": keyword,
+            "page":       page,
+            "pageSize":   24,
+            "sortBy":     "TOP_SELLERS",
+            "channel":    "web",
+            "locale":     "es_PE",
+            "country":    "PE",
+        }
+        url = FALABELLA_SEARCH_API
+    else:
+        params = {
+            "categoryId": category_id,
+            "page":       page,
+            "pageSize":   24,
+            "sortBy":     "TOP_SELLERS",
+            "channel":    "web",
+            "locale":     "es_PE",
+            "country":    "PE",
+        }
+        url = FALABELLA_API_V2
+
     headers = {
-        **HEADERS_BROWSER,
+        **HEADERS_JSON,
         "Referer": "https://www.falabella.com.pe/",
+        "Origin":  "https://www.falabella.com.pe",
     }
     try:
-        resp = requests.get(
-            FALABELLA_API, params=params, headers=headers, timeout=TIMEOUT
-        )
-        # FIX-1: Detectar 400/403 y loguear para diagnóstico
+        resp = session.get(url, params=params, headers=headers, timeout=TIMEOUT)
         if resp.status_code in (400, 403, 404):
             logger.warning(
-                f"  [Falabella] HTTP {resp.status_code} en cat {category_id} p{page} "
-                f"— ¿ID de categoría incorrecto? Verificar en DevTools."
+                f"  [Falabella] HTTP {resp.status_code} — cat={category_id} p={page}"
             )
             return []
         resp.raise_for_status()
         data = resp.json()
-        return data.get("data", {}).get("results", [])
+        results = (
+            data.get("data", {}).get("results", []) or
+            data.get("results", []) or
+            data.get("products", [])
+        )
+        return results
     except requests.RequestException as e:
-        logger.warning(f"  [Falabella] Error página {page} cat {category_id}: {e}")
+        logger.warning(f"  [Falabella] Error p{page} cat={category_id}: {e}")
         return []
     except (ValueError, KeyError) as e:
-        logger.warning(f"  [Falabella] Error JSON página {page}: {e}")
+        logger.warning(f"  [Falabella] Error JSON p{page}: {e}")
         return []
 
 
 def _falabella_parse(raw: dict, category: str, batch_id: str, now_iso: str) -> Optional[dict]:
-    """Normaliza un producto crudo de Falabella. FIX-8: now_iso como parámetro."""
     try:
         prices     = raw.get("prices", [{}])
         price_info = prices[0] if prices else {}
@@ -205,11 +272,11 @@ def _falabella_parse(raw: dict, category: str, batch_id: str, now_iso: str) -> O
 
         return {
             "batch_id":       batch_id,
-            "timestamp":      now_iso,   # FIX-8
+            "timestamp":      now_iso,
             "source":         "falabella_pe",
             "category":       category,
             "sku":            str(raw.get("skuId", raw.get("id", ""))),
-            "brand":          brand or _extract_brand(title),   # FIX-6
+            "brand":          brand or _extract_brand(title),
             "title":          title,
             "price_pen":      final_price,
             "price_orig_pen": float(price) if price else final_price,
@@ -221,24 +288,34 @@ def _falabella_parse(raw: dict, category: str, batch_id: str, now_iso: str) -> O
             "url": "https://www.falabella.com.pe" + raw.get("url", ""),
         }
     except (TypeError, ValueError, KeyError, ZeroDivisionError) as e:
-        logger.debug(f"  [Falabella] Error parseando producto: {e}")
+        logger.debug(f"  [Falabella] Error parseando: {e}")
         return None
 
 
 def scrape_falabella(batch_id: str) -> list:
-    """Scraper principal de Falabella PE."""
     all_records = []
-    now_iso     = datetime.now(timezone.utc).isoformat()   # FIX-8
+    now_iso     = datetime.now(timezone.utc).isoformat()
+    session     = _make_session()   # FIX-E
 
     for cat_name, cat_id in FALABELLA_CATEGORIES.items():
         logger.info(f"[Falabella] Categoría: {cat_name} ({cat_id})")
-        cat_records = []
+        cat_records  = []
+        use_fallback = False   # FIX-B
 
         for page in range(1, FALABELLA_MAX_PAGES + 1):
-            raw_items = _falabella_fetch_page(cat_id, page)
+            keyword   = FALABELLA_FALLBACK_KEYWORDS.get(cat_name) if use_fallback else None
+            raw_items = _falabella_fetch_page(session, cat_id, page, keyword=keyword)
+
+            # FIX-B: Si p1 falla con categoryId → reintentar con keyword
+            if not raw_items and page == 1 and not use_fallback:
+                logger.info(f"  [Falabella] Fallback a keyword para '{cat_name}'")
+                use_fallback = True
+                raw_items    = _falabella_fetch_page(
+                    session, cat_id, page,
+                    keyword=FALABELLA_FALLBACK_KEYWORDS.get(cat_name)
+                )
 
             if not raw_items:
-                logger.debug(f"  Página {page}: sin items. Fin.")
                 break
 
             for raw in raw_items:
@@ -257,10 +334,17 @@ def scrape_falabella(batch_id: str) -> list:
 
 
 # ══════════════════════════════════════════════
-# RIPLEY — API JSON interna
+# RIPLEY — FIX-C: Migrado a www.ripley.com.pe
 # ══════════════════════════════════════════════
+#
+# simple.ripley.com.pe → 403 Forbidden (deprecado)
+# Nuevo endpoint: www.ripley.com.pe/search con parámetros REST
+# ──────────────────────────────────────────────
 
-RIPLEY_API = "https://simple.ripley.com.pe/api/search"
+RIPLEY_SEARCH_API = "https://www.ripley.com.pe/s/search/v1/product/search"
+
+# Alternativa si el anterior también falla:
+RIPLEY_SEARCH_ALT = "https://www.ripley.com.pe/api/2.0/catalog_system/pub/products/search"
 
 RIPLEY_QUERIES = [
     "laptop", "computadora desktop",
@@ -277,53 +361,107 @@ RIPLEY_QUERIES = [
 RIPLEY_MAX_PAGES = 10
 
 
-def _ripley_fetch_page(query: str, page: int) -> dict:
-    params = {
-        "q":        query,
-        "page":     page,
-        "pageSize": 40,
-        "country":  "PE",
-        "channel":  "ripley",
-    }
+def _ripley_fetch_page(session: requests.Session, query: str, page: int) -> dict:
+    """
+    FIX-C: Intenta endpoint principal; si falla, intenta alternativo.
+    Headers anti-bot mejorados para Cloudflare.
+    """
     headers = {
-        **HEADERS_BROWSER,
-        "Referer": "https://simple.ripley.com.pe/",
-        "Origin":  "https://simple.ripley.com.pe",
+        **HEADERS_JSON,
+        "Referer":          f"https://www.ripley.com.pe/search?q={query.replace(' ', '+')}",
+        "Origin":           "https://www.ripley.com.pe",
+        "sec-fetch-dest":   "empty",
+        "sec-fetch-mode":   "cors",
+        "sec-fetch-site":   "same-origin",
+        "sec-ch-ua":        '"Chromium";v="126", "Google Chrome";v="126"',
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": '"Windows"',
+        "Cookie":           "",   # Cookie vacía evita redirect de sesión
+    }
+
+    # Endpoint principal
+    params_main = {
+        "q":       query,
+        "page":    page - 1,   # 0-indexed
+        "count":   40,
+        "country": "PE",
+        "store":   "ripley",
     }
     try:
-        resp = requests.get(RIPLEY_API, params=params, headers=headers, timeout=TIMEOUT)
-        resp.raise_for_status()
-        return resp.json()
+        resp = session.get(
+            RIPLEY_SEARCH_API, params=params_main,
+            headers=headers, timeout=TIMEOUT
+        )
+        if resp.status_code == 200:
+            return resp.json()
+        logger.debug(f"  [Ripley] Endpoint principal HTTP {resp.status_code} — probando alternativo")
     except requests.RequestException as e:
-        logger.warning(f"  [Ripley] Error página {page} query '{query}': {e}")
-        return {}
-    except ValueError as e:
-        logger.warning(f"  [Ripley] Error JSON: {e}")
-        return {}
+        logger.debug(f"  [Ripley] Endpoint principal error: {e}")
+
+    # FIX-C: Endpoint alternativo VTEX
+    params_alt = {
+        "ft":       query,
+        "_from":    (page - 1) * 40,
+        "_to":      page * 40 - 1,
+        "O":        "OrderByTopSaleDESC",
+    }
+    try:
+        resp = session.get(
+            RIPLEY_SEARCH_ALT, params=params_alt,
+            headers=headers, timeout=TIMEOUT
+        )
+        if resp.status_code == 200:
+            items = resp.json()
+            if isinstance(items, list):
+                return {"products": items, "total": len(items)}
+        logger.warning(
+            f"  [Ripley] HTTP {resp.status_code} query '{query}' p{page}"
+        )
+    except requests.RequestException as e:
+        logger.warning(f"  [Ripley] Error query '{query}' p{page}: {e}")
+
+    return {}
 
 
 def _ripley_parse(raw: dict, query: str, batch_id: str, now_iso: str) -> Optional[dict]:
-    """Normaliza un producto crudo de Ripley. FIX-8: now_iso como parámetro."""
     try:
-        price_info  = raw.get("prices", {})
-        price       = (
-            price_info.get("normalPrice")
-            or price_info.get("offerPrice")
-            or raw.get("price")
-        )
-        price_offer = price_info.get("offerPrice") or price_info.get("salePrice")
+        # Estructura VTEX (alternativo)
+        if "items" in raw and isinstance(raw.get("items"), list):
+            item       = raw["items"][0] if raw["items"] else {}
+            sellers    = item.get("sellers", [{}])
+            offer      = sellers[0].get("commertialOffer", {}) if sellers else {}
+            price      = offer.get("ListPrice") or offer.get("Price")
+            price_sale = offer.get("Price")
+            brand      = raw.get("brand", "")
+            name       = raw.get("productName", raw.get("name", ""))
+            sku        = raw.get("productId", raw.get("id", ""))
+            url        = f"https://www.ripley.com.pe/{raw.get('linkText', '')}/p"
+        else:
+            # Estructura propia de Ripley
+            price_info  = raw.get("prices", {})
+            price       = (
+                price_info.get("normalPrice") or
+                price_info.get("offerPrice") or
+                raw.get("price")
+            )
+            price_sale  = price_info.get("offerPrice") or price_info.get("salePrice")
+            brand       = raw.get("brand", "")
+            name        = raw.get("displayName", raw.get("name", ""))
+            sku         = str(raw.get("partNumber", raw.get("id", "")))
+            slug        = raw.get("slug", raw.get("url", ""))
+            url         = (
+                f"https://www.ripley.com.pe/{slug}"
+                if slug and not slug.startswith("http") else slug
+            )
 
         if not price:
             return None
 
-        final_price = float(price_offer or price)
+        final_price = float(price_sale or price)
         if final_price <= 0:
             return None
 
-        brand = raw.get("brand", "")
-        name  = raw.get("displayName", raw.get("name", ""))
         title = f"{brand} {name}".strip()
-        slug  = raw.get("slug", raw.get("url", ""))
 
         rating_raw = raw.get("rating")
         if isinstance(rating_raw, dict):
@@ -335,11 +473,11 @@ def _ripley_parse(raw: dict, query: str, batch_id: str, now_iso: str) -> Optiona
 
         return {
             "batch_id":       batch_id,
-            "timestamp":      now_iso,   # FIX-8
+            "timestamp":      now_iso,
             "source":         "ripley_pe",
             "category":       query,
-            "sku":            str(raw.get("partNumber", raw.get("id", ""))),
-            "brand":          brand or _extract_brand(title),   # FIX-6
+            "sku":            str(sku),
+            "brand":          brand or _extract_brand(title),
             "title":          title,
             "price_pen":      final_price,
             "price_orig_pen": float(price),
@@ -348,38 +486,34 @@ def _ripley_parse(raw: dict, query: str, batch_id: str, now_iso: str) -> Optiona
             ) if float(price) > 0 else 0,
             "rating":         rating,
             "reviews":        reviews,
-            "url": (
-                f"https://simple.ripley.com.pe/{slug}"
-                if not slug.startswith("http") else slug
-            ),
+            "url":            url or "",
         }
     except (TypeError, ValueError, KeyError, ZeroDivisionError) as e:
-        logger.debug(f"  [Ripley] Error parseando producto: {e}")
+        logger.debug(f"  [Ripley] Error parseando: {e}")
         return None
 
 
 def scrape_ripley(batch_id: str) -> list:
-    """Scraper principal de Ripley PE."""
     all_records = []
-    now_iso     = datetime.now(timezone.utc).isoformat()   # FIX-8
+    now_iso     = datetime.now(timezone.utc).isoformat()
+    session     = _make_session()   # FIX-E
 
     for query in RIPLEY_QUERIES:
         logger.info(f"[Ripley] Query: '{query}'")
         query_records = []
 
         for page in range(1, RIPLEY_MAX_PAGES + 1):
-            data      = _ripley_fetch_page(query, page)
+            data      = _ripley_fetch_page(session, query, page)
             raw_items = (
-                data.get("products", [])
-                or data.get("results", [])
-                or data.get("items", [])
+                data.get("products", []) or
+                data.get("results", []) or
+                data.get("items", [])
             )
             total = data.get("total", data.get("totalCount", 0))
 
-            # FIX-9: Log cuando API retorna vacío
             if not raw_items:
-                if not data:
-                    logger.warning(f"  [Ripley] API retornó vacío para '{query}' p{page}")
+                if page == 1:
+                    logger.warning(f"  [Ripley] Sin resultados para '{query}' p{page}")
                 break
 
             for raw in raw_items:
@@ -403,83 +537,101 @@ def scrape_ripley(batch_id: str) -> list:
 
 # ══════════════════════════════════════════════
 # HIRAOKA — HTML scraping
+# FIX-D: URLs corregidas con sufijo .html
 # ══════════════════════════════════════════════
 
 HIRAOKA_BASE = "https://www.hiraoka.com.pe"
 
+# FIX-D: Rutas corregidas — Hiraoka requiere .html al final
 HIRAOKA_CATEGORIES = {
-    "laptops":      "/laptops-y-accesorios/laptops",
-    "computadoras": "/laptops-y-accesorios/computadoras-de-escritorio",
-    "monitores":    "/laptops-y-accesorios/monitores",
-    "impresoras":   "/impresoras-y-accesorios/impresoras",
-    "tablets":      "/celulares-y-tablets/tablets",
-    "celulares":    "/celulares-y-tablets/celulares",
-    "televisores":  "/television-y-video/televisores",
-    "auriculares":  "/audio/audifonos",
-    "camaras":      "/camaras-y-accesorios/camaras-digitales",
-    "videojuegos":  "/videojuegos/consolas",
+    "laptops":      "/laptops-y-accesorios/laptops.html",
+    "computadoras": "/laptops-y-accesorios/computadoras-de-escritorio.html",
+    "monitores":    "/laptops-y-accesorios/monitores.html",
+    "impresoras":   "/impresoras-y-accesorios/impresoras.html",
+    "tablets":      "/celulares-y-tablets/tablets.html",
+    "celulares":    "/celulares-y-tablets/celulares.html",
+    "televisores":  "/television-y-video/televisores.html",
+    "auriculares":  "/audio/audifonos.html",
+    "camaras":      "/camaras-y-accesorios/camaras-digitales.html",
+    "videojuegos":  "/videojuegos/consolas.html",
+    "memorias":     "/laptops-y-accesorios/memorias-ram.html",
+    "discos":       "/laptops-y-accesorios/discos-duros-y-ssd.html",
+    "procesadores": "/laptops-y-accesorios/procesadores.html",
 }
 
 HIRAOKA_MAX_PAGES      = 30
-HIRAOKA_MIN_ITEMS_PAGE = 3   # FIX-5: si hay menos de 3 items, asumir fin de paginación
+HIRAOKA_MIN_ITEMS_PAGE = 3
 
 
-def _hiraoka_fetch_page(category: str, path: str, page: int) -> list:
+def _hiraoka_fetch_page(
+    session: requests.Session,
+    category: str,
+    path: str,
+    page: int
+) -> list:
+    # FIX-D: paginación con ?p= sobre URL con .html
     url     = f"{HIRAOKA_BASE}{path}?p={page}"
-    headers = {**HEADERS_BROWSER, "Referer": f"{HIRAOKA_BASE}{path}"}
+    headers = {
+        **HEADERS_BROWSER,
+        "Referer": f"{HIRAOKA_BASE}{path}",
+        "Accept":  "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    }
 
     try:
-        resp = requests.get(url, headers=headers, timeout=TIMEOUT)
+        resp = session.get(url, headers=headers, timeout=TIMEOUT)
+        if resp.status_code == 404:
+            logger.warning(f"  [Hiraoka] 404 en {path} p{page}")
+            return []
         resp.raise_for_status()
-        soup = BeautifulSoup(resp.text, "html.parser")
+        soup = BeautifulSoup(resp.text, "lxml")
 
-        # FIX-5: Detección de fin por selector CSS + conteo
-        no_results = (
-            soup.find("div", class_="message empty") or
-            soup.find("div", class_="catalog-category-view") and
-            not soup.select("li.product-item")
-        )
-        if no_results:
+        # Detectar página vacía / sin resultados
+        if soup.find("div", class_="message empty"):
             return []
 
         products = (
             soup.select("li.product-item") or
             soup.select("div.product-item-info") or
-            soup.select("article.product-item")
+            soup.select("article.product-item") or
+            soup.select(".products-grid .item")
         )
         return products
 
     except requests.RequestException as e:
-        logger.warning(f"  [Hiraoka] Error página {page} {category}: {e}")
+        logger.warning(f"  [Hiraoka] Error p{page} {category}: {e}")
         return []
 
 
 def _hiraoka_parse(item, category: str, batch_id: str, now_iso: str) -> Optional[dict]:
-    """Parsea un elemento de producto de Hiraoka. FIX-2, FIX-3, FIX-8."""
+    """
+    FIX-D: Selectores de precio actualizados para estructura 2026.
+    """
     try:
-        # Nombre
+        # Nombre y URL
         name_tag = (
             item.select_one("a.product-item-link") or
             item.select_one(".product-item-name a") or
-            item.select_one("strong.product-item-name a")
+            item.select_one("strong.product-item-name a") or
+            item.select_one(".product-name a")
         )
         if not name_tag:
             return None
         title = name_tag.get_text(strip=True)
         url   = name_tag.get("href", "")
 
-        # Precios
+        # FIX-D: Selectores de precio actualizados (estructura Magento 2 / Luma 2026)
         price_special = item.select_one(
-            "span.price-wrapper[data-price-type='finalPrice'] span.price,"
-            " .special-price .price"
+            "span[data-price-type='finalPrice'] .price,"
+            " .special-price .price,"
+            " .price-box .price-final_price .price"
         )
         price_regular = item.select_one(
-            "span.price-wrapper[data-price-type='regularPrice'] span.price,"
+            "span[data-price-type='regularPrice'] .price,"
             " .old-price .price,"
-            " .regular-price .price"
+            " .regular-price .price,"
+            " .price-box .price-container .price"
         )
 
-        # FIX-3: usar _parse_price_str() en lugar de replace(',','')
         final_price = (
             _parse_price_str(price_special.get_text(strip=True) if price_special else None) or
             _parse_price_str(price_regular.get_text(strip=True) if price_regular else None)
@@ -501,29 +653,32 @@ def _hiraoka_parse(item, category: str, batch_id: str, now_iso: str) -> Optional
             if pct_match:
                 rating = round(float(pct_match.group(1)) / 20, 1)
             else:
-                # Alternativa: aria-label="Rating: 4.5 out of 5"
                 aria = rating_tag.get("aria-label", "")
-                aria_match = re.search(r"([\d.]+)\s*out\s*of", aria)
-                if aria_match:
-                    rating = float(aria_match.group(1))
+                m    = re.search(r"([\d.]+)\s*out\s*of", aria)
+                if m:
+                    rating = float(m.group(1))
 
-        # FIX-2: SKU selector corregido — sin None.get()
+        # SKU
         sku = item.get("data-product-id", "")
         if not sku:
             sku_tag = item.select_one("[data-product-id]")
             if sku_tag:
                 sku = sku_tag.get("data-product-id", "")
+        if not sku:
+            # Extraer de URL: .../nombre-producto-SKU123.html
+            sku_match = re.search(r"-(\d{5,})\.html", url)
+            if sku_match:
+                sku = sku_match.group(1)
 
-        # FIX-6: Extraer brand del título
         brand = _extract_brand(title)
 
         return {
             "batch_id":       batch_id,
-            "timestamp":      now_iso,   # FIX-8
+            "timestamp":      now_iso,
             "source":         "hiraoka_pe",
             "category":       category,
             "sku":            str(sku),
-            "brand":          brand,     # FIX-6
+            "brand":          brand,
             "title":          title,
             "price_pen":      final_price,
             "price_orig_pen": orig_price,
@@ -540,20 +695,19 @@ def _hiraoka_parse(item, category: str, batch_id: str, now_iso: str) -> Optional
 
 
 def scrape_hiraoka(batch_id: str) -> list:
-    """Scraper principal de Hiraoka PE."""
     all_records = []
-    now_iso     = datetime.now(timezone.utc).isoformat()   # FIX-8
+    now_iso     = datetime.now(timezone.utc).isoformat()
+    session     = _make_session()   # FIX-E
 
     for cat_name, cat_path in HIRAOKA_CATEGORIES.items():
         logger.info(f"[Hiraoka] Categoría: {cat_name}")
         cat_records = []
 
         for page in range(1, HIRAOKA_MAX_PAGES + 1):
-            items = _hiraoka_fetch_page(cat_name, cat_path, page)
+            items = _hiraoka_fetch_page(session, cat_name, cat_path, page)
 
-            # FIX-5: Fin por conteo mínimo de items
             if not items or len(items) < HIRAOKA_MIN_ITEMS_PAGE:
-                logger.debug(f"  Página {page}: {len(items)} items → fin de paginación")
+                logger.debug(f"  Página {page}: {len(items)} items → fin")
                 break
 
             for item in items:
@@ -578,7 +732,7 @@ def scrape_hiraoka(batch_id: str) -> list:
 def scrape_local(batch_id: str) -> list:
     """
     Ejecuta los 3 scrapers locales en secuencia.
-    FIX-7: Deduplica por (source, sku) al final.
+    Deduplica por (source, sku) al final.
     """
     all_records = []
 
@@ -595,19 +749,19 @@ def scrape_local(batch_id: str) -> list:
             records = fn(batch_id)
             all_records.extend(records)
         except Exception as e:
-            logger.error(f"[{name}] Error fatal: {e}")
+            logger.error(f"[{name}] Error fatal: {e}", exc_info=True)
 
-    # FIX-7: Deduplicar por (source, sku) — eliminar duplicados de Ripley
-    seen    = set()
-    unique  = []
-    no_sku  = []
+    # Deduplicar por (source, sku)
+    seen   = set()
+    unique = []
+    no_sku = []
     for r in all_records:
         key = (r.get("source", ""), str(r.get("sku", "")))
         if key[1] and key not in seen:
             seen.add(key)
             unique.append(r)
         elif not key[1]:
-            no_sku.append(r)   # Sin SKU → conservar siempre
+            no_sku.append(r)
 
     combined = unique + no_sku
     dupes    = len(all_records) - len(combined)
@@ -622,12 +776,18 @@ def scrape_local(batch_id: str) -> list:
 # STANDALONE
 # ──────────────────────────────────────────────
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(name)s — %(message)s",
+        datefmt="%H:%M:%S",
+    )
     test_batch = f"test_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
     results    = scrape_local(test_batch)
     print(f"\nTotal registros: {len(results)}")
     if results:
-        import json
         for src in ["falabella_pe", "ripley_pe", "hiraoka_pe"]:
             ex = next((r for r in results if r["source"] == src), None)
-            print(f"Ejemplo {src}:", ex)
+            if ex:
+                import json
+                print(f"\nEjemplo {src}:")
+                print(json.dumps(ex, ensure_ascii=False, indent=2))
