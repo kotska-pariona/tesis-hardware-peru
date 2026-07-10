@@ -1,0 +1,20 @@
+2026-07-10 15:53:20,431 [INFO] ============================================================
+2026-07-10 15:53:20,431 [INFO] INICIANDO PIPELINE AGENTE ROI v2.5
+2026-07-10 15:53:20,431 [INFO] Fecha      : 2026-07-10 15:53:20
+2026-07-10 15:53:20,431 [INFO] DATA_DIR   : /home/runner/work/tesis-hardware-peru/tesis-hardware-peru/data/raw
+2026-07-10 15:53:20,432 [INFO] Max pages  : 3
+2026-07-10 15:53:20,432 [INFO] Sources    : ['mercadolibre', 'falabella', 'hiraoka']
+2026-07-10 15:53:20,432 [INFO] Categories : todas
+2026-07-10 15:53:20,432 [INFO] ============================================================
+2026-07-10 15:53:20,432 [INFO] FASE 1: Scraping de datos...
+2026-07-10 16:02:46,181 [INFO]   OK 260 items en 565.6s
+2026-07-10 16:02:46,181 [INFO] FASE 2: Leyendo Master CSV...
+2026-07-10 16:02:46,184 [INFO]   OK Master CSV: 100 registros
+2026-07-10 16:02:46,184 [INFO] FASE 3: Generando reporte...
+2026-07-10 16:02:46,184 [INFO]   OK Reporte: /home/runner/work/tesis-hardware-peru/tesis-hardware-peru/data/raw/report_20260710_155320.json
+2026-07-10 16:02:46,185 [INFO] ============================================================
+2026-07-10 16:02:46,185 [INFO] PIPELINE COMPLETADO
+2026-07-10 16:02:46,185 [INFO]   [OK] scraping: ok
+2026-07-10 16:02:46,185 [INFO]   [OK] consolidation: ok
+2026-07-10 16:02:46,185 [INFO]   [OK] report: ok
+2026-07-10 16:02:46,185 [INFO] ============================================================

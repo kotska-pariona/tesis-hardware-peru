@@ -1,0 +1,31 @@
+{
+  "timestamp": "2026-07-10T15:53:20.432311",
+  "batch_id": "20260710_155320",
+  "status": "completed",
+  "phases": {
+    "scraping": {
+      "status": "ok",
+      "items_collected": 260,
+      "elapsed_s": 565.6,
+      "batch_file": "/home/runner/work/tesis-hardware-peru/tesis-hardware-peru/data/raw/batch_20260710_155320.csv"
+    },
+    "consolidation": {
+      "status": "ok",
+      "total_records": 100,
+      "categories": {
+        "RAM": 29,
+        "SSD": 26,
+        "MOTHERBOARD": 15,
+        "GPU": 8,
+        "COOLER": 8,
+        "CASE": 6,
+        "CPU": 4,
+        "PSU": 4
+      },
+      "sources": {
+        "falabella": 100
+      }
+    }
+  },
+  "end_time": "2026-07-10T16:02:46.184657"
+}
