@@ -1,193 +1,97 @@
-name: Agente Tesis - Batch 24h
+name: Daily Hardware Scraper v4.0
 
 on:
-  workflow_dispatch:
-    inputs:
-      pages:
-        description: 'Paginas por categoria (2=rapido, 20=completo)'
-        required: false
-        default: '3'
-      sources:
-        description: 'Fuentes a scrapear (ej: falabella hiraoka)'
-        required: false
-        default: 'falabella hiraoka'
   schedule:
-    - cron: '0 12 * * *'   # 7:00am Lima (UTC-5)
+    - cron: '0 14 * * *'   # 9:00 AM Lima (UTC-5) todos los días
+  workflow_dispatch:        # ejecución manual desde GitHub
 
-permissions:
-  contents: write
+env:
+  OUTPUT_DIR:        data
+  MAX_PAGES_IMPORT:  "5"    # páginas por query en fuentes de importación
+  MAX_PAGES_COMP:    "30"   # páginas por query en fuentes de competencia
+  DELAY_REQ:         "2.5"
+  DELAY_CAT:         "5.0"
+  EBAY_APP_ID:       ${{ secrets.EBAY_APP_ID }}   # opcional
 
 jobs:
-  scraping_batch:
+  scrape:
     runs-on: ubuntu-latest
     timeout-minutes: 90
 
     steps:
-
-      - name: 1 Checkout repositorio
+      # ── 1. Checkout ──────────────────────────────────────────────────────
+      - name: Checkout repo
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: 2 Configurar Python 3.11
+      # ── 2. Python ────────────────────────────────────────────────────────
+      - name: Setup Python 3.11
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
-          cache: 'pip'
+          python-version: "3.11"
+          cache: pip
 
-      - name: 3 Instalar dependencias
+      - name: Instalar dependencias
         run: pip install -r requirements.txt
 
-      - name: 4 Verificar configuracion
+      # ── 3. Crear carpeta data ─────────────────────────────────────────────
+      - name: Preparar carpeta data
+        run: mkdir -p data
+
+      # ── 4. Ejecutar scraper completo ──────────────────────────────────────
+      - name: Run pipeline completo
+        id: pipeline
         run: |
-          python - <<'EOF'
-          import sys
-          sys.path.insert(0, "agent")
-          try:
-              from scraper import BatchOrchestrator, CATEGORIES
-              print(f"OK scraper importado | categorias: {list(CATEGORIES.keys())}")
-          except Exception as e:
-              print(f"ERROR: {e}")
-              sys.exit(1)
-          try:
-              import pandas as pd
-              print(f"OK pandas v{pd.__version__}")
-          except ImportError:
-              print("WARN pandas no instalado")
-          print("Verificacion completada")
-          EOF
+          python main.py --only ambos 2>&1 | tee data/pipeline.log
+          # Capturar outputs
+          BATCH_ID=$(grep "^BATCH_ID=" data/pipeline.log | tail -1 | cut -d= -f2)
+          TOTAL_IMPORT=$(grep "^TOTAL_IMPORT=" data/pipeline.log | tail -1 | cut -d= -f2)
+          TOTAL_COMP=$(grep "^TOTAL_COMP=" data/pipeline.log | tail -1 | cut -d= -f2)
+          TC=$(grep "^TIPO_CAMBIO=" data/pipeline.log | tail -1 | cut -d= -f2)
+          echo "batch_id=$BATCH_ID"       >> $GITHUB_OUTPUT
+          echo "total_import=$TOTAL_IMPORT" >> $GITHUB_OUTPUT
+          echo "total_comp=$TOTAL_COMP"   >> $GITHUB_OUTPUT
+          echo "tipo_cambio=$TC"          >> $GITHUB_OUTPUT
 
-      - name: 5 Detectar fuentes disponibles
-        id: sources
+      # ── 5. Estadísticas del master.csv ────────────────────────────────────
+      - name: Stats master.csv
         run: |
-          if [ -n "${{ secrets.ML_APP_ID }}" ] && [ -n "${{ secrets.ML_SECRET }}" ]; then
-            SOURCES="mercadolibre falabella hiraoka"
-            echo "ML secrets: PRESENTES"
-          else
-            SOURCES="${{ github.event.inputs.sources || 'falabella hiraoka' }}"
-            echo "ML secrets: AUSENTES → usando solo $SOURCES"
-          fi
-          echo "sources=$SOURCES" >> $GITHUB_OUTPUT
-          echo "Fuentes activas: $SOURCES"
-
-      # ── DEBUG TEMPORAL: ver estructura HTML real de Falabella ──
-      # Quitar este step una vez confirmado el parser correcto
-      - name: 5b DEBUG Falabella estructura HTML
-        continue-on-error: true
-        run: |
-          python - <<'EOF'
-          import requests, json, sys
-          from bs4 import BeautifulSoup
-
-          url = ("https://www.falabella.com.pe/falabella-pe/search"
-                 "?Ntt=procesador+cpu&start=0")
-          headers = {
-              "User-Agent"     : "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124.0 Safari/537.36",
-              "Accept-Language": "es-PE,es;q=0.9",
-              "Accept"         : "text/html,application/xhtml+xml,*/*;q=0.8",
-              "Referer"        : "https://www.google.com/",
-          }
-          print(f"Consultando: {url}")
-          r    = requests.get(url, headers=headers, timeout=30)
-          print(f"HTTP Status: {r.status_code} | Size: {len(r.text)} chars")
-          soup = BeautifulSoup(r.text, "lxml")
-
-          # 1. Verificar __NEXT_DATA__
-          tag = soup.find("script", id="__NEXT_DATA__")
-          if tag and tag.string:
-              print(f"\n[OK] __NEXT_DATA__ ENCONTRADO ({len(tag.string)} chars)")
-              data = json.loads(tag.string)
-              print(f"Keys raiz: {list(data.keys())}")
-
-              # Buscar claves con 'price' en todo el JSON
-              def find_price_keys(obj, path="", depth=0):
-                  if depth > 8: return
-                  if isinstance(obj, dict):
-                      for k, v in obj.items():
-                          full = f"{path}.{k}"
-                          if any(x in k.lower() for x in ["price","precio"]):
-                              print(f"  PRICE_KEY: {full} = {str(v)[:100]}")
-                          find_price_keys(v, full, depth+1)
-                  elif isinstance(obj, list) and obj:
-                      find_price_keys(obj[0], f"{path}[0]", depth+1)
-
-              find_price_keys(data)
-
-              # Guardar dump completo para inspección
-              with open("next_data_dump.json", "w", encoding="utf-8") as f:
-                  json.dump(data, f, ensure_ascii=False, indent=2)
-              print("\n[OK] Dump guardado en next_data_dump.json")
-          else:
-              print("\n[WARN] __NEXT_DATA__ NO encontrado")
-              # Ver scripts disponibles
-              scripts = soup.find_all("script")
-              print(f"Total scripts en pagina: {len(scripts)}")
-              for i, s in enumerate(scripts[:8]):
-                  print(f"  script[{i}]: id={s.get('id','')} "
-                        f"type={s.get('type','')} "
-                        f"len={len(s.string or '')}")
-
-              # Ver cards HTML
-              cards = (soup.select("div[class*='pod-']") or
-                       soup.select("li.grid-pod") or
-                       soup.select("div.pod"))
-              print(f"\nCards HTML encontradas: {len(cards)}")
-              if cards:
-                  print("\n=== HTML PRIMERA CARD (primeros 1500 chars) ===")
-                  print(cards[0].prettify()[:1500])
-          EOF
-
-      - name: 5c DEBUG Mostrar primeras lineas del dump
-        continue-on-error: true
-        run: |
-          if [ -f "next_data_dump.json" ]; then
-            echo "=== DUMP __NEXT_DATA__ (primeras 80 lineas) ==="
-            head -80 next_data_dump.json
-            echo "..."
-            echo "Tamaño total: $(wc -c < next_data_dump.json) bytes"
-          else
-            echo "No se genero dump (ver step anterior)"
+          echo "=== MASTER CSV ==="
+          if [ -f data/master.csv ]; then
+            echo "Total filas: $(wc -l < data/master.csv)"
+            echo "Items IMPORTAR_AHORA:"
+            grep -c "IMPORTAR_AHORA" data/master.csv || echo "0"
+            echo "Top 5 ROI más alto:"
+            python3 -c "
+          import csv
+          rows = []
+          with open('data/master.csv') as f:
+              for r in csv.DictReader(f):
+                  try:
+                      rows.append((float(r.get('roi_pct',0)), r.get('title','')[:50], r.get('source',''), r.get('category','')))
+                  except: pass
+          rows.sort(reverse=True)
+          for roi, title, src, cat in rows[:5]:
+              print(f'  ROI {roi:.1f}% | {cat} | {src} | {title}')
+          "
           fi
 
-      - name: 6 Ejecutar batch de scraping
-        run: |
-          PAGES="${{ github.event.inputs.pages || '3' }}"
-          SOURCES="${{ steps.sources.outputs.sources }}"
-          echo "Ejecutando scraping con PAGES=$PAGES SOURCES=$SOURCES"
-          read -ra SOURCES_ARRAY <<< "$SOURCES"
-          python agent/main.py --batch --pages "$PAGES" --sources "${SOURCES_ARRAY[@]}"
-        env:
-          PYTHONUNBUFFERED: "1"
-          ML_APP_ID: ${{ secrets.ML_APP_ID }}
-          ML_SECRET: ${{ secrets.ML_SECRET }}
-
-      - name: 7 Verificar CSV generado
-        run: |
-          if [ -f "data/raw/MASTER_hardware_peru.csv" ]; then
-            echo "✅ Master CSV encontrado"
-            wc -l data/raw/MASTER_hardware_peru.csv
-            echo "--- Primeras 3 filas ---"
-            head -4 data/raw/MASTER_hardware_peru.csv
-          else
-            echo "⚠️  Master CSV no encontrado"
-          fi
-          echo "--- Archivos en data/raw/ ---"
-          ls -lh data/raw/ 2>/dev/null || echo "Directorio vacio"
-
-      - name: 8 Commit y push de datos
+      # ── 6. Commit y push de datos ─────────────────────────────────────────
+      - name: Commit data
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/raw/ logs/ || true
-          if git diff --staged --quiet; then
-            echo "Sin cambios nuevos"
-          else
-            TIMESTAMP=$(date -u '+%Y-%m-%d %H:%M UTC')
-            git commit -m "data: batch automatico $TIMESTAMP [skip ci]"
-            git push
-          fi
+          git add data/
+          git diff --staged --quiet || git commit -m "📦 batch ${{ steps.pipeline.outputs.batch_id }} | import=${{ steps.pipeline.outputs.total_import }} comp=${{ steps.pipeline.outputs.total_comp }} TC=${{ steps.pipeline.outputs.tipo_cambio }}"
+          git push
 
-      - name: 9 Estadisticas finales
-        if: always()
-        run: python agent/main.py --stats || echo "Stats no disponibles"
+      # ── 7. Summary en GitHub Actions ─────────────────────────────────────
+      - name: Job Summary
+        run: |
+          echo "## 📊 Batch ${{ steps.pipeline.outputs.batch_id }}" >> $GITHUB_STEP_SUMMARY
+          echo "| Métrica | Valor |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|---|" >> $GITHUB_STEP_SUMMARY
+          echo "| Items importación | ${{ steps.pipeline.outputs.total_import }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Items competencia | ${{ steps.pipeline.outputs.total_comp }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Tipo de cambio | ${{ steps.pipeline.outputs.tipo_cambio }} |" >> $GITHUB_STEP_SUMMARY
