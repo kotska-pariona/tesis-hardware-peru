@@ -61,7 +61,6 @@ jobs:
       - name: 5 Detectar fuentes disponibles
         id: sources
         run: |
-          # Si hay secrets ML configurados, incluir mercadolibre
           if [ -n "${{ secrets.ML_APP_ID }}" ] && [ -n "${{ secrets.ML_SECRET }}" ]; then
             SOURCES="mercadolibre falabella hiraoka"
             echo "ML secrets: PRESENTES"
@@ -72,12 +71,90 @@ jobs:
           echo "sources=$SOURCES" >> $GITHUB_OUTPUT
           echo "Fuentes activas: $SOURCES"
 
+      # ── DEBUG TEMPORAL: ver estructura HTML real de Falabella ──
+      # Quitar este step una vez confirmado el parser correcto
+      - name: 5b DEBUG Falabella estructura HTML
+        continue-on-error: true
+        run: |
+          python - <<'EOF'
+          import requests, json, sys
+          from bs4 import BeautifulSoup
+
+          url = ("https://www.falabella.com.pe/falabella-pe/search"
+                 "?Ntt=procesador+cpu&start=0")
+          headers = {
+              "User-Agent"     : "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124.0 Safari/537.36",
+              "Accept-Language": "es-PE,es;q=0.9",
+              "Accept"         : "text/html,application/xhtml+xml,*/*;q=0.8",
+              "Referer"        : "https://www.google.com/",
+          }
+          print(f"Consultando: {url}")
+          r    = requests.get(url, headers=headers, timeout=30)
+          print(f"HTTP Status: {r.status_code} | Size: {len(r.text)} chars")
+          soup = BeautifulSoup(r.text, "lxml")
+
+          # 1. Verificar __NEXT_DATA__
+          tag = soup.find("script", id="__NEXT_DATA__")
+          if tag and tag.string:
+              print(f"\n[OK] __NEXT_DATA__ ENCONTRADO ({len(tag.string)} chars)")
+              data = json.loads(tag.string)
+              print(f"Keys raiz: {list(data.keys())}")
+
+              # Buscar claves con 'price' en todo el JSON
+              def find_price_keys(obj, path="", depth=0):
+                  if depth > 8: return
+                  if isinstance(obj, dict):
+                      for k, v in obj.items():
+                          full = f"{path}.{k}"
+                          if any(x in k.lower() for x in ["price","precio"]):
+                              print(f"  PRICE_KEY: {full} = {str(v)[:100]}")
+                          find_price_keys(v, full, depth+1)
+                  elif isinstance(obj, list) and obj:
+                      find_price_keys(obj[0], f"{path}[0]", depth+1)
+
+              find_price_keys(data)
+
+              # Guardar dump completo para inspección
+              with open("next_data_dump.json", "w", encoding="utf-8") as f:
+                  json.dump(data, f, ensure_ascii=False, indent=2)
+              print("\n[OK] Dump guardado en next_data_dump.json")
+          else:
+              print("\n[WARN] __NEXT_DATA__ NO encontrado")
+              # Ver scripts disponibles
+              scripts = soup.find_all("script")
+              print(f"Total scripts en pagina: {len(scripts)}")
+              for i, s in enumerate(scripts[:8]):
+                  print(f"  script[{i}]: id={s.get('id','')} "
+                        f"type={s.get('type','')} "
+                        f"len={len(s.string or '')}")
+
+              # Ver cards HTML
+              cards = (soup.select("div[class*='pod-']") or
+                       soup.select("li.grid-pod") or
+                       soup.select("div.pod"))
+              print(f"\nCards HTML encontradas: {len(cards)}")
+              if cards:
+                  print("\n=== HTML PRIMERA CARD (primeros 1500 chars) ===")
+                  print(cards[0].prettify()[:1500])
+          EOF
+
+      - name: 5c DEBUG Mostrar primeras lineas del dump
+        continue-on-error: true
+        run: |
+          if [ -f "next_data_dump.json" ]; then
+            echo "=== DUMP __NEXT_DATA__ (primeras 80 lineas) ==="
+            head -80 next_data_dump.json
+            echo "..."
+            echo "Tamaño total: $(wc -c < next_data_dump.json) bytes"
+          else
+            echo "No se genero dump (ver step anterior)"
+          fi
+
       - name: 6 Ejecutar batch de scraping
         run: |
           PAGES="${{ github.event.inputs.pages || '3' }}"
           SOURCES="${{ steps.sources.outputs.sources }}"
           echo "Ejecutando scraping con PAGES=$PAGES SOURCES=$SOURCES"
-          # Convertir string a array para pasar correctamente a --sources
           read -ra SOURCES_ARRAY <<< "$SOURCES"
           python agent/main.py --batch --pages "$PAGES" --sources "${SOURCES_ARRAY[@]}"
         env:
