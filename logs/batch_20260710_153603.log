@@ -1,0 +1,141 @@
+2026-07-10 15:36:03,758 [INFO    ] AgentIA.20260710_153603 - ======================================================================
+2026-07-10 15:36:03,759 [INFO    ] AgentIA.20260710_153603 - BATCH 20260710_153603 INICIADO
+2026-07-10 15:36:03,759 [INFO    ] AgentIA.20260710_153603 - Categorias : ['CPU', 'GPU', 'RAM', 'SSD', 'MOTHERBOARD', 'PSU', 'COOLER', 'CASE']
+2026-07-10 15:36:03,759 [INFO    ] AgentIA.20260710_153603 - Fuentes    : ['mercadolibre', 'falabella', 'hiraoka']
+2026-07-10 15:36:03,759 [INFO    ] AgentIA.20260710_153603 - Max paginas: 3
+2026-07-10 15:36:03,759 [INFO    ] AgentIA.20260710_153603 - ======================================================================
+2026-07-10 15:36:03,759 [INFO    ] AgentIA.20260710_153603 - [ML-API] Scrapeando CPU - hasta 3 paginas
+2026-07-10 15:36:04,002 [INFO    ] AgentIA.20260710_153603 - [ML-OAuth] Token obtenido OK (expira en 21600s)
+2026-07-10 15:36:04,110 [WARNING ] AgentIA.20260710_153603 - HTTP 403 en https://api.mercadolibre.com/sites/MPE/search. Intento 1/3
+2026-07-10 15:36:19,456 [WARNING ] AgentIA.20260710_153603 - HTTP 403 en https://api.mercadolibre.com/sites/MPE/search. Intento 2/3
+2026-07-10 15:36:42,060 [WARNING ] AgentIA.20260710_153603 - HTTP 403 en https://api.mercadolibre.com/sites/MPE/search. Intento 3/3
+2026-07-10 15:36:42,060 [WARNING ] AgentIA.20260710_153603 - [ML-API] Sin respuesta en pagina 1
+2026-07-10 15:36:42,060 [INFO    ] AgentIA.20260710_153603 - [ML-API] CPU TOTAL: 0 items
+2026-07-10 15:36:42,060 [INFO    ] AgentIA.20260710_153603 -   OK mercadolibre    ->    0 items brutos
+2026-07-10 15:36:43,398 [INFO    ] AgentIA.20260710_153603 - [Falabella] Scrapeando CPU
+2026-07-10 15:36:45,114 [INFO    ] AgentIA.20260710_153603 - [Falabella] CPU pag 1: 4 items (total: 4)
+2026-07-10 15:36:50,310 [INFO    ] AgentIA.20260710_153603 - [Falabella] CPU pag 2: 4 items (total: 8)
+2026-07-10 15:36:54,577 [INFO    ] AgentIA.20260710_153603 - [Falabella] CPU pag 3: 4 items (total: 12)
+2026-07-10 15:36:54,577 [INFO    ] AgentIA.20260710_153603 -   OK falabella       ->   12 items brutos
+2026-07-10 15:36:56,206 [INFO    ] AgentIA.20260710_153603 - [Hiraoka] Scrapeando CPU
+2026-07-10 15:36:59,682 [INFO    ] AgentIA.20260710_153603 - [Hiraoka] CPU pag 1: 0 items (total: 0)
+2026-07-10 15:36:59,682 [INFO    ] AgentIA.20260710_153603 -   OK hiraoka         ->    0 items brutos
+2026-07-10 15:36:59,682 [INFO    ] AgentIA.20260710_153603 - [CPU] Total categoria: 12 items
+2026-07-10 15:37:08,741 [INFO    ] AgentIA.20260710_153603 - [ML-API] Scrapeando GPU - hasta 3 paginas
+2026-07-10 15:37:08,785 [WARNING ] AgentIA.20260710_153603 - HTTP 403 en https://api.mercadolibre.com/sites/MPE/search. Intento 1/3
+2026-07-10 15:37:21,709 [WARNING ] AgentIA.20260710_153603 - HTTP 403 en https://api.mercadolibre.com/sites/MPE/search. Intento 2/3
+2026-07-10 15:37:52,324 [WARNING ] AgentIA.20260710_153603 - HTTP 403 en https://api.mercadolibre.com/sites/MPE/search. Intento 3/3
+2026-07-10 15:37:52,324 [WARNING ] AgentIA.20260710_153603 - [ML-API] Sin respuesta en pagina 1
+2026-07-10 15:37:52,324 [INFO    ] AgentIA.20260710_153603 - [ML-API] GPU TOTAL: 0 items
+2026-07-10 15:37:52,324 [INFO    ] AgentIA.20260710_153603 -   OK mercadolibre    ->    0 items brutos
+2026-07-10 15:37:54,717 [INFO    ] AgentIA.20260710_153603 - [Falabella] Scrapeando GPU
+2026-07-10 15:37:55,430 [INFO    ] AgentIA.20260710_153603 - [Falabella] GPU pag 1: 9 items (total: 9)
+2026-07-10 15:37:59,008 [INFO    ] AgentIA.20260710_153603 - [Falabella] GPU pag 2: 9 items (total: 18)
+2026-07-10 15:38:02,460 [INFO    ] AgentIA.20260710_153603 - [Falabella] GPU pag 3: 9 items (total: 27)
+2026-07-10 15:38:02,461 [INFO    ] AgentIA.20260710_153603 -   OK falabella       ->   27 items brutos
+2026-07-10 15:38:04,573 [INFO    ] AgentIA.20260710_153603 - [Hiraoka] Scrapeando GPU
+2026-07-10 15:38:08,292 [INFO    ] AgentIA.20260710_153603 - [Hiraoka] GPU pag 1: 0 items (total: 0)
+2026-07-10 15:38:08,292 [INFO    ] AgentIA.20260710_153603 -   OK hiraoka         ->    0 items brutos
+2026-07-10 15:38:08,292 [INFO    ] AgentIA.20260710_153603 - [GPU] Total categoria: 27 items
+2026-07-10 15:38:16,640 [INFO    ] AgentIA.20260710_153603 - [ML-API] Scrapeando RAM - hasta 3 paginas
+2026-07-10 15:38:16,685 [WARNING ] AgentIA.20260710_153603 - HTTP 403 en https://api.mercadolibre.com/sites/MPE/search. Intento 1/3
+2026-07-10 15:38:31,116 [WARNING ] AgentIA.20260710_153603 - HTTP 403 en https://api.mercadolibre.com/sites/MPE/search. Intento 2/3
+2026-07-10 15:38:55,354 [WARNING ] AgentIA.20260710_153603 - HTTP 403 en https://api.mercadolibre.com/sites/MPE/search. Intento 3/3
+2026-07-10 15:38:55,354 [WARNING ] AgentIA.20260710_153603 - [ML-API] Sin respuesta en pagina 1
+2026-07-10 15:38:55,354 [INFO    ] AgentIA.20260710_153603 - [ML-API] RAM TOTAL: 0 items
+2026-07-10 15:38:55,354 [INFO    ] AgentIA.20260710_153603 -   OK mercadolibre    ->    0 items brutos
+2026-07-10 15:38:56,519 [INFO    ] AgentIA.20260710_153603 - [Falabella] Scrapeando RAM
+2026-07-10 15:38:57,836 [INFO    ] AgentIA.20260710_153603 - [Falabella] RAM pag 1: 14 items (total: 14)
+2026-07-10 15:39:02,566 [INFO    ] AgentIA.20260710_153603 - [Falabella] RAM pag 2: 14 items (total: 28)
+2026-07-10 15:39:06,944 [INFO    ] AgentIA.20260710_153603 - [Falabella] RAM pag 3: 14 items (total: 42)
+2026-07-10 15:39:06,945 [INFO    ] AgentIA.20260710_153603 -   OK falabella       ->   42 items brutos
+2026-07-10 15:39:08,357 [INFO    ] AgentIA.20260710_153603 - [Hiraoka] Scrapeando RAM
+2026-07-10 15:39:12,012 [INFO    ] AgentIA.20260710_153603 - [Hiraoka] RAM pag 1: 0 items (total: 0)
+2026-07-10 15:39:12,012 [INFO    ] AgentIA.20260710_153603 -   OK hiraoka         ->    0 items brutos
+2026-07-10 15:39:12,012 [INFO    ] AgentIA.20260710_153603 - [RAM] Total categoria: 42 items
+2026-07-10 15:39:18,566 [INFO    ] AgentIA.20260710_153603 - [ML-API] Scrapeando SSD - hasta 3 paginas
+2026-07-10 15:39:18,606 [WARNING ] AgentIA.20260710_153603 - HTTP 403 en https://api.mercadolibre.com/sites/MPE/search. Intento 1/3
+2026-07-10 15:39:29,294 [WARNING ] AgentIA.20260710_153603 - HTTP 403 en https://api.mercadolibre.com/sites/MPE/search. Intento 2/3
+2026-07-10 15:40:03,490 [WARNING ] AgentIA.20260710_153603 - HTTP 403 en https://api.mercadolibre.com/sites/MPE/search. Intento 3/3
+2026-07-10 15:40:03,490 [WARNING ] AgentIA.20260710_153603 - [ML-API] Sin respuesta en pagina 1
+2026-07-10 15:40:03,490 [INFO    ] AgentIA.20260710_153603 - [ML-API] SSD TOTAL: 0 items
+2026-07-10 15:40:03,490 [INFO    ] AgentIA.20260710_153603 -   OK mercadolibre    ->    0 items brutos
+2026-07-10 15:40:04,834 [INFO    ] AgentIA.20260710_153603 - [Falabella] Scrapeando SSD
+2026-07-10 15:40:06,109 [INFO    ] AgentIA.20260710_153603 - [Falabella] SSD pag 1: 11 items (total: 11)
+2026-07-10 15:40:09,754 [INFO    ] AgentIA.20260710_153603 - [Falabella] SSD pag 2: 11 items (total: 22)
+2026-07-10 15:40:14,645 [INFO    ] AgentIA.20260710_153603 - [Falabella] SSD pag 3: 11 items (total: 33)
+2026-07-10 15:40:14,645 [INFO    ] AgentIA.20260710_153603 -   OK falabella       ->   33 items brutos
+2026-07-10 15:40:17,064 [INFO    ] AgentIA.20260710_153603 - [Hiraoka] Scrapeando SSD
+2026-07-10 15:40:20,412 [INFO    ] AgentIA.20260710_153603 - [Hiraoka] SSD pag 1: 0 items (total: 0)
+2026-07-10 15:40:20,412 [INFO    ] AgentIA.20260710_153603 -   OK hiraoka         ->    0 items brutos
+2026-07-10 15:40:20,412 [INFO    ] AgentIA.20260710_153603 - [SSD] Total categoria: 33 items
+2026-07-10 15:40:25,664 [INFO    ] AgentIA.20260710_153603 - [ML-API] Scrapeando MOTHERBOARD - hasta 3 paginas
+2026-07-10 15:40:25,708 [WARNING ] AgentIA.20260710_153603 - HTTP 403 en https://api.mercadolibre.com/sites/MPE/search. Intento 1/3
+2026-07-10 15:40:41,389 [WARNING ] AgentIA.20260710_153603 - HTTP 403 en https://api.mercadolibre.com/sites/MPE/search. Intento 2/3
+2026-07-10 15:41:17,921 [WARNING ] AgentIA.20260710_153603 - HTTP 403 en https://api.mercadolibre.com/sites/MPE/search. Intento 3/3
+2026-07-10 15:41:17,921 [WARNING ] AgentIA.20260710_153603 - [ML-API] Sin respuesta en pagina 1
+2026-07-10 15:41:17,921 [INFO    ] AgentIA.20260710_153603 - [ML-API] MOTHERBOARD TOTAL: 0 items
+2026-07-10 15:41:17,921 [INFO    ] AgentIA.20260710_153603 -   OK mercadolibre    ->    0 items brutos
+2026-07-10 15:41:20,140 [INFO    ] AgentIA.20260710_153603 - [Falabella] Scrapeando MOTHERBOARD
+2026-07-10 15:41:20,781 [INFO    ] AgentIA.20260710_153603 - [Falabella] MOTHERBOARD pag 1: 16 items (total: 16)
+2026-07-10 15:41:23,750 [INFO    ] AgentIA.20260710_153603 - [Falabella] MOTHERBOARD pag 2: 14 items (total: 30)
+2026-07-10 15:41:29,222 [INFO    ] AgentIA.20260710_153603 - [Falabella] MOTHERBOARD pag 3: 16 items (total: 46)
+2026-07-10 15:41:29,222 [INFO    ] AgentIA.20260710_153603 -   OK falabella       ->   46 items brutos
+2026-07-10 15:41:31,263 [INFO    ] AgentIA.20260710_153603 - [Hiraoka] Scrapeando MOTHERBOARD
+2026-07-10 15:41:35,241 [INFO    ] AgentIA.20260710_153603 - [Hiraoka] MOTHERBOARD pag 1: 0 items (total: 0)
+2026-07-10 15:41:35,242 [INFO    ] AgentIA.20260710_153603 -   OK hiraoka         ->    0 items brutos
+2026-07-10 15:41:35,242 [INFO    ] AgentIA.20260710_153603 - [MOTHERBOARD] Total categoria: 46 items
+2026-07-10 15:41:44,519 [INFO    ] AgentIA.20260710_153603 - [ML-API] Scrapeando PSU - hasta 3 paginas
+2026-07-10 15:41:44,563 [WARNING ] AgentIA.20260710_153603 - HTTP 403 en https://api.mercadolibre.com/sites/MPE/search. Intento 1/3
+2026-07-10 15:42:00,866 [WARNING ] AgentIA.20260710_153603 - HTTP 403 en https://api.mercadolibre.com/sites/MPE/search. Intento 2/3
+2026-07-10 15:42:37,314 [WARNING ] AgentIA.20260710_153603 - HTTP 403 en https://api.mercadolibre.com/sites/MPE/search. Intento 3/3
+2026-07-10 15:42:37,315 [WARNING ] AgentIA.20260710_153603 - [ML-API] Sin respuesta en pagina 1
+2026-07-10 15:42:37,315 [INFO    ] AgentIA.20260710_153603 - [ML-API] PSU TOTAL: 0 items
+2026-07-10 15:42:37,315 [INFO    ] AgentIA.20260710_153603 -   OK mercadolibre    ->    0 items brutos
+2026-07-10 15:42:39,427 [INFO    ] AgentIA.20260710_153603 - [Falabella] Scrapeando PSU
+2026-07-10 15:42:40,759 [INFO    ] AgentIA.20260710_153603 - [Falabella] PSU pag 1: 5 items (total: 5)
+2026-07-10 15:42:44,323 [INFO    ] AgentIA.20260710_153603 - [Falabella] PSU pag 2: 5 items (total: 10)
+2026-07-10 15:42:49,722 [INFO    ] AgentIA.20260710_153603 - [Falabella] PSU pag 3: 5 items (total: 15)
+2026-07-10 15:42:49,722 [INFO    ] AgentIA.20260710_153603 -   OK falabella       ->   15 items brutos
+2026-07-10 15:42:52,152 [INFO    ] AgentIA.20260710_153603 - [Hiraoka] Scrapeando PSU
+2026-07-10 15:42:55,918 [INFO    ] AgentIA.20260710_153603 - [Hiraoka] PSU pag 1: 0 items (total: 0)
+2026-07-10 15:42:55,918 [INFO    ] AgentIA.20260710_153603 -   OK hiraoka         ->    0 items brutos
+2026-07-10 15:42:55,918 [INFO    ] AgentIA.20260710_153603 - [PSU] Total categoria: 15 items
+2026-07-10 15:43:02,375 [INFO    ] AgentIA.20260710_153603 - [ML-API] Scrapeando COOLER - hasta 3 paginas
+2026-07-10 15:43:02,421 [WARNING ] AgentIA.20260710_153603 - HTTP 403 en https://api.mercadolibre.com/sites/MPE/search. Intento 1/3
+2026-07-10 15:43:12,520 [WARNING ] AgentIA.20260710_153603 - HTTP 403 en https://api.mercadolibre.com/sites/MPE/search. Intento 2/3
+2026-07-10 15:43:38,110 [WARNING ] AgentIA.20260710_153603 - HTTP 403 en https://api.mercadolibre.com/sites/MPE/search. Intento 3/3
+2026-07-10 15:43:38,110 [WARNING ] AgentIA.20260710_153603 - [ML-API] Sin respuesta en pagina 1
+2026-07-10 15:43:38,110 [INFO    ] AgentIA.20260710_153603 - [ML-API] COOLER TOTAL: 0 items
+2026-07-10 15:43:38,110 [INFO    ] AgentIA.20260710_153603 -   OK mercadolibre    ->    0 items brutos
+2026-07-10 15:43:40,500 [INFO    ] AgentIA.20260710_153603 - [Falabella] Scrapeando COOLER
+2026-07-10 15:43:41,294 [INFO    ] AgentIA.20260710_153603 - [Falabella] COOLER pag 1: 8 items (total: 8)
+2026-07-10 15:43:46,663 [INFO    ] AgentIA.20260710_153603 - [Falabella] COOLER pag 2: 8 items (total: 16)
+2026-07-10 15:43:49,945 [INFO    ] AgentIA.20260710_153603 - [Falabella] COOLER pag 3: 8 items (total: 24)
+2026-07-10 15:43:49,945 [INFO    ] AgentIA.20260710_153603 -   OK falabella       ->   24 items brutos
+2026-07-10 15:43:52,690 [INFO    ] AgentIA.20260710_153603 - [Hiraoka] Scrapeando COOLER
+2026-07-10 15:43:57,023 [INFO    ] AgentIA.20260710_153603 - [Hiraoka] COOLER pag 1: 0 items (total: 0)
+2026-07-10 15:43:57,023 [INFO    ] AgentIA.20260710_153603 -   OK hiraoka         ->    0 items brutos
+2026-07-10 15:43:57,023 [INFO    ] AgentIA.20260710_153603 - [COOLER] Total categoria: 24 items
+2026-07-10 15:44:04,050 [INFO    ] AgentIA.20260710_153603 - [ML-API] Scrapeando CASE - hasta 3 paginas
+2026-07-10 15:44:04,096 [WARNING ] AgentIA.20260710_153603 - HTTP 403 en https://api.mercadolibre.com/sites/MPE/search. Intento 1/3
+2026-07-10 15:44:16,774 [WARNING ] AgentIA.20260710_153603 - HTTP 403 en https://api.mercadolibre.com/sites/MPE/search. Intento 2/3
+2026-07-10 15:44:39,544 [WARNING ] AgentIA.20260710_153603 - HTTP 403 en https://api.mercadolibre.com/sites/MPE/search. Intento 3/3
+2026-07-10 15:44:39,544 [WARNING ] AgentIA.20260710_153603 - [ML-API] Sin respuesta en pagina 1
+2026-07-10 15:44:39,544 [INFO    ] AgentIA.20260710_153603 - [ML-API] CASE TOTAL: 0 items
+2026-07-10 15:44:39,544 [INFO    ] AgentIA.20260710_153603 -   OK mercadolibre    ->    0 items brutos
+2026-07-10 15:44:40,986 [INFO    ] AgentIA.20260710_153603 - [Falabella] Scrapeando CASE
+2026-07-10 15:44:42,208 [INFO    ] AgentIA.20260710_153603 - [Falabella] CASE pag 1: 9 items (total: 9)
+2026-07-10 15:44:45,648 [INFO    ] AgentIA.20260710_153603 - [Falabella] CASE pag 2: 9 items (total: 18)
+2026-07-10 15:44:48,333 [INFO    ] AgentIA.20260710_153603 - [Falabella] CASE pag 3: 9 items (total: 27)
+2026-07-10 15:44:48,333 [INFO    ] AgentIA.20260710_153603 -   OK falabella       ->   27 items brutos
+2026-07-10 15:44:50,918 [INFO    ] AgentIA.20260710_153603 - [Hiraoka] Scrapeando CASE
+2026-07-10 15:44:54,918 [INFO    ] AgentIA.20260710_153603 - [Hiraoka] CASE pag 1: 0 items (total: 0)
+2026-07-10 15:44:54,918 [INFO    ] AgentIA.20260710_153603 -   OK hiraoka         ->    0 items brutos
+2026-07-10 15:44:54,918 [INFO    ] AgentIA.20260710_153603 - [CASE] Total categoria: 27 items
+2026-07-10 15:44:54,923 [INFO    ] AgentIA.20260710_153603 - Batch guardado: /home/runner/work/tesis-hardware-peru/tesis-hardware-peru/data/raw/batch_20260710_153603.csv (226 items)
+2026-07-10 15:44:54,925 [INFO    ] AgentIA.20260710_153603 - Master actualizado: /home/runner/work/tesis-hardware-peru/tesis-hardware-peru/data/raw/MASTER_hardware_peru.csv (96 registros totales, +1 nuevos)
+2026-07-10 15:44:54,925 [INFO    ] AgentIA.20260710_153603 - ======================================================================
+2026-07-10 15:44:54,925 [INFO    ] AgentIA.20260710_153603 - BATCH 20260710_153603 COMPLETADO en 531.2s
+2026-07-10 15:44:54,926 [INFO    ] AgentIA.20260710_153603 - Items este batch : 226
+2026-07-10 15:44:54,926 [INFO    ] AgentIA.20260710_153603 - ======================================================================
