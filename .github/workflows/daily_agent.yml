@@ -33,9 +33,7 @@ jobs:
           cache: 'pip'
 
       - name: 3 Instalar dependencias
-        run: |
-          python -m pip install --upgrade pip
-          pip install requests beautifulsoup4 lxml fake-useragent pandas schedule
+        run: pip install -r requirements.txt
 
       - name: 4 Verificar configuracion
         run: python agent/main.py --test
@@ -51,11 +49,11 @@ jobs:
       - name: 6 Verificar CSV generado
         run: |
           if [ -f "data/raw/MASTER_hardware_peru.csv" ]; then
-            echo "✅ Master CSV encontrado"
+            echo "Master CSV encontrado"
             wc -l data/raw/MASTER_hardware_peru.csv
             head -2 data/raw/MASTER_hardware_peru.csv
           else
-            echo "⚠️ Master CSV no encontrado - revisar logs"
+            echo "Master CSV no encontrado - revisar logs"
           fi
           ls -la data/raw/ 2>/dev/null || echo "Directorio data/raw vacio"
 
@@ -70,7 +68,7 @@ jobs:
             TIMESTAMP=$(date -u '+%Y-%m-%d %H:%M UTC')
             git commit -m "data: batch automatico $TIMESTAMP [skip ci]"
             git push
-            echo "✅ Datos pusheados exitosamente"
+            echo "Datos pusheados exitosamente"
           fi
 
       - name: 8 Estadisticas finales
