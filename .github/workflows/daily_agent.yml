@@ -2,6 +2,11 @@ name: Agente Tesis - Batch 24h
 
 on:
   workflow_dispatch:
+    inputs:
+      pages:
+        description: 'Paginas por categoria (2=rapido, 20=completo)'
+        required: false
+        default: '3'
   schedule:
     - cron: '0 7 * * *'
 
@@ -11,6 +16,63 @@ permissions:
 jobs:
   scraping_batch:
     runs-on: ubuntu-latest
+    timeout-minutes: 90
+
     steps:
-      - name: Test
-        run: echo "Workflow funcionando"
+
+      - name: 1 Checkout repositorio
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 2 Configurar Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: 3 Instalar dependencias
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests beautifulsoup4 lxml fake-useragent pandas schedule
+
+      - name: 4 Verificar configuracion
+        run: python agent/main.py --test
+
+      - name: 5 Ejecutar batch de scraping
+        run: |
+          PAGES=${{ github.event.inputs.pages || '3' }}
+          echo "Ejecutando scraping con PAGES=$PAGES"
+          python agent/main.py --batch --pages $PAGES
+        env:
+          PYTHONUNBUFFERED: "1"
+
+      - name: 6 Verificar CSV generado
+        run: |
+          if [ -f "data/raw/MASTER_hardware_peru.csv" ]; then
+            echo "✅ Master CSV encontrado"
+            wc -l data/raw/MASTER_hardware_peru.csv
+            head -2 data/raw/MASTER_hardware_peru.csv
+          else
+            echo "⚠️ Master CSV no encontrado - revisar logs"
+          fi
+          ls -la data/raw/ 2>/dev/null || echo "Directorio data/raw vacio"
+
+      - name: 7 Commit y push de datos
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/raw/ logs/ || true
+          if git diff --staged --quiet; then
+            echo "Sin cambios nuevos para commitear"
+          else
+            TIMESTAMP=$(date -u '+%Y-%m-%d %H:%M UTC')
+            git commit -m "data: batch automatico $TIMESTAMP [skip ci]"
+            git push
+            echo "✅ Datos pusheados exitosamente"
+          fi
+
+      - name: 8 Estadisticas finales
+        if: always()
+        run: python agent/main.py --stats || echo "Stats no disponibles aun"
