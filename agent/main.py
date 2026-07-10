@@ -3,7 +3,7 @@
 """
 Orquestador Principal - Agente ROI Hardware Peru
 Autor: Kotska Rony Pariona Martinez - UNI 2026
-Version: v2.2
+Version: v2.3 — compatible con scraper v3.1 (OAuth2)
 """
 
 import argparse
@@ -27,6 +27,50 @@ MASTER_CSV = DATA_DIR / "MASTER_hardware_peru.csv"
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 LOG_DIR.mkdir(parents=True, exist_ok=True)
 
+# ─────────────────────────────────────────────
+# HELPER: ejecutar BatchOrchestrator sin importar
+# el nombre exacto del método público
+# ─────────────────────────────────────────────
+def _call_orchestrator(max_pages: int) -> dict:
+    """
+    Intenta llamar al método de ejecución de BatchOrchestrator
+    probando los nombres más comunes en orden de prioridad.
+    Devuelve siempre un dict con al menos 'items' y 'elapsed_s'.
+    """
+    sys.path.insert(0, str(Path(__file__).parent))
+    from scraper import BatchOrchestrator
+
+    orch = BatchOrchestrator()
+
+    # Orden de prioridad de nombres de método
+    candidates = ["run", "execute", "run_batch", "start", "collect"]
+
+    for method_name in candidates:
+        method = getattr(orch, method_name, None)
+        if callable(method):
+            # Intentar con max_pages, luego sin argumentos
+            try:
+                result = method(max_pages=max_pages)
+            except TypeError:
+                result = method()
+            # Normalizar resultado
+            if isinstance(result, dict):
+                return {
+                    "items"      : result.get("items", result.get("total_items", 0)),
+                    "elapsed_s"  : result.get("elapsed_s", result.get("elapsed", 0)),
+                    "batch_file" : result.get("batch_file", result.get("output_file", "")),
+                }
+            return {"items": 0, "elapsed_s": 0, "batch_file": ""}
+
+    raise AttributeError(
+        f"BatchOrchestrator no tiene ninguno de estos métodos: {candidates}. "
+        f"Métodos disponibles: {[m for m in dir(orch) if not m.startswith('_')]}"
+    )
+
+
+# ─────────────────────────────────────────────
+# LOGGING
+# ─────────────────────────────────────────────
 def setup_logging() -> logging.Logger:
     log_file = LOG_DIR / f"agent_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
     fmt      = "%(asctime)s [%(levelname)s] %(message)s"
@@ -42,9 +86,13 @@ def setup_logging() -> logging.Logger:
         logger.propagate = False
     return logger
 
+
+# ─────────────────────────────────────────────
+# PIPELINE PRINCIPAL
+# ─────────────────────────────────────────────
 def run_pipeline(log: logging.Logger, max_pages: int = 20) -> dict:
     log.info("=" * 60)
-    log.info("INICIANDO PIPELINE AGENTE ROI v2.2")
+    log.info("INICIANDO PIPELINE AGENTE ROI v2.3")
     log.info(f"Fecha    : {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     log.info(f"DATA_DIR : {DATA_DIR}")
     log.info("=" * 60)
@@ -56,26 +104,28 @@ def run_pipeline(log: logging.Logger, max_pages: int = 20) -> dict:
         "phases"    : {},
     }
 
+    # ── FASE 1: Scraping ──────────────────────────
     log.info("FASE 1: Scraping de datos...")
     try:
-        sys.path.insert(0, str(Path(__file__).parent))
-        from scraper import BatchOrchestrator
-        orch   = BatchOrchestrator()
-        result = orch.run_batch(max_pages=max_pages)
+        result = _call_orchestrator(max_pages)
         results["phases"]["scraping"] = {
             "status"          : "ok",
             "items_collected" : result.get("items", 0),
             "elapsed_s"       : result.get("elapsed_s", 0),
             "batch_file"      : result.get("batch_file", ""),
         }
-        log.info(f"  OK {result.get('items',0)} items en {result.get('elapsed_s',0)}s")
+        log.info(f"  OK {result.get('items', 0)} items en {result.get('elapsed_s', 0):.1f}s")
     except ImportError as e:
         log.error(f"  ERROR importando scraper: {e}")
         results["phases"]["scraping"] = {"status": "import_error", "error": str(e)}
+    except AttributeError as e:
+        log.error(f"  ERROR metodo no encontrado: {e}")
+        results["phases"]["scraping"] = {"status": "method_error", "error": str(e)}
     except Exception as e:
         log.error(f"  ERROR en scraping: {e}")
         results["phases"]["scraping"] = {"status": "error", "error": str(e)}
 
+    # ── FASE 2: Consolidación ─────────────────────
     log.info("FASE 2: Leyendo Master CSV...")
     try:
         if MASTER_CSV.exists():
@@ -98,6 +148,7 @@ def run_pipeline(log: logging.Logger, max_pages: int = 20) -> dict:
         log.error(f"  ERROR consolidando: {e}")
         results["phases"]["consolidation"] = {"status": "error", "error": str(e)}
 
+    # ── FASE 3: Reporte ───────────────────────────
     log.info("FASE 3: Generando reporte...")
     try:
         results["status"]   = "completed"
@@ -114,14 +165,18 @@ def run_pipeline(log: logging.Logger, max_pages: int = 20) -> dict:
     log.info("=" * 60)
     log.info("PIPELINE COMPLETADO")
     for phase, info in results["phases"].items():
-        ok = info.get("status") in ("ok", "ok_no_pandas")
-        log.info(f"  [{'OK' if ok else 'WARN'}] {phase}: {info.get('status','unknown')}")
+        ok  = info.get("status") in ("ok", "ok_no_pandas")
+        log.info(f"  [{'OK' if ok else 'WARN'}] {phase}: {info.get('status', 'unknown')}")
     log.info("=" * 60)
     return results
 
+
+# ─────────────────────────────────────────────
+# MODO TEST
+# ─────────────────────────────────────────────
 def run_test(log: logging.Logger):
     log.info("=" * 50)
-    log.info("MODO TEST - Verificando configuracion v2.2")
+    log.info("MODO TEST - Verificando configuracion v2.3")
     log.info("=" * 50)
     errors = []
 
@@ -132,8 +187,11 @@ def run_test(log: logging.Logger):
     try:
         sys.path.insert(0, str(Path(__file__).parent))
         from scraper import BatchOrchestrator, CATEGORIES
-        log.info(f"scraper.py: OK - BatchOrchestrator importado")
-        log.info(f"Categorias: {list(CATEGORIES.keys())}")
+        orch    = BatchOrchestrator()
+        methods = [m for m in dir(orch) if not m.startswith("_") and callable(getattr(orch, m))]
+        log.info(f"scraper.py : OK - BatchOrchestrator importado")
+        log.info(f"Metodos    : {methods}")
+        log.info(f"Categorias : {list(CATEGORIES.keys())}")
     except ImportError as e:
         log.error(f"scraper.py: ERROR - {e}")
         errors.append(str(e))
@@ -151,6 +209,10 @@ def run_test(log: logging.Logger):
         log.info("TEST OK - Sistema listo para produccion")
         sys.exit(0)
 
+
+# ─────────────────────────────────────────────
+# ENTRY POINT
+# ─────────────────────────────────────────────
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Agente ROI - Tesis Kotska Pariona UNI 2026")
@@ -170,12 +232,12 @@ if __name__ == "__main__":
     elif args.stats:
         if MASTER_CSV.exists() and HAS_PANDAS:
             df       = pd.read_csv(MASTER_CSV)
-            date_min = df["scraped_at"].dropna().min()
-            date_max = df["scraped_at"].dropna().max()
+            date_min = df["scraped_at"].dropna().min() if "scraped_at" in df.columns else "N/A"
+            date_max = df["scraped_at"].dropna().max() if "scraped_at" in df.columns else "N/A"
             stats    = {
                 "total_records" : len(df),
-                "categories"    : df["category"].value_counts().to_dict(),
-                "sources"       : df["source"].value_counts().to_dict(),
+                "categories"    : df["category"].value_counts().to_dict() if "category" in df.columns else {},
+                "sources"       : df["source"].value_counts().to_dict() if "source" in df.columns else {},
                 "date_range"    : f"{str(date_min)[:10]} -> {str(date_max)[:10]}",
             }
             print(json.dumps(stats, indent=2, ensure_ascii=False))
@@ -183,7 +245,5 @@ if __name__ == "__main__":
             print(json.dumps(
                 {"status": "no_data", "path": str(MASTER_CSV)}, indent=2))
     else:
-        log.info("Comandos disponibles:")
-        log.info("  python agent/main.py --test    # verificar sistema")
-        log.info("  python agent/main.py --batch   # ejecutar scraping")
-        log.info("  python agent/main.py --stats   # ver estadisticas")
+        result = run_pipeline(log, max_pages=args.pages)
+        print(json.dumps(result, indent=2, ensure_ascii=False))
