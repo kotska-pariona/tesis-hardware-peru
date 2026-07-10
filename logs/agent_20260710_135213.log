@@ -1,0 +1,17 @@
+2026-07-10 13:52:13,060 [INFO] ============================================================
+2026-07-10 13:52:13,060 [INFO] INICIANDO PIPELINE AGENTE ROI v2.2
+2026-07-10 13:52:13,060 [INFO] Fecha    : 2026-07-10 13:52:13
+2026-07-10 13:52:13,060 [INFO] DATA_DIR : /home/runner/work/tesis-hardware-peru/tesis-hardware-peru/data/raw
+2026-07-10 13:52:13,060 [INFO] ============================================================
+2026-07-10 13:52:13,060 [INFO] FASE 1: Scraping de datos...
+2026-07-10 14:14:15,421 [INFO]   OK 0 items en 1322.3s
+2026-07-10 14:14:15,421 [INFO] FASE 2: Leyendo Master CSV...
+2026-07-10 14:14:15,424 [INFO]   OK Master CSV: 0 registros
+2026-07-10 14:14:15,424 [INFO] FASE 3: Generando reporte...
+2026-07-10 14:14:15,424 [INFO]   OK Reporte: /home/runner/work/tesis-hardware-peru/tesis-hardware-peru/data/raw/report_20260710_135213.json
+2026-07-10 14:14:15,424 [INFO] ============================================================
+2026-07-10 14:14:15,424 [INFO] PIPELINE COMPLETADO
+2026-07-10 14:14:15,424 [INFO]   [OK] scraping: ok
+2026-07-10 14:14:15,424 [INFO]   [OK] consolidation: ok
+2026-07-10 14:14:15,424 [INFO]   [OK] report: ok
+2026-07-10 14:14:15,424 [INFO] ============================================================

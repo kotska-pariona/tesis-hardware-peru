@@ -1,0 +1,12 @@
+2026-07-10 13:52:12,617 [INFO] ==================================================
+2026-07-10 13:52:12,617 [INFO] MODO TEST - Verificando configuracion v2.2
+2026-07-10 13:52:12,617 [INFO] ==================================================
+2026-07-10 13:52:12,617 [INFO] BASE_DIR  : /home/runner/work/tesis-hardware-peru/tesis-hardware-peru (OK)
+2026-07-10 13:52:12,617 [INFO] DATA_DIR  : /home/runner/work/tesis-hardware-peru/tesis-hardware-peru/data/raw (OK)
+2026-07-10 13:52:12,617 [INFO] LOG_DIR   : /home/runner/work/tesis-hardware-peru/tesis-hardware-peru/logs  (OK)
+2026-07-10 13:52:12,683 [INFO] scraper.py: OK - BatchOrchestrator importado
+2026-07-10 13:52:12,683 [INFO] Categorias: ['CPU', 'GPU', 'RAM', 'SSD', 'MOTHERBOARD', 'PSU', 'COOLER', 'CASE']
+2026-07-10 13:52:12,684 [INFO] pandas    : OK v2.2.2
+2026-07-10 13:52:12,684 [INFO] Python    : 3.11.15
+2026-07-10 13:52:12,684 [INFO] ==================================================
+2026-07-10 13:52:12,684 [INFO] TEST OK - Sistema listo para produccion

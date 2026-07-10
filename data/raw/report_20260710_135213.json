@@ -1,0 +1,20 @@
+{
+  "timestamp": "2026-07-10T13:52:13.060666",
+  "batch_id": "20260710_135213",
+  "status": "completed",
+  "phases": {
+    "scraping": {
+      "status": "ok",
+      "items_collected": 0,
+      "elapsed_s": 1322.3,
+      "batch_file": "/home/runner/work/tesis-hardware-peru/tesis-hardware-peru/data/raw/batch_20260710_135213.csv"
+    },
+    "consolidation": {
+      "status": "ok",
+      "total_records": 0,
+      "categories": {},
+      "sources": {}
+    }
+  },
+  "end_time": "2026-07-10T14:14:15.424151"
+}
