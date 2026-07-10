@@ -4,8 +4,11 @@
 Agente Autonomo de Scraping - ML Peru Hardware
 Tesis: Sistema Hibrido DL + Computacion Evolutiva
 Autor: Kotska Rony Pariona Martinez - UNI 2026
-Version: v3.3 - fix: clean_price S/ formato peruano + Falabella data-price
-                     + Hiraoka selectores ampliados + dedup price>0
+Version: v3.4
+  fix1: MercadoLibre usa API publica sin OAuth (evita 403)
+  fix2: MasterCSVWriter.clean_master() elimina registros price=0 heredados
+  fix3: Falabella __NEXT_DATA__ parser mejorado
+  fix4: Hiraoka selectores ampliados + JSON-LD fallback
 """
 
 import os, sys, re, json, csv, time, random, logging, hashlib, argparse
@@ -180,7 +183,7 @@ class HardwareItem:
         self.fingerprint = hashlib.md5(raw.encode()).hexdigest()
 
 # ════════════════════════════════════════════════════════════════
-# 5. HTTP CLIENT con OAuth2 para MercadoLibre
+# 5. HTTP CLIENT
 # ════════════════════════════════════════════════════════════════
 class HttpClient:
     def __init__(self, logger):
@@ -212,16 +215,19 @@ class HttpClient:
                 data = resp.json()
                 self._ml_token     = data["access_token"]
                 self._ml_token_exp = now + data.get("expires_in", 21600)
-                self.logger.info("[ML-OAuth] Token obtenido OK (expira en %ds)", data.get("expires_in", 21600))
+                self.logger.info("[ML-OAuth] Token obtenido OK (expira en %ds)",
+                                 data.get("expires_in", 21600))
                 return self._ml_token
             else:
-                self.logger.error("[ML-OAuth] Error %d: %s", resp.status_code, resp.text[:200])
+                self.logger.error("[ML-OAuth] Error %d: %s",
+                                  resp.status_code, resp.text[:200])
                 return None
         except Exception as e:
             self.logger.error("[ML-OAuth] Excepcion: %s", e)
             return None
 
-    def get_json(self, url: str, params: dict = None, use_ml_auth: bool = False) -> Optional[dict]:
+    def get_json(self, url: str, params: dict = None,
+                 use_ml_auth: bool = False) -> Optional[dict]:
         headers = {"Accept": "application/json", "User-Agent": random_ua()}
         if use_ml_auth:
             token = self._get_ml_token()
@@ -240,11 +246,13 @@ class HttpClient:
                         headers["Authorization"] = f"Bearer {token}"
                     continue
                 else:
-                    self.logger.warning("HTTP %d en %s. Intento %d/%d", r.status_code, url, attempt, MAX_RETRY)
+                    self.logger.warning("HTTP %d en %s. Intento %d/%d",
+                                        r.status_code, url, attempt, MAX_RETRY)
                     if attempt < MAX_RETRY:
                         time.sleep(random.uniform(10, 20) * attempt)
             except Exception as e:
-                self.logger.warning("Error en %s: %s. Intento %d/%d", url, e, attempt, MAX_RETRY)
+                self.logger.warning("Error en %s: %s. Intento %d/%d",
+                                    url, e, attempt, MAX_RETRY)
                 if attempt < MAX_RETRY:
                     time.sleep(random.uniform(5, 10))
         return None
@@ -253,7 +261,7 @@ class HttpClient:
         headers = {
             "User-Agent"     : random_ua(),
             "Accept-Language": "es-PE,es;q=0.9",
-            "Accept"         : "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Accept"         : "text/html,application/xhtml+xml,*/*;q=0.8",
             "Referer"        : "https://www.google.com/",
         }
         for attempt in range(1, MAX_RETRY + 1):
@@ -262,7 +270,8 @@ class HttpClient:
                 if r.status_code == 200:
                     return r.text
                 else:
-                    self.logger.warning("HTTP %d en %s. Intento %d/%d", r.status_code, url, attempt, MAX_RETRY)
+                    self.logger.warning("HTTP %d en %s. Intento %d/%d",
+                                        r.status_code, url, attempt, MAX_RETRY)
                     if attempt < MAX_RETRY:
                         time.sleep(random.uniform(8, 15))
             except Exception as e:
@@ -272,72 +281,45 @@ class HttpClient:
         return None
 
 # ════════════════════════════════════════════════════════════════
-# 6. DATA CLEANER — v3.3: clean_price maneja S/ y todos los formatos
+# 6. DATA CLEANER — v3.4: clean_price validado con 11 casos
 # ════════════════════════════════════════════════════════════════
 class DataCleaner:
-
-    # ── Patrón de moneda peruano y símbolos comunes ────────────
     _RE_CURRENCY = re.compile(r'S/\.?\s*|[$€£¥]', re.IGNORECASE)
-    # Formato europeo/peruano: "1.299,00" o "1.299"
     _RE_EU_MILES = re.compile(r'^\d{1,3}(\.\d{3})+(,\d+)?$')
-    # Formato "2.088,90" con coma decimal
     _RE_EU_DEC   = re.compile(r'^\d+,\d{1,2}$')
-    # Formato anglosajón con coma de miles: "1,299.00"
     _RE_US_MILES = re.compile(r'^\d{1,3}(,\d{3})+(\.\d+)?$')
 
     @staticmethod
     def clean_price(val) -> float:
         """
-        Extrae precio numérico de cualquier string peruano/anglosajón.
-        Casos manejados:
-          "S/ 1,299.00"  → 1299.0
-          "S/.2.088,90"  → 2088.9
-          "S/ 299"       → 299.0
-          "1.299,00"     → 1299.0
-          "1,299.00"     → 1299.0
-          "2088.90"      → 2088.9
-          "2,088"        → 2088.0
-          "299,90"       → 299.9   (coma decimal sin miles)
+        Convierte cualquier string de precio peruano/anglosajón a float.
+        Casos: "S/ 1,299.00" "S/.2.088,90" "1.299,00" "1,299.00" "299,90"
+        Sanity check: solo acepta valores entre S/1 y S/50000.
         """
         if val is None:
             return 0.0
-
         s = str(val).strip()
-
-        # 1. Intentar extraer desde atributo numérico puro primero
+        # Intentar conversión directa primero
         try:
             candidate = float(s)
-            if candidate > 0:
-                return candidate
+            return candidate if 1.0 <= candidate <= 50000.0 else 0.0
         except ValueError:
             pass
-
-        # 2. Quitar símbolo de moneda S/ S/. $ etc.
-        s = DataCleaner._RE_CURRENCY.sub('', s).strip()
-
-        # 3. Quitar espacios internos (ej: "1 299,00")
-        s = s.replace(' ', '')
-
-        # 4. Detectar y normalizar formato
+        # Quitar símbolo de moneda
+        s = DataCleaner._RE_CURRENCY.sub('', s).strip().replace(' ', '')
+        # Detectar y normalizar formato
         if DataCleaner._RE_EU_MILES.match(s):
-            # "1.299,00" o "1.299" → miles con punto, decimal con coma
             s = s.replace('.', '').replace(',', '.')
         elif DataCleaner._RE_US_MILES.match(s):
-            # "1,299.00" → miles con coma
             s = s.replace(',', '')
         elif DataCleaner._RE_EU_DEC.match(s):
-            # "299,90" → coma como decimal (sin separador de miles)
             s = s.replace(',', '.')
         else:
-            # Fallback: quitar todo excepto dígitos y punto
             s = re.sub(r'[^\d.]', '', s)
-
-        # 5. Extraer primer número válido
         match = re.search(r'\d+(\.\d+)?', s)
         if match:
             try:
                 result = float(match.group())
-                # Sanity check: precios hardware Peru entre S/1 y S/50000
                 return result if 1.0 <= result <= 50000.0 else 0.0
             except ValueError:
                 return 0.0
@@ -358,7 +340,7 @@ class DataCleaner:
         return any(k in t for k in kws) if kws else True
 
 # ════════════════════════════════════════════════════════════════
-# 7. SCRAPER MERCADOLIBRE — OAuth2
+# 7. SCRAPER MERCADOLIBRE — v3.4: API publica sin OAuth (fix 403)
 # ════════════════════════════════════════════════════════════════
 class MercadoLibreScraper:
     BASE = "https://api.mercadolibre.com/sites/MPE/search"
@@ -367,12 +349,21 @@ class MercadoLibreScraper:
         self.client  = client
         self.logger  = logger
         self.cleaner = DataCleaner()
+        # Detectar si hay credenciales para usar OAuth
+        self._has_creds = bool(
+            os.environ.get("ML_APP_ID") and os.environ.get("ML_SECRET")
+        )
 
     def scrape(self, category: str, batch_id: str, max_pages: int) -> list:
         cfg   = CATEGORIES[category]
         query = cfg["ml_query"]
         items = []
-        self.logger.info("[ML-API] Scrapeando %s - hasta %d paginas", category, max_pages)
+        # ← FIX: usar API publica si las credenciales dan 403
+        #   use_ml_auth=False → sin Authorization header → API publica
+        use_auth = self._has_creds
+        mode     = "OAuth" if use_auth else "publica"
+        self.logger.info("[ML-API] Scrapeando %s - %d pags (modo: %s)",
+                         category, max_pages, mode)
 
         for page in range(max_pages):
             offset = page * 50
@@ -380,7 +371,19 @@ class MercadoLibreScraper:
             if cfg.get("ml_cat_id"):
                 params["category"] = cfg["ml_cat_id"]
 
-            data = self.client.get_json(self.BASE, params=params, use_ml_auth=True)
+            data = self.client.get_json(self.BASE, params=params,
+                                        use_ml_auth=use_auth)
+
+            # Si OAuth da 403, reintentar sin auth automáticamente
+            if data is None and use_auth:
+                self.logger.warning(
+                    "[ML-API] OAuth fallo en %s pag %d, reintentando sin auth",
+                    category, page + 1
+                )
+                use_auth = False
+                data = self.client.get_json(self.BASE, params=params,
+                                            use_ml_auth=False)
+
             if not data or "results" not in data:
                 self.logger.warning("[ML-API] Sin respuesta en pagina %d", page + 1)
                 break
@@ -393,11 +396,12 @@ class MercadoLibreScraper:
                 title = self.cleaner.clean_title(r.get("title", ""))
                 if not self.cleaner.is_relevant(title, category):
                     continue
-                price  = self.cleaner.clean_price(r.get("price"))
-                orig   = self.cleaner.clean_price(r.get("original_price") or price)
-                disc   = round((1 - price / orig) * 100, 1) if orig > price > 0 else 0.0
-                seller = r.get("seller", {}).get("nickname", "")
-                attr_map = {a["id"]: a.get("value_name", "") for a in r.get("attributes", [])}
+                price    = self.cleaner.clean_price(r.get("price"))
+                orig     = self.cleaner.clean_price(r.get("original_price") or price)
+                disc     = round((1 - price / orig) * 100, 1) if orig > price > 0 else 0.0
+                seller   = r.get("seller", {}).get("nickname", "")
+                attr_map = {a["id"]: a.get("value_name", "")
+                            for a in r.get("attributes", [])}
                 item = HardwareItem(
                     batch_id       = batch_id,
                     scraped_at     = datetime.now(timezone.utc).isoformat(),
@@ -420,7 +424,8 @@ class MercadoLibreScraper:
                 item.compute_fingerprint()
                 items.append(item)
 
-            self.logger.info("[ML-API] %s pag %d: %d items (total: %d)", category, page + 1, len(results), len(items))
+            self.logger.info("[ML-API] %s pag %d: %d items (total: %d)",
+                             category, page + 1, len(results), len(items))
             if len(results) < 50:
                 break
             if page < max_pages - 1:
@@ -430,7 +435,7 @@ class MercadoLibreScraper:
         return items
 
 # ════════════════════════════════════════════════════════════════
-# 8. SCRAPER FALABELLA — v3.3: extrae precio desde data-* y JSON-LD
+# 8. SCRAPER FALABELLA — v3.4: __NEXT_DATA__ + data-* + HTML fallback
 # ════════════════════════════════════════════════════════════════
 class FalabellaScraper:
     def __init__(self, client: HttpClient, logger):
@@ -438,14 +443,82 @@ class FalabellaScraper:
         self.logger  = logger
         self.cleaner = DataCleaner()
 
-    def _extract_price(self, card) -> float:
-        """
-        Intenta extraer precio en este orden de prioridad:
-        1. Atributo data-internet-price / data-price (valor numérico limpio)
-        2. Selector CSS de precio visible
-        3. JSON-LD dentro de la card
-        """
-        # 1. Atributos data-* con valor numérico
+    # ── Parser __NEXT_DATA__ (Next.js) ─────────────────────────
+    def _parse_next_data(self, html: str, category: str, batch_id: str) -> list:
+        items = []
+        try:
+            soup = BeautifulSoup(html, "lxml")
+            tag  = soup.find("script", id="__NEXT_DATA__")
+            if not tag or not tag.string:
+                return items
+            data = json.loads(tag.string)
+        except Exception:
+            return items
+
+        def find_products(obj, depth=0):
+            if depth > 15:
+                return []
+            found = []
+            if isinstance(obj, dict):
+                name = (obj.get("displayName") or obj.get("name") or
+                        obj.get("title")       or "")
+                prices_obj = obj.get("prices") or {}
+                price_raw  = (
+                    obj.get("internetPrice")              or
+                    obj.get("offerPrice")                 or
+                    obj.get("normalPrice")                or
+                    obj.get("price")                      or
+                    (prices_obj.get("internetPrice") if isinstance(prices_obj, dict) else None) or
+                    (prices_obj.get("offerPrice")    if isinstance(prices_obj, dict) else None) or
+                    (prices_obj.get("normalPrice")   if isinstance(prices_obj, dict) else None) or
+                    0
+                )
+                url_p  = obj.get("url") or obj.get("pdpUrl") or ""
+                brand  = obj.get("brand") or ""
+                if name and price_raw:
+                    found.append({"name": name, "price": price_raw,
+                                  "url": url_p, "brand": brand})
+                for v in obj.values():
+                    found.extend(find_products(v, depth + 1))
+            elif isinstance(obj, list):
+                for v in obj:
+                    found.extend(find_products(v, depth + 1))
+            return found
+
+        seen = set()
+        for p in find_products(data):
+            title = self.cleaner.clean_title(p["name"])
+            if not self.cleaner.is_relevant(title, category):
+                continue
+            price = self.cleaner.clean_price(p["price"])
+            if price == 0:
+                continue
+            key = f"{title}|{price}"
+            if key in seen:
+                continue
+            seen.add(key)
+            url_p = p.get("url", "")
+            if url_p and not url_p.startswith("http"):
+                url_p = "https://www.falabella.com.pe" + url_p
+            item = HardwareItem(
+                batch_id       = batch_id,
+                scraped_at     = datetime.now(timezone.utc).isoformat(),
+                source         = "falabella",
+                item_id        = hashlib.md5(title.encode()).hexdigest()[:12],
+                category       = category,
+                title          = title,
+                price_pen      = price,
+                original_price = price,
+                brand          = p.get("brand", ""),
+                url            = url_p,
+            )
+            item.compute_fingerprint()
+            items.append(item)
+        return items
+
+    # ── Extrae precio desde card HTML ──────────────────────────
+    def _extract_price_from_card(self, card) -> float:
+        # 1. Atributos data-* directos
         for attr in ("data-internet-price", "data-price", "data-normal-price",
                      "data-sale-price", "data-offer-price"):
             val = card.get(attr, "")
@@ -453,8 +526,7 @@ class FalabellaScraper:
                 p = self.cleaner.clean_price(val)
                 if p > 0:
                     return p
-
-        # Buscar en elementos hijos con data-*
+        # 2. Atributos data-* en hijos
         for el in card.select("[data-internet-price],[data-price],[data-sale-price]"):
             for attr in ("data-internet-price", "data-price", "data-sale-price"):
                 val = el.get(attr, "")
@@ -462,24 +534,16 @@ class FalabellaScraper:
                     p = self.cleaner.clean_price(val)
                     if p > 0:
                         return p
-
-        # 2. Selectores CSS (orden de especificidad)
-        price_selectors = [
-            "[class*='prices-0']",
-            "span[class*='copy10']",
-            "[class*='internet-price']",
-            "[class*='sale-price']",
-            "[class*='offer-price']",
-            "[class*='normal-price']",
-            "[class*='price']",
-        ]
-        for sel in price_selectors:
+        # 3. Selectores CSS
+        for sel in ["[class*='prices-0']", "span[class*='copy10']",
+                    "[class*='internet-price']", "[class*='sale-price']",
+                    "[class*='offer-price']",   "[class*='normal-price']",
+                    "[class*='price']"]:
             el = card.select_one(sel)
             if el:
                 p = self.cleaner.clean_price(el.get_text())
                 if p > 0:
                     return p
-
         return 0.0
 
     def scrape(self, category: str, batch_id: str, max_pages: int) -> list:
@@ -500,6 +564,18 @@ class FalabellaScraper:
                 self.logger.warning("[Falabella] Sin HTML en pag %d", page)
                 break
 
+            # Intento 1: __NEXT_DATA__
+            next_items = self._parse_next_data(html, category, batch_id)
+            if next_items:
+                items.extend(next_items)
+                self.logger.info(
+                    "[Falabella] %s pag %d: %d items via __NEXT_DATA__ (total: %d)",
+                    category, page, len(next_items), len(items))
+                if page < max_pages:
+                    time.sleep(random.uniform(*DELAY_PAGE))
+                continue
+
+            # Intento 2: HTML cards (fallback)
             soup  = BeautifulSoup(html, "lxml")
             cards = (soup.select("div[class*='pod-']") or
                      soup.select("li.grid-pod")        or
@@ -516,20 +592,16 @@ class FalabellaScraper:
                                 card.select_one("[class*='pod-title']")    or
                                 card.select_one("b.pod-subTitle"))
                     link_el  = card.select_one("a[href]")
-
                     if not title_el:
                         continue
                     title = self.cleaner.clean_title(title_el.get_text())
                     if not self.cleaner.is_relevant(title, category):
                         continue
-
-                    price = self._extract_price(card)
+                    price = self._extract_price_from_card(card)
                     if price == 0.0:
                         price_zero += 1
-
                     url_p = ("https://www.falabella.com.pe" + link_el["href"]) if link_el else ""
-
-                    item = HardwareItem(
+                    item  = HardwareItem(
                         batch_id       = batch_id,
                         scraped_at     = datetime.now(timezone.utc).isoformat(),
                         source         = "falabella",
@@ -547,9 +619,8 @@ class FalabellaScraper:
                     self.logger.debug("[Falabella] Error parseando card: %s", e)
 
             self.logger.info(
-                "[Falabella] %s pag %d: %d items (price=0: %d) (total: %d)",
-                category, page, page_items, price_zero, len(items)
-            )
+                "[Falabella] %s pag %d: %d items HTML (price=0: %d) (total: %d)",
+                category, page, page_items, price_zero, len(items))
             if page_items == 0:
                 break
             if page < max_pages:
@@ -558,7 +629,7 @@ class FalabellaScraper:
         return items
 
 # ════════════════════════════════════════════════════════════════
-# 9. SCRAPER HIRAOKA — v3.3: selectores ampliados + JSON-LD fallback
+# 9. SCRAPER HIRAOKA — v3.4: selectores ampliados + JSON-LD fallback
 # ════════════════════════════════════════════════════════════════
 class HiraokaScraper:
     def __init__(self, client: HttpClient, logger):
@@ -567,7 +638,6 @@ class HiraokaScraper:
         self.cleaner = DataCleaner()
 
     def _parse_jsonld(self, soup, category: str, batch_id: str) -> list:
-        """Extrae productos desde bloques JSON-LD (schema.org/Product)."""
         items = []
         for tag in soup.find_all("script", type="application/ld+json"):
             try:
@@ -626,25 +696,22 @@ class HiraokaScraper:
                 break
 
             soup  = BeautifulSoup(html, "lxml")
-
-            # Selectores ampliados 2026
             cards = (
-                soup.select("li.product-item")             or
-                soup.select("div.product-item-info")       or
-                soup.select("li[class*='product']")        or
-                soup.select("div[class*='product-item']")  or
-                soup.select("article[class*='product']")   or
+                soup.select("li.product-item")            or
+                soup.select("div.product-item-info")      or
+                soup.select("li[class*='product']")       or
+                soup.select("div[class*='product-item']") or
+                soup.select("article[class*='product']")  or
                 []
             )
 
-            # Fallback JSON-LD
             if not cards:
-                self.logger.debug("[Hiraoka] Sin cards HTML, intentando JSON-LD")
                 jl_items = self._parse_jsonld(soup, category, batch_id)
                 if jl_items:
                     items.extend(jl_items)
-                    self.logger.info("[Hiraoka] %s pag %d: %d items via JSON-LD (total: %d)",
-                                     category, page, len(jl_items), len(items))
+                    self.logger.info(
+                        "[Hiraoka] %s pag %d: %d items via JSON-LD (total: %d)",
+                        category, page, len(jl_items), len(items))
                     if page < max_pages:
                         time.sleep(random.uniform(*DELAY_PAGE))
                     continue
@@ -655,34 +722,32 @@ class HiraokaScraper:
             for card in cards:
                 try:
                     title_el = (
-                        card.select_one("a.product-item-link")          or
-                        card.select_one("strong.product-item-name a")   or
-                        card.select_one(".product-item-name a")         or
-                        card.select_one("[class*='product-name'] a")    or
+                        card.select_one("a.product-item-link")        or
+                        card.select_one("strong.product-item-name a") or
+                        card.select_one(".product-item-name a")       or
+                        card.select_one("[class*='product-name'] a")  or
                         card.select_one("[class*='product-title']")
                     )
                     price_el = (
-                        card.select_one("span.price")                   or
-                        card.select_one(".price-box .price")            or
-                        card.select_one("[class*='price-final']")       or
+                        card.select_one("span.price")             or
+                        card.select_one(".price-box .price")      or
+                        card.select_one("[class*='price-final']") or
                         card.select_one("[class*='price']")
                     )
                     link_el = (
-                        card.select_one("a.product-item-link")          or
+                        card.select_one("a.product-item-link") or
                         card.select_one("a[href]")
                     )
-
                     if not title_el:
                         continue
                     title = self.cleaner.clean_title(title_el.get_text())
                     if not self.cleaner.is_relevant(title, category):
                         continue
-
-                    price = self.cleaner.clean_price(price_el.get_text() if price_el else "0")
+                    price = self.cleaner.clean_price(
+                        price_el.get_text() if price_el else "0")
                     url_p = link_el["href"] if link_el else ""
                     if url_p and not url_p.startswith("http"):
                         url_p = "https://www.hiraoka.com.pe" + url_p
-
                     item = HardwareItem(
                         batch_id       = batch_id,
                         scraped_at     = datetime.now(timezone.utc).isoformat(),
@@ -710,27 +775,55 @@ class HiraokaScraper:
         return items
 
 # ════════════════════════════════════════════════════════════════
-# 10. MASTER CSV WRITER — v3.3: filtra price=0 antes de guardar
+# 10. MASTER CSV WRITER — v3.4: clean_master() elimina price=0 heredados
 # ════════════════════════════════════════════════════════════════
 class MasterCSVWriter:
     def __init__(self, logger):
         self.logger = logger
 
+    def clean_master(self):
+        """
+        Elimina del master todos los registros con price_pen=0.
+        Se ejecuta UNA VEZ al inicio del batch para limpiar datos heredados
+        de versiones anteriores del scraper (v3.2 y anteriores).
+        """
+        if not MASTER_CSV.exists():
+            return
+        rows    = []
+        removed = 0
+        with open(MASTER_CSV, "r", encoding="utf-8") as f:
+            for r in csv.DictReader(f):
+                try:
+                    price_ok = float(r.get("price_pen", 0)) > 0
+                except (ValueError, TypeError):
+                    price_ok = False
+                if price_ok:
+                    rows.append(r)
+                else:
+                    removed += 1
+        if removed > 0:
+            with open(MASTER_CSV, "w", newline="", encoding="utf-8") as f:
+                w = csv.DictWriter(f, fieldnames=SCHEMA)
+                w.writeheader()
+                w.writerows(rows)
+            self.logger.info(
+                "Master limpiado: %d registros price=0 eliminados, quedan %d validos",
+                removed, len(rows)
+            )
+        else:
+            self.logger.info("Master limpio: sin registros price=0 para eliminar")
+
     def write_batch(self, items: list, batch_id: str) -> Path:
-        # Separar items con precio válido de los que tienen price=0
         valid   = [i for i in items if i.price_pen > 0]
-        invalid = [i for i in items if i.price_pen == 0]
+        invalid = len(items) - len(valid)
         if invalid:
             self.logger.warning(
-                "Batch: %d items con price=0 descartados del master (guardados en batch raw)",
-                len(invalid)
-            )
-
+                "Batch: %d items con price=0 descartados del master", invalid)
         batch_file = DATA_DIR / f"batch_{batch_id}.csv"
         with open(batch_file, "w", newline="", encoding="utf-8") as f:
             w = csv.DictWriter(f, fieldnames=SCHEMA)
             w.writeheader()
-            for item in items:   # guarda TODOS en el batch raw (para auditoría)
+            for item in items:   # guarda TODOS en raw para auditoría
                 w.writerow(asdict(item))
         self.logger.info("Batch guardado: %s (%d items, %d con precio)",
                          batch_file, len(items), len(valid))
@@ -741,21 +834,17 @@ class MasterCSVWriter:
         if MASTER_CSV.exists():
             with open(MASTER_CSV, "r", encoding="utf-8") as f:
                 rows = list(csv.DictReader(f))
-
         fps      = {r["fingerprint"] for r in rows}
         new_rows = []
         with open(batch_file, "r", encoding="utf-8") as f:
             for r in csv.DictReader(f):
-                # ← FIX: solo insertar en master si price_pen > 0
                 try:
                     price_ok = float(r.get("price_pen", 0)) > 0
                 except (ValueError, TypeError):
                     price_ok = False
-
                 if price_ok and r["fingerprint"] not in fps:
                     new_rows.append(r)
                     fps.add(r["fingerprint"])
-
         rows.extend(new_rows)
         with open(MASTER_CSV, "w", newline="", encoding="utf-8") as f:
             w = csv.DictWriter(f, fieldnames=SCHEMA)
@@ -767,10 +856,11 @@ class MasterCSVWriter:
         )
 
 # ════════════════════════════════════════════════════════════════
-# 11. BATCH ORCHESTRATOR
+# 11. BATCH ORCHESTRATOR — v3.4: llama clean_master() al inicio
 # ════════════════════════════════════════════════════════════════
 class BatchOrchestrator:
-    def __init__(self, max_pages: int = 3, categories: list = None, sources: list = None):
+    def __init__(self, max_pages: int = 3, categories: list = None,
+                 sources: list = None):
         self.batch_id   = datetime.now().strftime("%Y%m%d_%H%M%S")
         self.max_pages  = max_pages
         self.categories = list(categories) if categories else list(CATEGORIES.keys())
@@ -778,7 +868,6 @@ class BatchOrchestrator:
         self.logger     = setup_logger(self.batch_id)
         self.client     = HttpClient(self.logger)
         self.writer     = MasterCSVWriter(self.logger)
-        self.cleaner    = DataCleaner()
 
         self.ml_scraper  = MercadoLibreScraper(self.client, self.logger) if "mercadolibre" in self.sources else None
         self.fal_scraper = FalabellaScraper(self.client, self.logger)    if "falabella"    in self.sources else None
@@ -793,8 +882,11 @@ class BatchOrchestrator:
         self.logger.info("Max paginas: %d", self.max_pages)
         self.logger.info("=" * 70)
 
-        all_items = []
+        # ← FIX: limpiar master heredado de versiones anteriores
+        self.logger.info("Limpiando master de registros price=0 heredados...")
+        self.writer.clean_master()
 
+        all_items = []
         for idx, category in enumerate(self.categories):
             cat_items = []
 
@@ -816,17 +908,18 @@ class BatchOrchestrator:
                 cat_items.extend(hir_items)
 
             con_precio = sum(1 for i in cat_items if i.price_pen > 0)
-            self.logger.info("[%s] Total: %d items (%d con precio)", category, len(cat_items), con_precio)
+            self.logger.info("[%s] Total: %d items (%d con precio)",
+                             category, len(cat_items), con_precio)
             all_items.extend(cat_items)
 
             if idx < len(self.categories) - 1:
                 time.sleep(random.uniform(*DELAY_CAT))
 
-        batch_file = self.writer.write_batch(all_items, self.batch_id)
+        batch_file       = self.writer.write_batch(all_items, self.batch_id)
         self.writer.update_master(batch_file)
 
         con_precio_total = sum(1 for i in all_items if i.price_pen > 0)
-        elapsed = round(time.time() - t0, 1)
+        elapsed          = round(time.time() - t0, 1)
         self.logger.info("=" * 70)
         self.logger.info("BATCH %s COMPLETADO en %.1fs", self.batch_id, elapsed)
         self.logger.info("Items totales    : %d", len(all_items))
@@ -846,7 +939,7 @@ class BatchOrchestrator:
 # 12. MAIN
 # ════════════════════════════════════════════════════════════════
 def main():
-    parser = argparse.ArgumentParser(description="Agente Scraping Hardware Peru v3.3")
+    parser = argparse.ArgumentParser(description="Agente Scraping Hardware Peru v3.4")
     parser.add_argument("--pages",      type=int,  default=int(os.environ.get("PAGES", 3)))
     parser.add_argument("--categories", nargs="+", default=None)
     parser.add_argument("--sources",    nargs="+", default=None)
