@@ -4,7 +4,7 @@
 Agente Autonomo de Scraping - ML Peru Hardware
 Tesis: Sistema Hibrido DL + Computacion Evolutiva
 Autor: Kotska Rony Pariona Martinez - UNI 2026
-Version: v2.2 - Fix parse_price + dedup Falabella + Hiraoka stub
+Version: v3.0 - API Oficial MercadoLibre + Falabella JSON + Hiraoka mejorado
 """
 
 import os, sys, re, json, csv, time, random, logging, hashlib, argparse
@@ -14,7 +14,6 @@ from typing import Optional
 from dataclasses import dataclass, asdict
 
 import requests
-from bs4 import BeautifulSoup
 from fake_useragent import UserAgent
 
 try:
@@ -22,12 +21,6 @@ try:
     HAS_PANDAS = True
 except ImportError:
     HAS_PANDAS = False
-
-try:
-    import schedule
-    HAS_SCHEDULE = True
-except ImportError:
-    HAS_SCHEDULE = False
 
 # ════════════════════════════════════════════════════════════════
 # 1. RUTAS
@@ -51,81 +44,89 @@ SCHEMA = [
     "url", "fingerprint"
 ]
 
+# ════════════════════════════════════════════════════════════════
+# 2. CONFIGURACION DE CATEGORIAS
+#    ml_query   : termino de busqueda para API MercadoLibre
+#    ml_cat_id  : ID de categoria ML Peru (opcional, mejora precision)
+#    falabella_q: termino para Falabella
+#    hiraoka_q  : termino para Hiraoka
+# ════════════════════════════════════════════════════════════════
 CATEGORIES = {
     "CPU": {
-        "ml_url"      : "https://listado.mercadolibre.com.pe/procesadores",
-        "falabella_q" : "procesador cpu",
-        "ripley_q"    : "procesador",
-        "hiraoka_q"   : "procesador",
-        "keywords"    : ["ryzen","intel","core","procesador","cpu","ghz","nucleos","amd"],
-        "exclude"     : ["pasta","soporte","cooler","ventilador","disipador","limpiador"],
+        "ml_query"   : "procesador cpu amd intel",
+        "ml_cat_id"  : "MPE1700",   # Procesadores
+        "falabella_q": "procesador cpu",
+        "hiraoka_q"  : "procesador",
+        "keywords"   : ["ryzen","intel","core","procesador","cpu","ghz","amd"],
+        "exclude"    : ["pasta","soporte","cooler","ventilador","disipador","limpiador"],
     },
     "GPU": {
-        "ml_url"      : "https://listado.mercadolibre.com.pe/tarjetas-de-video",
-        "falabella_q" : "tarjeta de video gpu",
-        "ripley_q"    : "tarjeta video",
-        "hiraoka_q"   : "tarjeta video",
-        "keywords"    : ["rtx","rx","gtx","radeon","geforce","nvidia","amd","gddr","vram"],
-        "exclude"     : ["soporte","cable","adaptador","limpiador","funda"],
+        "ml_query"   : "tarjeta de video gpu nvidia amd",
+        "ml_cat_id"  : "MPE1658",   # Tarjetas de Video
+        "falabella_q": "tarjeta de video gpu",
+        "hiraoka_q"  : "tarjeta video",
+        "keywords"   : ["rtx","rx","gtx","radeon","geforce","nvidia","amd","gddr","vram"],
+        "exclude"    : ["soporte","cable","adaptador","limpiador","funda"],
     },
     "RAM": {
-        "ml_url"      : "https://listado.mercadolibre.com.pe/memorias-ram",
-        "falabella_q" : "memoria ram ddr",
-        "ripley_q"    : "memoria ram",
-        "hiraoka_q"   : "memoria ram",
-        "keywords"    : ["ddr4","ddr5","ddr3","gb","mhz","memoria","ram","kingston","corsair"],
-        "exclude"     : [],
+        "ml_query"   : "memoria ram ddr4 ddr5",
+        "ml_cat_id"  : "MPE1694",   # Memorias RAM
+        "falabella_q": "memoria ram ddr",
+        "hiraoka_q"  : "memoria ram",
+        "keywords"   : ["ddr4","ddr5","ddr3","gb","mhz","memoria","ram"],
+        "exclude"    : [],
     },
     "SSD": {
-        "ml_url"      : "https://listado.mercadolibre.com.pe/discos-solidos-ssd",
-        "falabella_q" : "ssd nvme m.2",
-        "ripley_q"    : "disco ssd",
-        "hiraoka_q"   : "disco ssd nvme",
-        "keywords"    : ["ssd","nvme","m.2","pcie","sata","tb","gb","kingston","samsung","wd"],
-        "exclude"     : ["externo","usb","case","gabinete"],
+        "ml_query"   : "disco ssd nvme m.2",
+        "ml_cat_id"  : "MPE1672",   # Discos SSD
+        "falabella_q": "ssd nvme m.2",
+        "hiraoka_q"  : "disco ssd nvme",
+        "keywords"   : ["ssd","nvme","m.2","pcie","sata","tb","gb"],
+        "exclude"    : ["externo","usb","case","gabinete"],
     },
     "MOTHERBOARD": {
-        "ml_url"      : "https://listado.mercadolibre.com.pe/placas-madre",
-        "falabella_q" : "placa madre motherboard",
-        "ripley_q"    : "placa madre",
-        "hiraoka_q"   : "placa madre",
-        "keywords"    : ["motherboard","placa","am5","am4","lga","atx","b650","z790","x670","b760"],
-        "exclude"     : ["limpiador","soporte"],
+        "ml_query"   : "placa madre motherboard am5 lga",
+        "ml_cat_id"  : "MPE1692",   # Placas Madre
+        "falabella_q": "placa madre motherboard",
+        "hiraoka_q"  : "placa madre",
+        "keywords"   : ["motherboard","placa","am5","am4","lga","atx","b650","z790"],
+        "exclude"    : ["limpiador","soporte"],
     },
     "PSU": {
-        "ml_url"      : "https://listado.mercadolibre.com.pe/fuentes-de-poder",
-        "falabella_q" : "fuente de poder psu",
-        "ripley_q"    : "fuente poder",
-        "hiraoka_q"   : "fuente poder",
-        "keywords"    : ["watts","watt","80plus","modular","fuente","psu","corsair","evga","seasonic"],
-        "exclude"     : ["cable","adaptador","ups","regleta"],
+        "ml_query"   : "fuente de poder psu 650w 750w 850w",
+        "ml_cat_id"  : "MPE1691",   # Fuentes de Poder
+        "falabella_q": "fuente de poder psu",
+        "hiraoka_q"  : "fuente poder",
+        "keywords"   : ["watts","watt","80plus","modular","fuente","psu"],
+        "exclude"    : ["cable","adaptador","ups","regleta"],
     },
     "COOLER": {
-        "ml_url"      : "https://listado.mercadolibre.com.pe/coolers-disipadores",
-        "falabella_q" : "cooler disipador cpu",
-        "ripley_q"    : "cooler cpu",
-        "hiraoka_q"   : "cooler cpu",
-        "keywords"    : ["cooler","disipador","aio","refrigeracion","fan","rgb","noctua","be quiet"],
-        "exclude"     : ["pasta","soporte"],
+        "ml_query"   : "cooler disipador cpu refrigeracion liquida",
+        "ml_cat_id"  : "MPE1659",   # Coolers
+        "falabella_q": "cooler disipador cpu",
+        "hiraoka_q"  : "cooler cpu",
+        "keywords"   : ["cooler","disipador","aio","refrigeracion","fan","rgb"],
+        "exclude"    : ["pasta","soporte"],
     },
     "CASE": {
-        "ml_url"      : "https://listado.mercadolibre.com.pe/gabinetes-pc",
-        "falabella_q" : "gabinete pc gamer",
-        "ripley_q"    : "gabinete pc",
-        "hiraoka_q"   : "gabinete pc",
-        "keywords"    : ["gabinete","case","torre","atx","rgb","vidrio","nzxt","corsair","lian li"],
-        "exclude"     : [],
+        "ml_query"   : "gabinete pc gamer atx",
+        "ml_cat_id"  : "MPE1661",   # Gabinetes
+        "falabella_q": "gabinete pc gamer",
+        "hiraoka_q"  : "gabinete pc",
+        "keywords"   : ["gabinete","case","torre","atx","rgb","vidrio"],
+        "exclude"    : [],
     },
 }
 
-DELAY_REQ  = (2, 5)
-DELAY_PAGE = (5, 12)
-DELAY_CAT  = (15, 30)
+# Tiempos de espera (segundos)
+DELAY_REQ  = (1, 3)
+DELAY_PAGE = (2, 5)
+DELAY_CAT  = (5, 10)
 MAX_PAGES  = 20
 MAX_RETRY  = 3
 
 # ════════════════════════════════════════════════════════════════
-# 2. LOGGER
+# 3. LOGGER
 # ════════════════════════════════════════════════════════════════
 def setup_logger(batch_id: str) -> logging.Logger:
     log_file = LOG_DIR / f"batch_{batch_id}.log"
@@ -143,7 +144,7 @@ def setup_logger(batch_id: str) -> logging.Logger:
     return logger
 
 # ════════════════════════════════════════════════════════════════
-# 3. DATACLASS
+# 4. DATACLASS
 # ════════════════════════════════════════════════════════════════
 @dataclass
 class HardwareItem:
@@ -174,7 +175,7 @@ class HardwareItem:
         return bool(self.title) and self.price_pen > 0
 
 # ════════════════════════════════════════════════════════════════
-# 4. HTTP CLIENT
+# 5. HTTP CLIENT
 # ════════════════════════════════════════════════════════════════
 class HttpClient:
     UA_FALLBACKS = [
@@ -199,15 +200,18 @@ class HttpClient:
                 pass
         return random.choice(self.UA_FALLBACKS)
 
-    def _headers(self, referer: str = "") -> dict:
+    def _headers(self, referer: str = "", json_api: bool = False) -> dict:
         h = {
             "User-Agent"      : self._random_ua(),
-            "Accept"          : "text/html,application/xhtml+xml,application/json,*/*;q=0.9",
             "Accept-Language" : "es-PE,es;q=0.9,en;q=0.7",
             "Accept-Encoding" : "gzip, deflate, br",
             "DNT"             : "1",
             "Connection"      : "keep-alive",
         }
+        if json_api:
+            h["Accept"] = "application/json"
+        else:
+            h["Accept"] = "text/html,application/xhtml+xml,*/*;q=0.9"
         if referer:
             h["Referer"] = referer
         return h
@@ -218,8 +222,11 @@ class HttpClient:
             try:
                 time.sleep(random.uniform(*DELAY_REQ))
                 r = self.session.get(
-                    url, headers=self._headers(referer),
-                    params=params, timeout=15, allow_redirects=True
+                    url,
+                    headers=self._headers(referer, json_api=json_mode),
+                    params=params,
+                    timeout=20,
+                    allow_redirects=True
                 )
                 if r.status_code == 200:
                     return r
@@ -228,282 +235,357 @@ class HttpClient:
                     self.log.warning(f"Rate limit 429. Esperando {wait}s...")
                     time.sleep(wait)
                 elif r.status_code in (403, 503):
-                    self.log.warning(f"HTTP {r.status_code} en {url[:60]}. Intento {attempt}/{MAX_RETRY}")
-                    time.sleep(30 * attempt)
+                    self.log.warning(
+                        f"HTTP {r.status_code} en {url[:70]}. Intento {attempt}/{MAX_RETRY}")
+                    time.sleep(20 * attempt)
                 else:
-                    self.log.warning(f"HTTP {r.status_code} en {url[:60]}")
+                    self.log.warning(f"HTTP {r.status_code} en {url[:70]}")
                     return None
             except requests.RequestException as e:
                 self.log.error(f"Error conexion (intento {attempt}): {e}")
-                time.sleep(15 * attempt)
+                time.sleep(10 * attempt)
         return None
 
 # ════════════════════════════════════════════════════════════════
-# 5. SCRAPER — MERCADOLIBRE
+# 6. SCRAPER — MERCADOLIBRE (API OFICIAL v2)
+#
+#  Endpoint: https://api.mercadolibre.com/sites/MPE/search
+#  Docs    : https://developers.mercadolibre.com.pe/
+#  - No requiere token para busquedas publicas
+#  - Devuelve JSON limpio con todos los campos necesarios
+#  - Limite: 50 items por request, offset maximo 1000
 # ════════════════════════════════════════════════════════════════
 class MLScraper:
+    API_BASE   = "https://api.mercadolibre.com/sites/MPE/search"
+    ITEM_BASE  = "https://www.mercadolibre.com.pe"
+    LIMIT      = 50   # maximo permitido por la API
+
+    BRANDS = [
+        "Intel","AMD","NVIDIA","Kingston","Samsung","Corsair","G.Skill",
+        "Crucial","WD","Seagate","ASUS","MSI","Gigabyte","ASRock","EVGA",
+        "Seasonic","be quiet","Noctua","Cooler Master","NZXT","Lian Li",
+        "Fractal","Thermaltake","Deepcool","Arctic","PNY","XFX","Sapphire",
+        "PowerColor","Zotac","Palit","Gainward","Netac","Lexar","TeamGroup",
+        "Patriot","HyperX","Adata","Transcend","Toshiba","Hitachi",
+    ]
+
     def __init__(self, http: HttpClient, logger):
         self.http = http
         self.log  = logger
 
-    def _parse_price(self, text: str) -> float:
-        """
-        FIX v2.2: Maneja formato peruano correctamente.
-        Ejemplos:
-          "1.820"     -> 1820.0   (separador de miles con punto)
-          "1.820,67"  -> 1820.67  (miles=punto, decimales=coma)
-          "1820.67"   -> 1820.67  (formato anglosajón)
-        """
-        if not text:
-            return 0.0
-        clean = re.sub(r"[^\d.,]", "", str(text)).strip()
-        if not clean:
-            return 0.0
-        # Caso: tiene coma → formato europeo/peruano "1.820,67"
-        if "," in clean:
-            # Eliminar puntos de miles, reemplazar coma decimal por punto
-            clean = clean.replace(".", "").replace(",", ".")
-        else:
-            # Solo puntos: puede ser miles "1.820" o decimal "1820.67"
-            parts = clean.split(".")
-            if len(parts) > 1 and len(parts[-1]) <= 2:
-                # Último segmento ≤ 2 dígitos → es decimal
-                pass  # mantener como está
-            else:
-                # Es separador de miles → eliminar
-                clean = clean.replace(".", "")
-        try:
-            return float(clean)
-        except ValueError:
-            return 0.0
-
-    def _is_relevant(self, title: str, cat_cfg: dict) -> bool:
+    def _extract_brand(self, title: str, attributes: list = None) -> str:
+        # Primero buscar en atributos de la API (mas preciso)
+        if attributes:
+            for attr in attributes:
+                if attr.get("id") == "BRAND":
+                    return attr.get("value_name", "")
+        # Fallback: buscar en titulo
         t = title.lower()
-        if any(ex in t for ex in cat_cfg.get("exclude", [])):
-            return False
-        return True
-
-    def scrape_category(self, category: str, cat_cfg: dict,
-                        batch_id: str, max_pages: int = MAX_PAGES) -> list:
-        items    = []
-        base_url = cat_cfg["ml_url"]
-        seen_ids = set()
-        now_str  = datetime.now(timezone.utc).isoformat()
-
-        self.log.info(f"[ML] Scrapeando {category} - hasta {max_pages} paginas")
-
-        for page in range(max_pages):
-            offset = page * 48
-            url    = base_url if page == 0 else f"{base_url}_Desde_{offset + 1}"
-
-            resp = self.http.get(url, referer="https://www.mercadolibre.com.pe/")
-            if not resp:
-                self.log.warning(f"[ML] Sin respuesta pagina {page+1} de {category}")
-                break
-
-            soup  = BeautifulSoup(resp.text, "lxml")
-            cards = soup.select("li.ui-search-layout__item")
-
-            if not cards:
-                self.log.info(f"[ML] Sin mas resultados en pagina {page+1}")
-                break
-
-            page_items = 0
-            for card in cards:
-                try:
-                    title_el = (card.select_one(".poly-component__title") or
-                                card.select_one(".ui-search-item__title"))
-                    if not title_el:
-                        continue
-                    title = title_el.get_text(strip=True)
-                    if not self._is_relevant(title, cat_cfg):
-                        continue
-
-                    link_el  = (card.select_one("a.poly-component__title") or
-                                card.select_one("a.ui-search-item__title-label-grid"))
-                    url_item = link_el["href"] if link_el else ""
-                    item_id  = re.search(r"MPE\d+", url_item)
-                    item_id  = item_id.group(0) if item_id else \
-                               f"ML_{hashlib.md5(title.encode()).hexdigest()[:8]}"
-
-                    if item_id in seen_ids:
-                        continue
-                    seen_ids.add(item_id)
-
-                    # Precio actual
-                    price_el  = card.select_one(".andes-money-amount__fraction")
-                    cents_el  = card.select_one(".andes-money-amount__cents")
-                    price_str = (price_el.get_text(strip=True) if price_el else "0") + \
-                                ("," + cents_el.get_text(strip=True) if cents_el else "")
-                    price     = self._parse_price(price_str)
-
-                    # Precio original
-                    orig_el  = card.select_one(
-                        ".andes-money-amount--previous .andes-money-amount__fraction")
-                    orig_str = orig_el.get_text(strip=True) if orig_el else ""
-                    original = self._parse_price(orig_str) if orig_str else price
-                    discount = round((1 - price / original) * 100, 1) \
-                               if original > price > 0 else 0.0
-
-                    # Vendedor
-                    seller_el = card.select_one(".poly-component__seller")
-                    seller    = seller_el.get_text(strip=True) if seller_el else ""
-
-                    # Cantidad vendida (disponible en algunos cards)
-                    sold_el   = card.select_one(".poly-component__sold-quantity")
-                    sold_qty  = 0
-                    if sold_el:
-                        sold_match = re.search(r"\d+", sold_el.get_text())
-                        sold_qty   = int(sold_match.group()) if sold_match else 0
-
-                    # Rating
-                    rating_el  = card.select_one(".poly-reviews__rating")
-                    reviews_el = card.select_one(".poly-reviews__total")
-                    rating     = 0.0
-                    if rating_el:
-                        try:
-                            rating = float(rating_el.get_text(strip=True))
-                        except ValueError:
-                            pass
-                    reviews = 0
-                    if reviews_el:
-                        reviews = int(re.sub(r"\D", "", reviews_el.get_text()) or "0")
-
-                    item = HardwareItem(
-                        batch_id=batch_id, scraped_at=now_str, source="mercadolibre",
-                        item_id=item_id, category=category, title=title,
-                        price_pen=price, original_price=original, discount_pct=discount,
-                        seller=seller, brand=self._extract_brand(title),
-                        condition="new", sold_quantity=sold_qty,
-                        rating=rating, reviews_count=reviews, url=url_item,
-                    )
-                    item.compute_fingerprint()
-                    if item.is_valid():
-                        items.append(item)
-                        page_items += 1
-
-                except Exception as e:
-                    self.log.debug(f"[ML] Error card: {e}")
-                    continue
-
-            self.log.info(f"[ML] {category} pag {page+1}: {page_items} items (total: {len(items)})")
-            time.sleep(random.uniform(*DELAY_PAGE))
-
-        return items
-
-    def _extract_brand(self, title: str) -> str:
-        brands = ["Intel","AMD","NVIDIA","Kingston","Samsung","Corsair","G.Skill",
-                  "Crucial","WD","Seagate","ASUS","MSI","Gigabyte","ASRock","EVGA",
-                  "Seasonic","be quiet","Noctua","Cooler Master","NZXT","Lian Li",
-                  "Fractal","Thermaltake","Deepcool","Arctic","PNY","XFX","Sapphire",
-                  "PowerColor","Zotac","Palit","Gainward","Netac","Lexar","TeamGroup"]
-        t = title.lower()
-        for b in brands:
+        for b in self.BRANDS:
             if b.lower() in t:
                 return b
         return ""
 
+    def _is_relevant(self, title: str, cat_cfg: dict) -> bool:
+        t = title.lower()
+        return not any(ex in t for ex in cat_cfg.get("exclude", []))
+
+    def scrape_category(self, category: str, cat_cfg: dict,
+                        batch_id: str, max_pages: int = MAX_PAGES) -> list:
+        items    = []
+        query    = cat_cfg["ml_query"]
+        cat_id   = cat_cfg.get("ml_cat_id", "")
+        seen_ids = set()
+        now_str  = datetime.now(timezone.utc).isoformat()
+        max_items = max_pages * self.LIMIT
+
+        self.log.info(f"[ML-API] Scrapeando {category} - hasta {max_pages} paginas")
+
+        for page in range(max_pages):
+            offset = page * self.LIMIT
+
+            # La API tiene limite de offset=1000
+            if offset >= 1000:
+                break
+
+            params = {
+                "q"     : query,
+                "limit" : self.LIMIT,
+                "offset": offset,
+            }
+            # Agregar filtro de categoria si esta disponible
+            if cat_id:
+                params["category"] = cat_id
+
+            resp = self.http.get(
+                self.API_BASE,
+                referer="https://www.mercadolibre.com.pe/",
+                params=params,
+                json_mode=True
+            )
+
+            if not resp:
+                self.log.warning(f"[ML-API] Sin respuesta en pagina {page+1}")
+                break
+
+            try:
+                data    = resp.json()
+                results = data.get("results", [])
+                paging  = data.get("paging", {})
+                total   = paging.get("total", 0)
+            except Exception as e:
+                self.log.error(f"[ML-API] Error parseando JSON: {e}")
+                break
+
+            if not results:
+                self.log.info(f"[ML-API] Sin mas resultados en offset {offset}")
+                break
+
+            page_count = 0
+            for prod in results:
+                try:
+                    item_id = prod.get("id", "")
+                    if not item_id or item_id in seen_ids:
+                        continue
+                    seen_ids.add(item_id)
+
+                    title = prod.get("title", "")
+                    if not title or not self._is_relevant(title, cat_cfg):
+                        continue
+
+                    # Precios
+                    price    = float(prod.get("price", 0) or 0)
+                    orig_raw = prod.get("original_price")
+                    original = float(orig_raw) if orig_raw else price
+                    discount = round((1 - price / original) * 100, 1)                                if original > price > 0 else 0.0
+
+                    # Vendedor
+                    seller_info = prod.get("seller", {})
+                    seller      = seller_info.get("nickname", "")
+
+                    # Condicion
+                    condition_raw = prod.get("condition", "new")
+                    condition     = "new" if condition_raw == "new" else "used"
+
+                    # Cantidad vendida
+                    sold_qty = int(prod.get("sold_quantity", 0) or 0)
+
+                    # Stock disponible
+                    avail = int(prod.get("available_quantity", 0) or 0)
+
+                    # URL del producto
+                    url_item = prod.get("permalink", "")
+
+                    # Atributos (marca, modelo, etc.)
+                    attributes = prod.get("attributes", [])
+                    brand      = self._extract_brand(title, attributes)
+
+                    # Thumbnail (no se guarda pero util para debug)
+                    # thumbnail = prod.get("thumbnail", "")
+
+                    item = HardwareItem(
+                        batch_id       = batch_id,
+                        scraped_at     = now_str,
+                        source         = "mercadolibre",
+                        item_id        = item_id,
+                        category       = category,
+                        title          = title,
+                        price_pen      = price,
+                        original_price = original,
+                        discount_pct   = discount,
+                        seller         = seller,
+                        brand          = brand,
+                        condition      = condition,
+                        sold_quantity  = sold_qty,
+                        available_qty  = avail,
+                        url            = url_item,
+                    )
+                    item.compute_fingerprint()
+                    if item.is_valid():
+                        items.append(item)
+                        page_count += 1
+
+                except Exception as e:
+                    self.log.debug(f"[ML-API] Error item: {e}")
+                    continue
+
+            self.log.info(
+                f"[ML-API] {category} pag {page+1}: {page_count} items "
+                f"(total acum: {len(items)}, disponibles: {total})"
+            )
+
+            # Si ya obtuvimos todos los disponibles, parar
+            if offset + self.LIMIT >= min(total, max_items):
+                break
+
+            time.sleep(random.uniform(*DELAY_PAGE))
+
+        self.log.info(f"[ML-API] {category} TOTAL: {len(items)} items")
+        return items
+
 # ════════════════════════════════════════════════════════════════
-# 6. SCRAPER — FALABELLA
+# 7. SCRAPER — FALABELLA (API interna JSON)
 # ════════════════════════════════════════════════════════════════
 class FalabellaScraper:
-    BASE = "https://www.falabella.com.pe/falabella-pe/search"
+    # Falabella expone una API interna que devuelve JSON directamente
+    API_URL = "https://www.falabella.com.pe/s/browse/v1/listing/pe"
 
     def __init__(self, http: HttpClient, logger):
         self.http = http
         self.log  = logger
 
     def scrape_category(self, category: str, cat_cfg: dict,
-                        batch_id: str, max_pages: int = 10) -> list:
+                        batch_id: str, max_pages: int = 5) -> list:
         items    = []
         query    = cat_cfg.get("falabella_q", category)
         now_str  = datetime.now(timezone.utc).isoformat()
-        seen_ids = set()   # FIX: deduplicacion entre paginas
+        seen_ids = set()
 
         self.log.info(f"[Falabella] Scrapeando {category}")
 
         for page in range(1, max_pages + 1):
-            url  = f"{self.BASE}?Ntt={requests.utils.quote(query)}&page={page}"
+            params = {
+                "categoryId"  : "cat10001",
+                "page"        : page,
+                "ruleContext" : "ELECTRONICS",
+                "zones"       : "15",
+                "query"       : query,
+            }
+
+            resp = self.http.get(
+                self.API_URL,
+                referer="https://www.falabella.com.pe/",
+                params=params,
+                json_mode=True
+            )
+
+            if not resp:
+                self.log.info(f"[Falabella] Sin respuesta pag {page}, intentando URL alternativa")
+                # Fallback: URL de busqueda estandar
+                items.extend(self._scrape_html(category, cat_cfg, batch_id,
+                                               max_pages=min(3, max_pages)))
+                break
+
+            try:
+                data     = resp.json()
+                products = (data.get("data", {})
+                               .get("results", [{}])[0]
+                               .get("products", []))
+                if not products:
+                    self.log.info(f"[Falabella] Sin productos en pag {page}")
+                    break
+            except Exception as e:
+                self.log.debug(f"[Falabella] Error JSON API: {e}")
+                items.extend(self._scrape_html(category, cat_cfg, batch_id,
+                                               max_pages=min(3, max_pages)))
+                break
+
+            page_count = 0
+            for prod in products:
+                try:
+                    title = prod.get("displayName", "")
+                    if not title:
+                        continue
+
+                    # Precios
+                    prices   = prod.get("prices", [])
+                    price    = 0.0
+                    original = 0.0
+                    for p in prices:
+                        label = p.get("label", "").lower()
+                        val   = float(p.get("price", [0])[0] or 0)
+                        if "oferta" in label or "internet" in label:
+                            price = val
+                        elif "normal" in label or "original" in label:
+                            original = val
+                    if price == 0.0 and prices:
+                        price = float(prices[0].get("price", [0])[0] or 0)
+                    if original == 0.0:
+                        original = price
+                    discount = round((1 - price / original) * 100, 1)                                if original > price > 0 else 0.0
+
+                    brand   = prod.get("brand", "")
+                    sku     = prod.get("skuId", hashlib.md5(title.encode()).hexdigest()[:12])
+                    item_id = f"FAL_{sku}"
+                    if item_id in seen_ids:
+                        continue
+                    seen_ids.add(item_id)
+
+                    slug    = prod.get("slug", "")
+                    url_i   = f"https://www.falabella.com.pe/falabella-pe/product/{sku}/{slug}"
+                    rating  = float(prod.get("rating", {}).get("average", 0) or 0)
+                    reviews = int(prod.get("rating", {}).get("count", 0) or 0)
+
+                    item = HardwareItem(
+                        batch_id       = batch_id,
+                        scraped_at     = now_str,
+                        source         = "falabella",
+                        item_id        = item_id,
+                        category       = category,
+                        title          = title,
+                        price_pen      = price,
+                        original_price = original,
+                        discount_pct   = discount,
+                        brand          = brand,
+                        rating         = rating,
+                        reviews_count  = reviews,
+                        url            = url_i,
+                    )
+                    item.compute_fingerprint()
+                    if item.is_valid():
+                        items.append(item)
+                        page_count += 1
+
+                except Exception as e:
+                    self.log.debug(f"[Falabella] Error producto: {e}")
+                    continue
+
+            self.log.info(f"[Falabella] {category} pag {page}: {page_count} nuevos (total: {len(items)})")
+            time.sleep(random.uniform(*DELAY_PAGE))
+
+        return items
+
+    def _scrape_html(self, category: str, cat_cfg: dict,
+                     batch_id: str, max_pages: int = 3) -> list:
+        """Fallback HTML para Falabella si la API falla."""
+        items    = []
+        query    = cat_cfg.get("falabella_q", category)
+        now_str  = datetime.now(timezone.utc).isoformat()
+        seen_ids = set()
+        base_url = "https://www.falabella.com.pe/falabella-pe/search"
+
+        for page in range(1, max_pages + 1):
+            url  = f"{base_url}?Ntt={requests.utils.quote(query)}&page={page}"
             resp = self.http.get(url, referer="https://www.falabella.com.pe/")
             if not resp:
                 break
 
+            from bs4 import BeautifulSoup
             soup = BeautifulSoup(resp.text, "lxml")
-            data = None
+
+            # Intentar __NEXT_DATA__
             for script in soup.find_all("script", {"id": "__NEXT_DATA__"}):
                 try:
-                    data = json.loads(script.string)
-                    break
-                except Exception:
-                    pass
-
-            if not data:
-                # Fallback HTML
-                cards = soup.select("[class*='pod-subPod']")
-                if not cards:
-                    break
-                for card in cards:
-                    try:
-                        title_el = card.select_one("[class*='pod-title']")
-                        price_el = card.select_one("[class*='prices-0']")
-                        if not title_el or not price_el:
-                            continue
-                        title     = title_el.get_text(strip=True)
-                        price_str = re.sub(r"[^\d]", "", price_el.get_text())
-                        price     = float(price_str) if price_str else 0.0
-                        if not title or price <= 0:
-                            continue
-                        # FIX: extraer brand en fallback HTML
-                        brand_el = card.select_one("[class*='pod-brand']")
-                        brand    = brand_el.get_text(strip=True) if brand_el else \
-                                   self._extract_brand(title)
-                        link_el  = card.select_one("a")
-                        url_item = "https://www.falabella.com.pe" + \
-                                   link_el["href"] if link_el else ""
-                        item_id  = f"FAL_{hashlib.md5(title.encode()).hexdigest()[:12]}"
-                        if item_id in seen_ids:
-                            continue
-                        seen_ids.add(item_id)
-                        item = HardwareItem(
-                            batch_id=batch_id, scraped_at=now_str, source="falabella",
-                            item_id=item_id, category=category, title=title,
-                            price_pen=price, original_price=price,
-                            brand=brand, url=url_item,
-                        )
-                        item.compute_fingerprint()
-                        if item.is_valid():
-                            items.append(item)
-                    except Exception:
-                        continue
-                self.log.info(f"[Falabella] {category} pag {page}: {len(items)} total")
-                time.sleep(random.uniform(*DELAY_PAGE))
-                continue
-
-            # JSON __NEXT_DATA__
-            try:
-                results = (data.get("props", {})
-                               .get("pageProps", {})
-                               .get("searchResults", {})
-                               .get("products", []))
-                if not results:
-                    break
-                for prod in results:
-                    try:
+                    data    = json.loads(script.string)
+                    results = (data.get("props", {})
+                                   .get("pageProps", {})
+                                   .get("searchResults", {})
+                                   .get("products", []))
+                    for prod in results:
                         title  = prod.get("displayName", "")
                         prices = prod.get("prices", [{}])
                         price  = float(prices[0].get("originalPrice", 0) or 0)
                         orig   = float(prices[0].get("normalPrice", price) or price)
                         disc   = round((1 - price/orig)*100, 1) if orig > price > 0 else 0.0
                         brand  = prod.get("brand", "")
-                        sku    = prod.get("skuId",
-                                         hashlib.md5(title.encode()).hexdigest()[:12])
-                        slug   = prod.get("slug", "")
-                        url_i  = f"https://www.falabella.com.pe/falabella-pe/product/{sku}/{slug}"
+                        sku    = prod.get("skuId", hashlib.md5(title.encode()).hexdigest()[:12])
                         item_id = f"FAL_{sku}"
-                        if item_id in seen_ids:
+                        if item_id in seen_ids or not title or price <= 0:
                             continue
                         seen_ids.add(item_id)
-                        item = HardwareItem(
+                        slug  = prod.get("slug", "")
+                        url_i = f"https://www.falabella.com.pe/falabella-pe/product/{sku}/{slug}"
+                        item  = HardwareItem(
                             batch_id=batch_id, scraped_at=now_str, source="falabella",
                             item_id=item_id, category=category, title=title,
                             price_pen=price, original_price=orig, discount_pct=disc,
@@ -512,117 +594,19 @@ class FalabellaScraper:
                         item.compute_fingerprint()
                         if item.is_valid():
                             items.append(item)
-                    except Exception:
-                        continue
-            except Exception as e:
-                self.log.debug(f"[Falabella] Error JSON: {e}")
-
-            self.log.info(f"[Falabella] {category} pag {page}: {len(items)} total")
-            time.sleep(random.uniform(*DELAY_PAGE))
-
-        return items
-
-    def _extract_brand(self, title: str) -> str:
-        brands = ["Intel","AMD","NVIDIA","Kingston","Samsung","Corsair","Crucial",
-                  "WD","ASUS","MSI","Gigabyte","ASRock","Seasonic","Noctua",
-                  "Cooler Master","NZXT","PNY","XFX","Sapphire","Zotac","Netac","Lexar"]
-        t = title.lower()
-        for b in brands:
-            if b.lower() in t:
-                return b
-        return ""
-
-# ════════════════════════════════════════════════════════════════
-# 7. SCRAPER — RIPLEY
-# ════════════════════════════════════════════════════════════════
-class RipleyScraper:
-    ENDPOINTS = [
-        "https://simple.ripley.com.pe/api/2.0/page/search",
-        "https://www.ripley.com.pe/api/search",
-    ]
-
-    def __init__(self, http: HttpClient, logger):
-        self.http = http
-        self.log  = logger
-        self.api  = self.ENDPOINTS[0]
-        self._endpoint_detected = False   # FIX: detectar solo una vez
-
-    def _detect_endpoint(self, query: str) -> str:
-        if self._endpoint_detected:
-            return self.api
-        for ep in self.ENDPOINTS:
-            resp = self.http.get(ep, params={"query": query, "page": 1, "perPage": 1})
-            if resp:
-                try:
-                    data = resp.json()
-                    if data.get("products"):
-                        self.log.info(f"[Ripley] Endpoint activo: {ep}")
-                        self._endpoint_detected = True
-                        return ep
                 except Exception:
                     pass
-        self._endpoint_detected = True
-        return self.ENDPOINTS[0]
-
-    def scrape_category(self, category: str, cat_cfg: dict,
-                        batch_id: str, max_pages: int = 10) -> list:
-        items   = []
-        query   = cat_cfg.get("ripley_q", category)
-        now_str = datetime.now(timezone.utc).isoformat()
-
-        self.log.info(f"[Ripley] Scrapeando {category}")
-        self.api = self._detect_endpoint(query)
-
-        for page in range(1, max_pages + 1):
-            params = {"query": query, "page": page, "perPage": 40}
-            resp   = self.http.get(self.api, params=params,
-                                   referer="https://simple.ripley.com.pe/")
-            if not resp:
-                break
-            try:
-                data     = resp.json()
-                products = data.get("products", [])
-                if not products:
-                    break
-                for prod in products:
-                    try:
-                        title   = prod.get("name", "")
-                        price   = float(prod.get("offerPrice", 0) or 0)
-                        orig    = float(prod.get("normalPrice", price) or price)
-                        disc    = round((1 - price/orig)*100, 1) if orig > price > 0 else 0.0
-                        brand   = prod.get("brand", "")
-                        sku     = prod.get("partNumber",
-                                          hashlib.md5(title.encode()).hexdigest()[:12])
-                        url_i   = "https://simple.ripley.com.pe" + prod.get("url", "")
-                        rating  = float(prod.get("rating", 0) or 0)
-                        reviews = int(prod.get("reviewCount", 0) or 0)
-                        avail   = int(prod.get("availableQuantity", 0) or 0)
-                        item    = HardwareItem(
-                            batch_id=batch_id, scraped_at=now_str, source="ripley",
-                            item_id=f"RIP_{sku}", category=category, title=title,
-                            price_pen=price, original_price=orig, discount_pct=disc,
-                            brand=brand, rating=rating, reviews_count=reviews,
-                            available_qty=avail, url=url_i,
-                        )
-                        item.compute_fingerprint()
-                        if item.is_valid():
-                            items.append(item)
-                    except Exception:
-                        continue
-            except Exception as e:
-                self.log.debug(f"[Ripley] Error JSON: {e}")
-                break
-
-            self.log.info(f"[Ripley] {category} pag {page}: {len(items)} total")
             time.sleep(random.uniform(*DELAY_PAGE))
 
         return items
 
 # ════════════════════════════════════════════════════════════════
-# 8. SCRAPER — HIRAOKA (ld+json / Schema.org)
+# 8. SCRAPER — HIRAOKA (API GraphQL / JSON)
 # ════════════════════════════════════════════════════════════════
 class HiraokaScraper:
-    BASE = "https://www.hiraoka.com.pe"
+    # Hiraoka usa Magento 2 con endpoints de busqueda accesibles
+    SEARCH_URL = "https://www.hiraoka.com.pe/catalogsearch/result/index/"
+    API_URL    = "https://www.hiraoka.com.pe/graphql"
 
     def __init__(self, http: HttpClient, logger):
         self.http = http
@@ -636,72 +620,128 @@ class HiraokaScraper:
 
         self.log.info(f"[Hiraoka] Scrapeando {category}")
 
+        # Intentar GraphQL primero
+        gql_items = self._scrape_graphql(category, query, batch_id, now_str, max_pages)
+        if gql_items:
+            self.log.info(f"[Hiraoka] GraphQL exitoso: {len(gql_items)} items")
+            return gql_items
+
+        # Fallback: HTML con ld+json
         for page in range(1, max_pages + 1):
-            url  = f"{self.BASE}/catalogsearch/result/?q={requests.utils.quote(query)}&p={page}"
-            resp = self.http.get(url, referer=self.BASE + "/")
+            url  = f"{self.SEARCH_URL}?q={requests.utils.quote(query)}&p={page}"
+            resp = self.http.get(url, referer="https://www.hiraoka.com.pe/")
             if not resp:
                 break
 
-            soup = BeautifulSoup(resp.text, "lxml")
+            from bs4 import BeautifulSoup
+            soup       = BeautifulSoup(resp.text, "lxml")
+            page_items = self._parse_ldjson(soup, category, batch_id, now_str)
 
-            # Estrategia 1: ld+json Schema.org/Product
-            for script in soup.find_all("script", {"type": "application/ld+json"}):
-                try:
-                    data = json.loads(script.string or "")
-                    if isinstance(data, list):
-                        products = data
-                    elif data.get("@type") == "ItemList":
-                        products = [e.get("item", {}) for e in data.get("itemListElement", [])]
-                    else:
-                        products = [data]
+            if not page_items:
+                page_items = self._parse_html_cards(soup, category, batch_id, now_str)
 
-                    for prod in products:
-                        if prod.get("@type") not in ("Product", "product"):
-                            continue
-                        try:
-                            title  = prod.get("name", "")
-                            offers = prod.get("offers", {})
-                            if isinstance(offers, list):
-                                offers = offers[0] if offers else {}
-                            price  = float(offers.get("price", 0) or 0)
-                            brand  = prod.get("brand", {})
-                            brand  = brand.get("name", "") if isinstance(brand, dict) else str(brand)
-                            url_i  = prod.get("url", "")
-                            sku    = prod.get("sku",
-                                             hashlib.md5(title.encode()).hexdigest()[:12])
-                            item   = HardwareItem(
-                                batch_id=batch_id, scraped_at=now_str, source="hiraoka",
-                                item_id=f"HIR_{sku}", category=category, title=title,
-                                price_pen=price, original_price=price,
-                                brand=brand, url=url_i,
-                            )
-                            item.compute_fingerprint()
-                            if item.is_valid():
-                                items.append(item)
-                        except Exception:
-                            continue
-                except Exception:
-                    continue
+            items.extend(page_items)
+            self.log.info(f"[Hiraoka] {category} pag {page}: {len(page_items)} items (total: {len(items)})")
 
-            # Estrategia 2: HTML cards si ld+json no dio resultados en esta página
-            if not items:
-                cards = soup.select(".product-item-info")
-                for card in cards:
+            if not page_items:
+                break
+            time.sleep(random.uniform(*DELAY_PAGE))
+
+        return items
+
+    def _scrape_graphql(self, category: str, query: str,
+                        batch_id: str, now_str: str, max_pages: int) -> list:
+        """Consulta GraphQL de Magento 2 (Hiraoka)."""
+        items    = []
+        seen_ids = set()
+        page_size = 20
+
+        gql_query = """
+        query SearchProducts($search: String!, $pageSize: Int!, $currentPage: Int!) {
+          products(search: $search, pageSize: $pageSize, currentPage: $currentPage) {
+            total_count
+            items {
+              sku
+              name
+              url_key
+              price_range {
+                minimum_price {
+                  regular_price { value currency }
+                  final_price   { value currency }
+                  discount      { amount_off percent_off }
+                }
+              }
+              ... on PhysicalProductInterface {
+                weight
+              }
+            }
+          }
+        }
+        """
+
+        for page in range(1, max_pages + 1):
+            try:
+                payload = {
+                    "query"    : gql_query,
+                    "variables": {
+                        "search"     : query,
+                        "pageSize"   : page_size,
+                        "currentPage": page,
+                    }
+                }
+                time.sleep(random.uniform(*DELAY_REQ))
+                resp = self.http.session.post(
+                    self.API_URL,
+                    json=payload,
+                    headers={
+                        "Content-Type": "application/json",
+                        "Accept"      : "application/json",
+                        "Referer"     : "https://www.hiraoka.com.pe/",
+                        "User-Agent"  : "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/125.0",
+                    },
+                    timeout=20
+                )
+                if not resp or resp.status_code != 200:
+                    break
+
+                data     = resp.json()
+                products = data.get("data", {}).get("products", {}).get("items", [])
+                if not products:
+                    break
+
+                for prod in products:
                     try:
-                        title_el = card.select_one(".product-item-name")
-                        price_el = card.select_one(".price")
-                        if not title_el or not price_el:
+                        sku     = prod.get("sku", "")
+                        title   = prod.get("name", "")
+                        url_key = prod.get("url_key", "")
+                        url_i   = f"https://www.hiraoka.com.pe/{url_key}.html"
+
+                        price_range = prod.get("price_range", {})
+                        min_price   = price_range.get("minimum_price", {})
+                        final       = min_price.get("final_price", {})
+                        regular     = min_price.get("regular_price", {})
+                        discount_d  = min_price.get("discount", {})
+
+                        price    = float(final.get("value", 0) or 0)
+                        original = float(regular.get("value", 0) or price)
+                        discount = float(discount_d.get("percent_off", 0) or 0)
+
+                        item_id = f"HIR_{sku}"
+                        if item_id in seen_ids or not title or price <= 0:
                             continue
-                        title     = title_el.get_text(strip=True)
-                        price_str = re.sub(r"[^\d]", "", price_el.get_text())
-                        price     = float(price_str) if price_str else 0.0
-                        link_el   = card.select_one("a.product-item-link")
-                        url_i     = link_el["href"] if link_el else ""
-                        sku       = hashlib.md5(title.encode()).hexdigest()[:12]
-                        item      = HardwareItem(
-                            batch_id=batch_id, scraped_at=now_str, source="hiraoka",
-                            item_id=f"HIR_{sku}", category=category, title=title,
-                            price_pen=price, original_price=price, url=url_i,
+                        seen_ids.add(item_id)
+
+                        item = HardwareItem(
+                            batch_id       = batch_id,
+                            scraped_at     = now_str,
+                            source         = "hiraoka",
+                            item_id        = item_id,
+                            category       = category,
+                            title          = title,
+                            price_pen      = price,
+                            original_price = original,
+                            discount_pct   = round(discount, 1),
+                            url            = url_i,
                         )
                         item.compute_fingerprint()
                         if item.is_valid():
@@ -709,9 +749,82 @@ class HiraokaScraper:
                     except Exception:
                         continue
 
-            self.log.info(f"[Hiraoka] {category} pag {page}: {len(items)} total")
-            time.sleep(random.uniform(*DELAY_PAGE))
+                total = data.get("data", {}).get("products", {}).get("total_count", 0)
+                if page * page_size >= total:
+                    break
+                time.sleep(random.uniform(*DELAY_PAGE))
 
+            except Exception as e:
+                self.log.debug(f"[Hiraoka] GraphQL error: {e}")
+                break
+
+        return items
+
+    def _parse_ldjson(self, soup, category: str, batch_id: str, now_str: str) -> list:
+        """Parsear ld+json Schema.org/Product."""
+        items = []
+        for script in soup.find_all("script", {"type": "application/ld+json"}):
+            try:
+                data = json.loads(script.string or "")
+                if isinstance(data, list):
+                    products = data
+                elif data.get("@type") == "ItemList":
+                    products = [e.get("item", {}) for e in data.get("itemListElement", [])]
+                else:
+                    products = [data]
+
+                for prod in products:
+                    if prod.get("@type") not in ("Product", "product"):
+                        continue
+                    title  = prod.get("name", "")
+                    offers = prod.get("offers", {})
+                    if isinstance(offers, list):
+                        offers = offers[0] if offers else {}
+                    price  = float(offers.get("price", 0) or 0)
+                    brand  = prod.get("brand", {})
+                    brand  = brand.get("name", "") if isinstance(brand, dict) else str(brand)
+                    url_i  = prod.get("url", "")
+                    sku    = prod.get("sku", hashlib.md5(title.encode()).hexdigest()[:12])
+                    if not title or price <= 0:
+                        continue
+                    item = HardwareItem(
+                        batch_id=batch_id, scraped_at=now_str, source="hiraoka",
+                        item_id=f"HIR_{sku}", category=category, title=title,
+                        price_pen=price, original_price=price, brand=brand, url=url_i,
+                    )
+                    item.compute_fingerprint()
+                    if item.is_valid():
+                        items.append(item)
+            except Exception:
+                continue
+        return items
+
+    def _parse_html_cards(self, soup, category: str, batch_id: str, now_str: str) -> list:
+        """Fallback HTML cards Magento 2."""
+        items = []
+        for card in soup.select(".product-item-info"):
+            try:
+                from bs4 import BeautifulSoup
+                title_el = card.select_one(".product-item-name")
+                price_el = card.select_one(".price")
+                if not title_el or not price_el:
+                    continue
+                title     = title_el.get_text(strip=True)
+                price_str = re.sub(r"[^\d]", "", price_el.get_text())
+                price     = float(price_str) if price_str else 0.0
+                link_el   = card.select_one("a.product-item-link")
+                url_i     = link_el["href"] if link_el else ""
+                sku       = hashlib.md5(title.encode()).hexdigest()[:12]
+                item = HardwareItem(
+                    batch_id=batch_id, scraped_at=now_str, source="hiraoka",
+                    item_id=f"HIR_{sku}", category=category, title=title,
+                    price_pen=price, original_price=price, url=url_i,
+                )
+                item.compute_fingerprint()
+                if item.is_valid():
+                    items.append(item)
+            except Exception:
+                continue
         return items
 
 # ════════════════════════════════════════════════════════════════
@@ -777,7 +890,6 @@ class MasterCSVWriter:
         try:
             import pandas as pd
             df = pd.read_csv(self.path)
-            # FIX: manejo seguro de NaN en fechas
             date_min = df["scraped_at"].dropna().min()
             date_max = df["scraped_at"].dropna().max()
             return {
@@ -804,7 +916,6 @@ class BatchOrchestrator:
         self.scrapers = {
             "mercadolibre": MLScraper(self.http, self.log),
             "falabella"   : FalabellaScraper(self.http, self.log),
-            "ripley"      : RipleyScraper(self.http, self.log),
             "hiraoka"     : HiraokaScraper(self.http, self.log),
         }
 
@@ -882,13 +993,13 @@ class BatchOrchestrator:
 # ════════════════════════════════════════════════════════════════
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Agente IA - Scraper ML Peru Hardware v2.2")
+        description="Agente IA - Scraper ML Peru Hardware v3.0")
     parser.add_argument("--once",       action="store_true", help="Un batch y salir")
     parser.add_argument("--pages",      type=int, default=MAX_PAGES)
     parser.add_argument("--categories", nargs="+", default=None,
                         choices=list(CATEGORIES.keys()))
     parser.add_argument("--sources",    nargs="+", default=None,
-                        choices=["mercadolibre","falabella","ripley","hiraoka"])
+                        choices=["mercadolibre","falabella","hiraoka"])
     parser.add_argument("--stats",      action="store_true", help="Ver estadisticas")
     args = parser.parse_args()
 
@@ -901,6 +1012,6 @@ if __name__ == "__main__":
     result = orch.run_batch(
         categories=args.categories,
         sources=args.sources,
-        max_pages=max(1, args.pages)   # FIX: validar pages >= 1
+        max_pages=max(1, args.pages)
     )
     print(json.dumps(result, indent=2, ensure_ascii=False))
