@@ -15,8 +15,13 @@ on:
           - normal        # local PE + eBay
           - local_only    # solo Falabella/Ripley/Hiraoka
           - historical    # eBay + CamelCamelCamel + PCPartPicker
-          - kaggle_only   # solo Kaggle (ejecutar 1 vez)
+          - kaggle_only   # solo Kaggle (ejecutar 1 vez manualmente)
           - full          # todo
+
+# ── FIX 🔴1: concurrency — evita 2 runs simultáneos ──────────────────────
+concurrency:
+  group: data-collection-${{ github.ref }}
+  cancel-in-progress: false   # NO cancelar — dejar terminar el run activo
 
 permissions:
   contents: write
@@ -25,62 +30,65 @@ jobs:
   collect-data:
     name: "🤖 Recolección — ${{ github.event.inputs.mode || 'normal' }}"
     runs-on: ubuntu-latest
-    timeout-minutes: 55
+    # ── FIX ⚠️1: timeout diferenciado por modo ──────────────────────────
+    timeout-minutes: ${{ github.event.inputs.mode == 'full' && 90 || 55 }}
 
     env:
-      EBAY_APP_ID:        ${{ secrets.EBAY_APP_ID }}
-      KAGGLE_USERNAME:    ${{ secrets.KAGGLE_USERNAME }}
-      KAGGLE_KEY:         ${{ secrets.KAGGLE_KEY }}
-      RUN_MODE:           ${{ github.event.inputs.mode || 'normal' }}
-      OUTPUT_DIR:         data/raw          # ← ruta correcta para GitHub Actions
-      TZ:                 America/Lima
+      EBAY_APP_ID:     ${{ secrets.EBAY_APP_ID }}
+      KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
+      KAGGLE_KEY:      ${{ secrets.KAGGLE_KEY }}
+      RUN_MODE:        ${{ github.event.inputs.mode || 'normal' }}
+      OUTPUT_DIR:      data/raw
+      TZ:              America/Lima
 
     steps:
-      # ── 1. Checkout ────────────────────────────────────────────────────
+      # ── 1. Checkout ──────────────────────────────────────────────────
       - name: "📥 Checkout"
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      # ── 2. Python ──────────────────────────────────────────────────────
+      # ── 2. Python ────────────────────────────────────────────────────
       - name: "🐍 Setup Python 3.11"
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
           cache: 'pip'
 
-      # ── 3. Dependencias (solo scraping, sin ML) ────────────────────────
+      # ── 3. Dependencias — FIX ⚠️3: agregar tenacity ─────────────────
       - name: "📦 Instalar dependencias"
         run: |
           pip install --upgrade pip
           pip install \
             requests \
+            "requests[security]" \
             beautifulsoup4 \
             lxml \
             pandas \
             kaggle \
             python-dotenv \
-            urllib3
+            urllib3 \
+            tenacity
 
-      # ── 4. Info del run ────────────────────────────────────────────────
+      # ── 4. Info del run ──────────────────────────────────────────────
       - name: "ℹ️ Info del run"
         run: |
           echo "════════════════════════════════"
           echo "  Modo     : $RUN_MODE"
           echo "  Hora UTC : $(date '+%Y-%m-%d %H:%M:%S')"
+          echo "  Hora PE  : $(TZ='America/Lima' date '+%Y-%m-%d %H:%M:%S')"
           echo "  Trigger  : ${{ github.event_name }}"
           echo "════════════════════════════════"
           echo "BATCH_ID=batch_$(date '+%Y%m%d_%H%M%S')" >> $GITHUB_ENV
 
-      # ── 5. Ejecutar pipeline ───────────────────────────────────────────
+      # ── 5. Ejecutar pipeline ─────────────────────────────────────────
       - name: "🚀 Ejecutar recolección"
         run: |
-          # CRÍTICO: ejecutar desde la raíz del repo, no desde agent/
           python agent/main.py \
             --mode "$RUN_MODE" \
             --batch-id "$BATCH_ID"
 
-      # ── 6. Verificar resultados ────────────────────────────────────────
+      # ── 6. Verificar resultados ──────────────────────────────────────
       - name: "🔍 Verificar datos"
         run: |
           echo "── Archivos generados ──"
@@ -93,7 +101,7 @@ jobs:
             echo "  Registros: $((LINES - 1))"
             echo "  Tamaño:    $(du -sh data/raw/MASTER_hardware_peru.csv | cut -f1)"
           else
-            echo "  ⚠️ MASTER no encontrado"
+            echo "  ⚠️ MASTER no encontrado aún (primer run)"
           fi
 
           echo ""
@@ -103,69 +111,105 @@ jobs:
             cat "$REPORT"
           fi
 
-      # ── 7. Batch 24h (combinar últimos 12 runs) ────────────────────────
+      # ── 7. Batch 24h — FIX 🔴2: glob completo + todos los tags ──────
       - name: "📊 Generar batch 24h"
         run: |
           python - <<'PYEOF'
-          import os, glob, pandas as pd
+          import os, glob, re, pandas as pd
           from datetime import datetime, timedelta, timezone
 
           raw_dir = "data/raw"
           now     = datetime.now(timezone.utc)
           cutoff  = now - timedelta(hours=24)
 
-          batch_files = sorted(glob.glob(f"{raw_dir}/batch_*_local.csv") +
-                               glob.glob(f"{raw_dir}/batch_*_ebay.csv")  +
-                               glob.glob(f"{raw_dir}/batch_*_dolar.csv"))
+          # Incluir TODOS los tags de batch (local, ebay, dolar, camel, pcpartpicker, kaggle)
+          all_batch_files = glob.glob(f"{raw_dir}/batch_????????_??????_*.csv")
 
           recent = []
-          for f in batch_files:
+          for f in all_batch_files:
+              basename = os.path.basename(f)
+              # Saltar archivos batch_24h_*.csv para evitar recursión
+              if basename.startswith("batch_24h_"):
+                  continue
               try:
-                  # Extraer timestamp: batch_YYYYMMDD_HHMMSS_tag.csv
-                  parts  = os.path.basename(f).split("_")
-                  ts_str = f"{parts[1]}_{parts[2]}"
-                  ts     = datetime.strptime(ts_str, "%Y%m%d_%H%M%S").replace(tzinfo=timezone.utc)
+                  # Formato: batch_YYYYMMDD_HHMMSS_tag.csv
+                  m = re.match(r"batch_(\d{8})_(\d{6})_", basename)
+                  if not m:
+                      continue
+                  ts_str = f"{m.group(1)}_{m.group(2)}"
+                  ts = datetime.strptime(ts_str, "%Y%m%d_%H%M%S").replace(tzinfo=timezone.utc)
                   if ts >= cutoff:
                       recent.append(f)
-              except (ValueError, IndexError):
+              except (ValueError, AttributeError):
                   continue
 
+          # Agrupar por tag para estadísticas
+          tags = {}
+          for f in recent:
+              tag = os.path.basename(f).split("_")[3].replace(".csv", "")
+              tags[tag] = tags.get(tag, 0) + 1
+
           print(f"Batches últimas 24h: {len(recent)}")
+          print(f"Por fuente: {tags}")
+
           if recent:
-              dfs = [pd.read_csv(f) for f in recent if os.path.exists(f)]
+              dfs = []
+              for f in recent:
+                  try:
+                      dfs.append(pd.read_csv(f, low_memory=False))
+                  except Exception as e:
+                      print(f"  Error leyendo {f}: {e}")
+
               if dfs:
                   combined = pd.concat(dfs, ignore_index=True)
                   out = f"{raw_dir}/batch_24h_{now.strftime('%Y%m%d')}.csv"
                   combined.to_csv(out, index=False)
-                  print(f"✅ Batch 24h: {out} ({len(combined):,} registros)")
+                  print(f"✅ Batch 24h guardado: {out}")
+                  print(f"   Registros: {len(combined):,}")
+                  if "source" in combined.columns:
+                      print(f"   Por fuente:\n{combined['source'].value_counts().to_string()}")
+          else:
+              print("⚠️ Sin batches recientes (primer run del día)")
           PYEOF
 
-      # ── 8. Commit y push ───────────────────────────────────────────────
+      # ── 8. Commit — FIX ⚠️4: rebase + excluir Kaggle raw ────────────
       - name: "💾 Commit datos"
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
+          # Solo agregar data/raw/ — NO data/kaggle/ (archivos >100MB)
           git add data/raw/
 
           if git diff --staged --quiet; then
-            echo "ℹ️ Sin cambios nuevos"
+            echo "ℹ️ Sin cambios nuevos para commitear"
           else
-            MASTER_LINES=$(wc -l < data/raw/MASTER_hardware_peru.csv 2>/dev/null || echo "?")
-            git commit -m "🤖 [${BATCH_ID}] ${RUN_MODE} — ~${MASTER_LINES} registros"
+            # FIX ⚠️5: rebase antes del push para evitar conflictos
+            git pull --rebase origin main || true
+
+            # FIX ⚠️6: contar líneas con python (más robusto que wc -l)
+            MASTER_LINES=$(python -c "
+          import csv, pathlib
+          f = pathlib.Path('data/raw/MASTER_hardware_peru.csv')
+          print(sum(1 for _ in open(f)) - 1 if f.exists() else 0)
+          " 2>/dev/null || echo "0")
+
+            git commit -m "🤖 [${BATCH_ID}] ${RUN_MODE} — ${MASTER_LINES} registros"
             git push origin main
-            echo "✅ Push exitoso"
+            echo "✅ Push exitoso — ${MASTER_LINES} registros en MASTER"
           fi
 
-      # ── 9. Resumen ─────────────────────────────────────────────────────
+      # ── 9. Resumen ───────────────────────────────────────────────────
       - name: "📋 Resumen"
         if: always()
         run: |
           echo "════════════════════════════════"
-          echo "  Batch : $BATCH_ID"
-          echo "  Modo  : $RUN_MODE"
-          echo "  Status: ${{ job.status }}"
+          echo "  Batch  : $BATCH_ID"
+          echo "  Modo   : $RUN_MODE"
+          echo "  Status : ${{ job.status }}"
+          echo "  Hora PE: $(TZ='America/Lima' date '+%H:%M:%S')"
           if [ -f data/raw/MASTER_hardware_peru.csv ]; then
-            echo "  Master: $(wc -l < data/raw/MASTER_hardware_peru.csv) líneas"
+            LINES=$(wc -l < data/raw/MASTER_hardware_peru.csv)
+            echo "  Master : $((LINES - 1)) registros"
           fi
           echo "════════════════════════════════"
