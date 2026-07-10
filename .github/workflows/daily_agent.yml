@@ -18,10 +18,9 @@ on:
           - kaggle_only   # solo Kaggle (ejecutar 1 vez manualmente)
           - full          # todo
 
-# ── FIX 🔴1: concurrency — evita 2 runs simultáneos ──────────────────────
 concurrency:
   group: data-collection-${{ github.ref }}
-  cancel-in-progress: false   # NO cancelar — dejar terminar el run activo
+  cancel-in-progress: false
 
 permissions:
   contents: write
@@ -30,7 +29,6 @@ jobs:
   collect-data:
     name: "🤖 Recolección — ${{ github.event.inputs.mode || 'normal' }}"
     runs-on: ubuntu-latest
-    # ── FIX ⚠️1: timeout diferenciado por modo ──────────────────────────
     timeout-minutes: ${{ github.event.inputs.mode == 'full' && 90 || 55 }}
 
     env:
@@ -42,20 +40,22 @@ jobs:
       TZ:              America/Lima
 
     steps:
-      # ── 1. Checkout ──────────────────────────────────────────────────
+      # ── 1. Checkout ────────────────────────────────────────────────
       - name: "📥 Checkout"
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      # ── 2. Python ────────────────────────────────────────────────────
+      # ── 2. Python ──────────────────────────────────────────────────
       - name: "🐍 Setup Python 3.11"
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
           cache: 'pip'
 
-      # ── 3. Dependencias — FIX ⚠️3: agregar tenacity ─────────────────
+      # ── 3. Dependencias ────────────────────────────────────────────
+      # FIX 🔴2: agregados fake-useragent, cloudscraper, pytz
+      # FIX ⚠️1: numpy fijado explícitamente
       - name: "📦 Instalar dependencias"
         run: |
           pip install --upgrade pip
@@ -65,12 +65,16 @@ jobs:
             beautifulsoup4 \
             lxml \
             pandas \
+            "numpy>=1.26,<3" \
             kaggle \
             python-dotenv \
             urllib3 \
-            tenacity
+            tenacity \
+            fake-useragent \
+            cloudscraper \
+            pytz
 
-      # ── 4. Info del run ──────────────────────────────────────────────
+      # ── 4. Info del run ────────────────────────────────────────────
       - name: "ℹ️ Info del run"
         run: |
           echo "════════════════════════════════"
@@ -81,14 +85,17 @@ jobs:
           echo "════════════════════════════════"
           echo "BATCH_ID=batch_$(date '+%Y%m%d_%H%M%S')" >> $GITHUB_ENV
 
-      # ── 5. Ejecutar pipeline ─────────────────────────────────────────
+      # ── 5. Ejecutar pipeline ───────────────────────────────────────
+      # FIX 🔴1: PYTHONPATH=agent:configuracion
+      #   → agent/        para que 'import scrapers' resuelva agent/scrapers/
+      #   → configuracion/ para que 'import config'   resuelva configuracion/config.py
       - name: "🚀 Ejecutar recolección"
         run: |
-          python agent/main.py \
+          PYTHONPATH=agent:configuracion python agent/main.py \
             --mode "$RUN_MODE" \
             --batch-id "$BATCH_ID"
 
-      # ── 6. Verificar resultados ──────────────────────────────────────
+      # ── 6. Verificar resultados ────────────────────────────────────
       - name: "🔍 Verificar datos"
         run: |
           echo "── Archivos generados ──"
@@ -111,7 +118,7 @@ jobs:
             cat "$REPORT"
           fi
 
-      # ── 7. Batch 24h — FIX 🔴2: glob completo + todos los tags ──────
+      # ── 7. Batch 24h ───────────────────────────────────────────────
       - name: "📊 Generar batch 24h"
         run: |
           python - <<'PYEOF'
@@ -122,17 +129,14 @@ jobs:
           now     = datetime.now(timezone.utc)
           cutoff  = now - timedelta(hours=24)
 
-          # Incluir TODOS los tags de batch (local, ebay, dolar, camel, pcpartpicker, kaggle)
           all_batch_files = glob.glob(f"{raw_dir}/batch_????????_??????_*.csv")
 
           recent = []
           for f in all_batch_files:
               basename = os.path.basename(f)
-              # Saltar archivos batch_24h_*.csv para evitar recursión
               if basename.startswith("batch_24h_"):
                   continue
               try:
-                  # Formato: batch_YYYYMMDD_HHMMSS_tag.csv
                   m = re.match(r"batch_(\d{8})_(\d{6})_", basename)
                   if not m:
                       continue
@@ -143,7 +147,6 @@ jobs:
               except (ValueError, AttributeError):
                   continue
 
-          # Agrupar por tag para estadísticas
           tags = {}
           for f in recent:
               tag = os.path.basename(f).split("_")[3].replace(".csv", "")
@@ -172,22 +175,19 @@ jobs:
               print("⚠️ Sin batches recientes (primer run del día)")
           PYEOF
 
-      # ── 8. Commit — FIX ⚠️4: rebase + excluir Kaggle raw ────────────
+      # ── 8. Commit ──────────────────────────────────────────────────
       - name: "💾 Commit datos"
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          # Solo agregar data/raw/ — NO data/kaggle/ (archivos >100MB)
           git add data/raw/
 
           if git diff --staged --quiet; then
             echo "ℹ️ Sin cambios nuevos para commitear"
           else
-            # FIX ⚠️5: rebase antes del push para evitar conflictos
             git pull --rebase origin main || true
 
-            # FIX ⚠️6: contar líneas con python (más robusto que wc -l)
             MASTER_LINES=$(python -c "
           import csv, pathlib
           f = pathlib.Path('data/raw/MASTER_hardware_peru.csv')
@@ -199,7 +199,7 @@ jobs:
             echo "✅ Push exitoso — ${MASTER_LINES} registros en MASTER"
           fi
 
-      # ── 9. Resumen ───────────────────────────────────────────────────
+      # ── 9. Resumen ─────────────────────────────────────────────────
       - name: "📋 Resumen"
         if: always()
         run: |
