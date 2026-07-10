@@ -7,6 +7,10 @@ on:
         description: 'Paginas por categoria (2=rapido, 20=completo)'
         required: false
         default: '3'
+      sources:
+        description: 'Fuentes a scrapear (ej: falabella hiraoka)'
+        required: false
+        default: 'falabella hiraoka'
   schedule:
     - cron: '0 7 * * *'
 
@@ -35,8 +39,6 @@ jobs:
       - name: 3 Instalar dependencias
         run: pip install -r requirements.txt
 
-      # ← FIX #6: --test llama sys.exit(0) y mata el workflow.
-      #   Solución: verificar imports manualmente sin --test
       - name: 4 Verificar configuracion
         run: |
           python - <<'EOF'
@@ -56,27 +58,45 @@ jobs:
           print("Verificacion completada")
           EOF
 
-      - name: 5 Ejecutar batch de scraping
+      - name: 5 Detectar fuentes disponibles
+        id: sources
+        run: |
+          # Si hay secrets ML configurados, incluir mercadolibre
+          if [ -n "${{ secrets.ML_APP_ID }}" ] && [ -n "${{ secrets.ML_SECRET }}" ]; then
+            SOURCES="mercadolibre falabella hiraoka"
+            echo "ML secrets: PRESENTES"
+          else
+            SOURCES="${{ github.event.inputs.sources || 'falabella hiraoka' }}"
+            echo "ML secrets: AUSENTES → usando solo $SOURCES"
+          fi
+          echo "sources=$SOURCES" >> $GITHUB_OUTPUT
+          echo "Fuentes activas: $SOURCES"
+
+      - name: 6 Ejecutar batch de scraping
         run: |
           PAGES=${{ github.event.inputs.pages || '3' }}
-          echo "Ejecutando scraping con PAGES=$PAGES"
-          python agent/main.py --batch --pages $PAGES
+          SOURCES="${{ steps.sources.outputs.sources }}"
+          echo "Ejecutando scraping con PAGES=$PAGES SOURCES=$SOURCES"
+          python agent/main.py --batch --pages $PAGES --sources $SOURCES
         env:
           PYTHONUNBUFFERED: "1"
           ML_APP_ID: ${{ secrets.ML_APP_ID }}
           ML_SECRET: ${{ secrets.ML_SECRET }}
 
-      - name: 6 Verificar CSV generado
+      - name: 7 Verificar CSV generado
         run: |
           if [ -f "data/raw/MASTER_hardware_peru.csv" ]; then
-            echo "Master CSV encontrado"
+            echo "✅ Master CSV encontrado"
             wc -l data/raw/MASTER_hardware_peru.csv
+            echo "--- Primeras 3 filas ---"
+            head -4 data/raw/MASTER_hardware_peru.csv
           else
-            echo "Master CSV no encontrado"
+            echo "⚠️  Master CSV no encontrado"
           fi
-          ls -la data/raw/ 2>/dev/null || echo "Directorio vacio"
+          echo "--- Archivos en data/raw/ ---"
+          ls -lh data/raw/ 2>/dev/null || echo "Directorio vacio"
 
-      - name: 7 Commit y push de datos
+      - name: 8 Commit y push de datos
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -89,6 +109,6 @@ jobs:
             git push
           fi
 
-      - name: 8 Estadisticas finales
+      - name: 9 Estadisticas finales
         if: always()
         run: python agent/main.py --stats || echo "Stats no disponibles"
