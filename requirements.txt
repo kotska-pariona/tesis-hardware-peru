@@ -1,9 +1,5 @@
 requests==2.31.0
 beautifulsoup4==4.12.3
 lxml==5.2.1
-fake-useragent==1.5.1
 pandas==2.2.2
-schedule==1.2.1
-numpy==1.26.4
-scikit-learn==1.4.2
-scipy==1.13.1
+python-dotenv==1.0.1
