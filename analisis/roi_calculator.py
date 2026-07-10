@@ -28,6 +28,20 @@ Fixes v2.0:
   - [FIX-7] conviene_importar sin == True (pandas warning)
   - [FIX-8] shipping_origen_usd documentado como parte del FOB efectivo
 """
+"""
+roi_calculator.py  v2.0
+... (docstring existente sin cambios)
+"""
+
+# ── Path fix ─────────────────────────────────────────────────────────────
+# Permite encontrar config.py (en configuracion/) y scrapers/ (en agent/)
+# independientemente de desde dónde se ejecute el script.
+import sys
+from pathlib import Path
+_ROOT = Path(__file__).resolve().parent.parent   # sube de analisis/ → raíz del repo
+sys.path.insert(0, str(_ROOT / "configuracion")) # → encuentra config.py ✅
+sys.path.insert(0, str(_ROOT / "agent"))         # → encuentra scrapers/ ✅
+# ─────────────────────────────────────────────────────────────────────────
 
 import logging
 from dataclasses import dataclass, field, asdict
