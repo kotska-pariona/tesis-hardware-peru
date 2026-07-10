@@ -1,288 +1,353 @@
 """
-main.py  v4.1
-══════════════
-Orquestador principal del pipeline de scraping.
-Ejecuta scraper_importacion + scraper_competencia
-y consolida todo en MASTER_hardware_peru.csv con ROI calculado.
+main.py
+════════
+Orquestador principal del pipeline de ROI de importación.
 
-Uso:
-  python agent/main.py                        # ejecuta todo
-  python agent/main.py --only importacion     # solo fuentes de importación
-  python agent/main.py --only competencia     # solo fuentes de competencia
-  python agent/main.py --categories CPU GPU   # solo esas categorías
+Modos de ejecución:
+  python main.py                    → Pipeline completo
+  python main.py --only scrape      → Solo scrapear
+  python main.py --only merge       → Solo mergear CSVs existentes
+  python main.py --only roi         → Solo calcular ROI
+  python main.py --sources-import amazon ebay --categories CPU GPU
+  python main.py --dry-run          → Sin escribir nada
+
+Flujo completo:
+  [1] Actualizar tipo de cambio USD/PEN
+  [2] Scraper local PE  (Falabella / Ripley / Hiraoka)
+  [3] Scraper importación (Amazon / AliExpress / eBay)
+  [4] Merge + normalización
+  [5] Cálculo de ROI
+  [6] Reporte de oportunidades
 """
 
-import os, sys, csv, json, logging, argparse
-import requests                                      # ✅ FIX 4: import normal
+import argparse
+import logging
+import sys
+import time
 from datetime import datetime, timezone
-from pathlib import Path
 
+from config import (
+    LOG_LEVEL, LOG_FILE, CATEGORIES,
+    SOURCES_LOCAL, SOURCES_IMPORT,
+    DATA_DIR, OPORTUNIDADES_CSV,
+)
+
+# ── Logging con archivo ───────────────────────────────────────────────────────
 logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(message)s",
+    level=LOG_LEVEL,
+    format="%(asctime)s [%(levelname)s] %(name)s — %(message)s",
     datefmt="%H:%M:%S",
+    handlers=[
+        logging.StreamHandler(sys.stdout),
+        logging.FileHandler(LOG_FILE, encoding="utf-8"),
+    ],
 )
 log = logging.getLogger("main")
 
-OUTPUT_DIR = Path(os.getenv("OUTPUT_DIR", "data/raw"))  # ✅ FIX 1
-OUTPUT_DIR.mkdir(parents=True, exist_ok=True)            # ✅ FIX 3
+# ══════════════════════════════════════════════════════════════════════════════
+# STEPS DEL PIPELINE
+# ══════════════════════════════════════════════════════════════════════════════
 
-# ── Importar scrapers ─────────────────────────────────────────────────────────
-sys.path.insert(0, str(Path(__file__).parent))
-try:
-    from scrapers.scraper_importacion import run_importacion
-    from scrapers.scraper_competencia import run_competencia
-except ImportError:
-    from scraper_importacion import run_importacion
-    from scraper_competencia import run_competencia
+def step_dolar() -> float:
+    """Step 1: Actualizar tipo de cambio"""
+    _banner("STEP 1 — Tipo de cambio USD/PEN")
+    from scraper_dolar import get_usd_pen
+    rate = get_usd_pen(force_update=True)
+    log.info(f"  USD/PEN venta = S/ {rate['usd_pen_venta']} (fuente: {rate['source']})")
+    return rate["usd_pen_venta"]
 
-# ── ROI Calculator ────────────────────────────────────────────────────────────
-def calcular_roi(
-    price_usd: float,
-    shipping_usd: float,
-    tipo_cambio: float,
-    precio_techo_pen: float,
-    arancel_pct: float = 0.18,
-    ad_valorem_pct: float = 0.0,
-    courier_pen: float = 50.0,
-    margen_minimo_pct: float = 0.20,
+def step_scrape_local(
+    batch_id: str,
+    sources: list,
+    categories: list,
+    dry_run: bool = False,
 ) -> dict:
-    if price_usd <= 0 or tipo_cambio <= 0:
-        return {
-            "costo_fob_pen": 0, "tributos_pen": 0, "costo_total_pen": 0,
-            "precio_venta_pen": 0, "margen_neto_pen": 0,
-            "roi_pct": 0, "viable": False, "accion": "DATOS_INSUFICIENTES"
-        }
-
-    costo_fob_pen    = (price_usd + shipping_usd) * tipo_cambio
-    tributos_pen     = costo_fob_pen * (arancel_pct + ad_valorem_pct)
-    costo_total_pen  = costo_fob_pen + tributos_pen + courier_pen
-    precio_venta_pen = precio_techo_pen * 0.90
-    margen_neto_pen  = precio_venta_pen - costo_total_pen
-    roi_pct          = (margen_neto_pen / costo_total_pen * 100) if costo_total_pen > 0 else 0
-
-    if roi_pct >= 30:
-        accion = "IMPORTAR_AHORA"
-    elif roi_pct >= margen_minimo_pct * 100:
-        accion = "IMPORTAR_EVALUAR"
-    elif roi_pct >= 0:
-        accion = "MARGEN_BAJO"
-    else:
-        accion = "NO_RENTABLE"
-
-    return {
-        "costo_fob_pen":    round(costo_fob_pen, 2),
-        "tributos_pen":     round(tributos_pen, 2),
-        "costo_total_pen":  round(costo_total_pen, 2),
-        "precio_venta_pen": round(precio_venta_pen, 2),
-        "margen_neto_pen":  round(margen_neto_pen, 2),
-        "roi_pct":          round(roi_pct, 1),
-        "viable":           roi_pct >= margen_minimo_pct * 100,
-        "accion":           accion,
-    }
-
-# ── Consolidar MASTER_hardware_peru.csv ───────────────────────────────────────
-def consolidar_master(batch_id: str, tipo_cambio: float):
-    master_path = OUTPUT_DIR / "MASTER_hardware_peru.csv"   # ✅ FIX 2
-    import_path = OUTPUT_DIR / f"importacion_{batch_id}.csv"
-    comp_path   = OUTPUT_DIR / f"competencia_{batch_id}.csv"
-
-    # ── Leer precios techo por categoría ─────────────────────────────────────
-    precios_techo = {}
-    if comp_path.exists():
-        with open(comp_path, newline="", encoding="utf-8") as f:
-            for row in csv.DictReader(f):
-                cat = row.get("category", "")
-                try:
-                    p = float(row.get("price_pen", 0))
-                    if p > precios_techo.get(cat, 0):
-                        precios_techo[cat] = p
-                except:
-                    pass
-        log.info(f"Precios techo por categoría: {precios_techo}")
-    else:
-        log.warning(f"No se encontró archivo de competencia: {comp_path}")
-
-    # ── Leer items de importación y calcular ROI ──────────────────────────────
-    master_fields = [
-        "batch_id", "timestamp", "source", "category", "title",
-        "price_usd", "shipping_usd", "total_usd", "asin_sku",
-        "tipo_cambio", "costo_total_pen", "precio_techo_pen",
-        "precio_venta_pen", "margen_neto_pen", "roi_pct", "accion",
-        "url", "rating", "reviews",
-    ]
-
-    new_rows = []
-    if not import_path.exists():
-        log.warning(f"No se encontró archivo de importación: {import_path}")
-        return 0
-
-    with open(import_path, newline="", encoding="utf-8") as f:
-        for row in csv.DictReader(f):
-            cat          = row.get("category", "")
-            precio_techo = precios_techo.get(cat, 0)
-
-            # ✅ FIX 5: fallback si no hay precio techo
-            if precio_techo == 0:
-                try:
-                    precio_techo = float(row.get("total_usd", 0)) * tipo_cambio * 2.0
-                    log.debug(f"Usando precio techo estimado para {cat}: S/{precio_techo:.2f}")
-                except:
-                    precio_techo = 0
-
-            try:
-                roi = calcular_roi(
-                    price_usd        = float(row.get("price_usd", 0)),
-                    shipping_usd     = float(row.get("shipping_usd", 0)),
-                    tipo_cambio      = tipo_cambio,
-                    precio_techo_pen = precio_techo,
-                )
-            except Exception as e:
-                log.debug(f"Error calculando ROI: {e}")
-                roi = {
-                    "costo_total_pen": 0, "precio_venta_pen": 0,
-                    "margen_neto_pen": 0, "roi_pct": 0, "accion": "ERROR"
-                }
-
-            new_rows.append({
-                "batch_id":          row.get("batch_id", ""),
-                "timestamp":         row.get("timestamp", ""),
-                "source":            row.get("source", ""),
-                "category":          cat,
-                "title":             row.get("title", ""),
-                "price_usd":         row.get("price_usd", ""),
-                "shipping_usd":      row.get("shipping_usd", ""),
-                "total_usd":         row.get("total_usd", ""),
-                "asin_sku":          row.get("asin_sku", ""),
-                "tipo_cambio":       tipo_cambio,
-                "costo_total_pen":   roi.get("costo_total_pen", ""),
-                "precio_techo_pen":  precio_techo,
-                "precio_venta_pen":  roi.get("precio_venta_pen", ""),
-                "margen_neto_pen":   roi.get("margen_neto_pen", ""),
-                "roi_pct":           roi.get("roi_pct", ""),
-                "accion":            roi.get("accion", ""),
-                "url":               row.get("url", ""),
-                "rating":            row.get("rating", ""),
-                "reviews":           row.get("reviews", ""),
-            })
-
-    # ── Append a MASTER_hardware_peru.csv ─────────────────────────────────────
-    write_header = not master_path.exists()
-    with open(master_path, "a", newline="", encoding="utf-8") as f:
-        w = csv.DictWriter(f, fieldnames=master_fields, extrasaction="ignore")
-        if write_header:
-            w.writeheader()
-        w.writerows(new_rows)
-
-    log.info(f"Master actualizado: +{len(new_rows)} filas → {master_path}")
-    return len(new_rows)
-
-# ── Reporte JSON ──────────────────────────────────────────────────────────────
-def generar_reporte(batch_id: str, stats: dict, tipo_cambio: float):
-    reporte = {
-        "batch_id":    batch_id,
-        "timestamp":   datetime.now(timezone.utc).isoformat(),
-        "tipo_cambio": tipo_cambio,
-        "stats":       stats,
-    }
-    path = OUTPUT_DIR / f"reporte_{batch_id}.json"
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(reporte, f, indent=2, ensure_ascii=False)
-    log.info(f"Reporte → {path}")
-    return reporte
-
-# ── Tipo de cambio USD/PEN ────────────────────────────────────────────────────
-def get_tipo_cambio() -> float:
+    """Step 2: Scraper local PE"""
+    _banner("STEP 2 — Scraper Local PE (Falabella / Ripley / Hiraoka)")
     try:
-        resp = requests.get(                              # ✅ FIX 4: import normal
-            "https://api.exchangerate-api.com/v4/latest/USD",
-            timeout=10
+        from scraper_local import run_local
+        csv_path, total, stats = run_local(
+            batch_id=batch_id,
+            sources=sources,
+            categories=categories,
+            dry_run=dry_run,
         )
-        data = resp.json()
-        tc = float(data["rates"]["PEN"])
-        log.info(f"Tipo de cambio USD/PEN: {tc}")
-        return tc
+        log.info(f"  ✅ Local PE: {total} items → {csv_path}")
+        return {"status": "ok", "total": total, "path": str(csv_path), "stats": stats}
+    except ImportError:
+        log.warning("  ⚠️  scraper_local.py no encontrado — saltando step")
+        return {"status": "skipped", "total": 0}
     except Exception as e:
-        log.warning(f"No se pudo obtener tipo de cambio ({e}) — usando 3.75")
-        return 3.75
+        log.error(f"  ❌ Error en scraper local: {e}")
+        return {"status": "error", "total": 0, "error": str(e)}
 
-# ── Main ──────────────────────────────────────────────────────────────────────
+def step_scrape_import(
+    batch_id: str,
+    sources: list,
+    categories: list,
+    dry_run: bool = False,
+) -> dict:
+    """Step 3: Scraper de importación"""
+    _banner("STEP 3 — Scraper Importación (Amazon / AliExpress / eBay)")
+    try:
+        from scraper_importacion import run_importacion
+        csv_path, total, stats = run_importacion(
+            batch_id=batch_id,
+            sources=sources,
+            categories=categories,
+            dry_run=dry_run,
+        )
+        log.info(f"  ✅ Importación: {total} items → {csv_path}")
+        return {"status": "ok", "total": total, "path": str(csv_path), "stats": stats}
+    except ImportError:
+        log.warning("  ⚠️  scraper_importacion.py no encontrado — saltando step")
+        return {"status": "skipped", "total": 0}
+    except Exception as e:
+        log.error(f"  ❌ Error en scraper importación: {e}")
+        return {"status": "error", "total": 0, "error": str(e)}
+
+def step_merge(batch_id: str) -> dict:
+    """Step 4: Merge y normalización"""
+    _banner("STEP 4 — Merge y Normalización")
+    try:
+        from merger import merge
+        df = merge(batch_id=batch_id, save=True)
+        if df.empty:
+            log.warning("  ⚠️  Merge resultó vacío")
+            return {"status": "empty", "total": 0, "df": None}
+        log.info(f"  ✅ Merge: {len(df)} registros totales")
+        return {"status": "ok", "total": len(df), "df": df}
+    except Exception as e:
+        log.error(f"  ❌ Error en merge: {e}")
+        return {"status": "error", "total": 0, "df": None, "error": str(e)}
+
+def step_roi(df=None) -> dict:
+    """Step 5: Cálculo de ROI"""
+    _banner("STEP 5 — Cálculo de ROI")
+    try:
+        from roi_calculator import analyze_dataframe, top_oportunidades
+        from merger import get_comparison_df
+
+        if df is None:
+            df = get_comparison_df()
+
+        if df is None or df.empty:
+            log.warning("  ⚠️  Sin datos para calcular ROI")
+            return {"status": "empty", "total": 0}
+
+        df_roi = analyze_dataframe(df, save=True)
+
+        if df_roi.empty:
+            return {"status": "empty", "total": 0}
+
+        # Mostrar top 10 oportunidades en log
+        top = top_oportunidades(n=10)
+        if not top.empty:
+            log.info(f"\n  🏆 TOP 10 OPORTUNIDADES DE IMPORTACIÓN:")
+            log.info(f"  {'Categoría':<12} {'ROI':>7} {'Ahorro':>10} {'Título':<40}")
+            log.info(f"  {'-'*75}")
+            for _, row in top.iterrows():
+                log.info(
+                    f"  {str(row['category']):<12} "
+                    f"{float(row['roi_pct']):>6.1f}% "
+                    f"S/{float(row['ahorro_pen']):>8.2f}  "
+                    f"{str(row['title'])[:40]}"
+                )
+
+        conviene_count = int(df_roi["conviene_importar"].sum())
+        return {
+            "status":          "ok",
+            "total":           len(df_roi),
+            "conviene":        conviene_count,
+            "mejor_roi":       float(df_roi["roi_pct"].max()),
+            "mejor_ahorro":    float(df_roi["ahorro_pen"].max()),
+            "df_roi":          df_roi,
+        }
+    except Exception as e:
+        log.error(f"  ❌ Error en ROI: {e}")
+        return {"status": "error", "total": 0, "error": str(e)}
+
+# ══════════════════════════════════════════════════════════════════════════════
+# REPORTE FINAL
+# ══════════════════════════════════════════════════════════════════════════════
+
+def print_summary(batch_id: str, start_ts: float, results: dict):
+    elapsed = time.time() - start_ts
+    mins    = int(elapsed // 60)
+    secs    = int(elapsed % 60)
+
+    log.info("\n" + "═"*60)
+    log.info("  RESUMEN DEL PIPELINE")
+    log.info("═"*60)
+    log.info(f"  Batch ID     : {batch_id}")
+    log.info(f"  Duración     : {mins}m {secs}s")
+    log.info(f"  USD/PEN      : S/ {results.get('usd_pen', 'N/A')}")
+    log.info("")
+
+    r_local  = results.get("local",  {})
+    r_import = results.get("import", {})
+    r_merge  = results.get("merge",  {})
+    r_roi    = results.get("roi",    {})
+
+    log.info(f"  {'Step':<25} {'Estado':<10} {'Items':>8}")
+    log.info(f"  {'-'*45}")
+    log.info(f"  {'Scraper Local PE':<25} {r_local.get('status','—'):<10} {r_local.get('total',0):>8,}")
+    log.info(f"  {'Scraper Importación':<25} {r_import.get('status','—'):<10} {r_import.get('total',0):>8,}")
+    log.info(f"  {'Merge':<25} {r_merge.get('status','—'):<10} {r_merge.get('total',0):>8,}")
+    log.info(f"  {'Análisis ROI':<25} {r_roi.get('status','—'):<10} {r_roi.get('total',0):>8,}")
+
+    if r_roi.get("status") == "ok":
+        log.info("")
+        log.info(f"  Oportunidades encontradas : {r_roi.get('conviene', 0)}")
+        log.info(f"  Mejor ROI                 : {r_roi.get('mejor_roi', 0):.1f}%")
+        log.info(f"  Mejor ahorro              : S/ {r_roi.get('mejor_ahorro', 0):.2f}")
+        log.info(f"  CSV oportunidades         : {OPORTUNIDADES_CSV}")
+
+    log.info("═"*60)
+
+# ══════════════════════════════════════════════════════════════════════════════
+# HELPERS
+# ══════════════════════════════════════════════════════════════════════════════
+
+def _banner(title: str):
+    log.info("\n" + "█"*60)
+    log.info(f"  {title}")
+    log.info("█"*60)
+
+def _parse_args():
+    parser = argparse.ArgumentParser(
+        description="Pipeline de ROI de importación PE",
+        formatter_class=argparse.RawTextHelpFormatter,
+    )
+    parser.add_argument(
+        "--only",
+        choices=["scrape", "scrape-local", "scrape-import", "merge", "roi"],
+        default=None,
+        help=(
+            "Ejecutar solo un step:\n"
+            "  scrape        → ambos scrapers\n"
+            "  scrape-local  → solo Falabella/Ripley/Hiraoka\n"
+            "  scrape-import → solo Amazon/AliExpress/eBay\n"
+            "  merge         → solo merge de CSVs existentes\n"
+            "  roi           → solo cálculo de ROI"
+        ),
+    )
+    parser.add_argument(
+        "--sources-local",
+        nargs="+",
+        default=SOURCES_LOCAL,
+        choices=["falabella", "ripley", "hiraoka"],
+        help="Fuentes locales PE a scrapear",
+    )
+    parser.add_argument(
+        "--sources-import",
+        nargs="+",
+        default=SOURCES_IMPORT,
+        choices=["amazon", "aliexpress", "ebay"],
+        help="Fuentes de importación a scrapear",
+    )
+    parser.add_argument(
+        "--categories",
+        nargs="+",
+        default=CATEGORIES,
+        choices=CATEGORIES,
+        help="Categorías a procesar",
+    )
+    parser.add_argument(
+        "--batch-id",
+        default=None,
+        help="Batch ID manual (default: timestamp automático)",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Parsear sin escribir CSV ni calcular ROI",
+    )
+    parser.add_argument(
+        "--skip-dolar",
+        action="store_true",
+        help="Saltar actualización de tipo de cambio",
+    )
+    return parser.parse_args()
+
+# ══════════════════════════════════════════════════════════════════════════════
+# MAIN
+# ══════════════════════════════════════════════════════════════════════════════
+
 def main():
-    parser = argparse.ArgumentParser(description="Pipeline scraping hardware PE v4.1")
-    parser.add_argument("--only",       choices=["importacion", "competencia", "ambos"], default="ambos")
-    parser.add_argument("--categories", nargs="+", default=None,
-                        help="CPU GPU RAM SSD MOTHERBOARD PSU COOLER CASE")
-    parser.add_argument("--max-pages",  type=int, default=None)
-    parser.add_argument("--tc",         type=float, default=None,
-                        help="Tipo de cambio manual USD/PEN (ej: 3.75)")
-    args = parser.parse_args()
+    args     = _parse_args()
+    start_ts = time.time()
+    batch_id = args.batch_id or datetime.now().strftime("%Y%m%d_%H%M%S")
 
-    batch_id    = datetime.now().strftime("%Y%m%d_%H%M%S")
-    tipo_cambio = args.tc if args.tc else get_tipo_cambio()
-    stats       = {}
+    log.info("═"*60)
+    log.info("  PIPELINE ROI IMPORTACIÓN PE — INICIO")
+    log.info("═"*60)
+    log.info(f"  Batch ID    : {batch_id}")
+    log.info(f"  Modo        : {args.only or 'completo'}")
+    log.info(f"  Categorías  : {', '.join(args.categories)}")
+    log.info(f"  Src Local   : {', '.join(args.sources_local)}")
+    log.info(f"  Src Import  : {', '.join(args.sources_import)}")
+    log.info(f"  Dry-run     : {args.dry_run}")
+    log.info("═"*60)
 
-    if args.max_pages:
-        os.environ["MAX_PAGES_IMPORT"] = str(args.max_pages)
-        os.environ["MAX_PAGES_COMP"]   = str(args.max_pages)
+    results = {}
+    only    = args.only
 
-    log.info("=" * 60)
-    log.info(f"BATCH    : {batch_id}")
-    log.info(f"TC USD/PE: {tipo_cambio}")
-    log.info(f"Modo     : {args.only}")
-    log.info(f"OUTPUT   : {OUTPUT_DIR}")
-    log.info("=" * 60)
+    # ── Step 1: Tipo de cambio ────────────────────────────────────────────────
+    if not args.skip_dolar and only not in ("scrape", "scrape-local", "scrape-import"):
+        results["usd_pen"] = step_dolar()
+    elif not args.skip_dolar:
+        results["usd_pen"] = step_dolar()
 
-    # ── Scraping importación ──────────────────────────────────────────────────
-    if args.only in ("importacion", "ambos"):
-        log.info("\n🌎 SCRAPING IMPORTACIÓN (Amazon / AliExpress / eBay)")
-        try:
-            _, total_import, stats_import = run_importacion(
-                batch_id   = batch_id,
-                categories = args.categories,
-            )
-            stats["importacion"] = {"total": total_import, **stats_import}
-        except Exception as e:
-            log.error(f"Error en scraping importación: {e}")
-            stats["importacion"] = {"total": 0, "error": str(e)}
+    # ── Step 2: Scraper local ─────────────────────────────────────────────────
+    if only in (None, "scrape", "scrape-local"):
+        results["local"] = step_scrape_local(
+            batch_id=batch_id,
+            sources=args.sources_local,
+            categories=args.categories,
+            dry_run=args.dry_run,
+        )
+    else:
+        results["local"] = {"status": "skipped", "total": 0}
 
-    # ── Scraping competencia ──────────────────────────────────────────────────
-    if args.only in ("competencia", "ambos"):
-        log.info("\n🏪 SCRAPING COMPETENCIA (Falabella / Ripley / Hiraoka)")
-        try:
-            _, total_comp, stats_comp = run_competencia(
-                batch_id   = batch_id,
-                categories = args.categories,
-            )
-            stats["competencia"] = {"total": total_comp, **stats_comp}
-        except Exception as e:
-            log.error(f"Error en scraping competencia: {e}")
-            stats["competencia"] = {"total": 0, "error": str(e)}
+    # ── Step 3: Scraper importación ───────────────────────────────────────────
+    if only in (None, "scrape", "scrape-import"):
+        results["import"] = step_scrape_import(
+            batch_id=batch_id,
+            sources=args.sources_import,
+            categories=args.categories,
+            dry_run=args.dry_run,
+        )
+    else:
+        results["import"] = {"status": "skipped", "total": 0}
 
-    # ── Consolidar master + ROI ───────────────────────────────────────────────
-    if args.only == "ambos":
-        log.info("\n📊 CONSOLIDANDO MASTER CSV + ROI")
-        try:
-            total_master = consolidar_master(batch_id, tipo_cambio)
-            stats["master_nuevos"] = total_master
-        except Exception as e:
-            log.error(f"Error consolidando master: {e}")
-            stats["master_nuevos"] = 0
+    # ── Step 4: Merge ─────────────────────────────────────────────────────────
+    if only in (None, "merge") and not args.dry_run:
+        results["merge"] = step_merge(batch_id=batch_id)
+    elif only == "merge":
+        results["merge"] = step_merge(batch_id=batch_id)
+    else:
+        results["merge"] = {"status": "skipped", "total": 0, "df": None}
 
-    # ── Reporte ───────────────────────────────────────────────────────────────
-    generar_reporte(batch_id, stats, tipo_cambio)
+    # ── Step 5: ROI ───────────────────────────────────────────────────────────
+    df_merged = results.get("merge", {}).get("df", None)
+    if only in (None, "roi") and not args.dry_run:
+        results["roi"] = step_roi(df=df_merged)
+    elif only == "roi":
+        results["roi"] = step_roi(df=None)  # carga desde CSV
+    else:
+        results["roi"] = {"status": "skipped", "total": 0}
 
-    log.info("\n" + "=" * 60)
-    log.info("RESUMEN FINAL")
-    log.info("=" * 60)
-    for k, v in stats.items():
-        log.info(f"  {k}: {v}")
-    log.info("=" * 60)
+    # ── Resumen ───────────────────────────────────────────────────────────────
+    print_summary(batch_id, start_ts, results)
 
-    # ── Outputs para GitHub Actions ───────────────────────────────────────────
-    print(f"BATCH_ID={batch_id}")
-    print(f"TOTAL_IMPORT={stats.get('importacion', {}).get('total', 0)}")
-    print(f"TOTAL_COMP={stats.get('competencia', {}).get('total', 0)}")
-    print(f"TIPO_CAMBIO={tipo_cambio}")
+    # Exit code: 0 si todo OK o skipped, 1 si algún step falló
+    failed = [k for k, v in results.items()
+              if isinstance(v, dict) and v.get("status") == "error"]
+    if failed:
+        log.error(f"  Steps con error: {failed}")
+        sys.exit(1)
+    sys.exit(0)
 
 if __name__ == "__main__":
     main()
