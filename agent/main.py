@@ -1,22 +1,9 @@
 """
-main.py — Orquestador v5.1 (Objetivo 1: Máxima recolección de datos)
+main.py — Orquestador v5.2
 ════════════════════════════════════════════════════════════════════
-Modos:
-  python main.py                        → normal (local PE + eBay)
-  python main.py --mode local_only      → solo Falabella/Ripley/Hiraoka
-  python main.py --mode historical      → eBay + CamelCamelCamel + PCPartPicker
-  python main.py --mode kaggle_only     → solo Kaggle datasets
-  python main.py --mode full            → todo (~86 min — supera timeout de 55 min)
-  python main.py --batch-id XXXX        → batch ID manual
-
-Fixes v5.1:
-  - [FIX-1] merge_to_master: deduplicación por (source, sku, price_date)
-  - [FIX-2] scraper_importacion y scraper_competencia integrados (opcionales)
-  - [FIX-3] save_report: excluye master_total del total de scrapers
-  - [FIX-4] imports unificados via __init__.py
-  - [FIX-5] save_batch: orden de columnas lógico (no alfabético)
-  - [FIX-6] LOG_FILE movido a data/logs/
-  - [FIX-7] Nota de timeout en modo 'full'
+Fixes v5.2:
+  - [FIX-8] importlib fuerza carga de agent/scrapers/ ignorando
+            el paquete 'scrapers' de kagglesdk en site-packages
 """
 
 import sys
@@ -26,6 +13,7 @@ import json
 import logging
 import argparse
 import time
+import importlib.util
 from pathlib import Path
 from datetime import datetime, timezone
 
@@ -33,14 +21,32 @@ from datetime import datetime, timezone
 AGENT_DIR = Path(__file__).resolve().parent
 ROOT_DIR  = AGENT_DIR.parent
 DATA_DIR  = ROOT_DIR / "data" / "raw"
-LOG_DIR   = ROOT_DIR / "data" / "logs"   # FIX-6: separado de los datos
+LOG_DIR   = ROOT_DIR / "data" / "logs"
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 LOG_DIR.mkdir(parents=True, exist_ok=True)
 
-sys.path.insert(0, str(AGENT_DIR))
+# ── FIX-8: Forzar carga de agent/scrapers/ ANTES de cualquier import ──────
+# kagglesdk instala su propio paquete 'scrapers' en site-packages.
+# importlib.util.spec_from_file_location bypasea sys.path completamente
+# y registra el módulo correcto en sys.modules antes de que Python
+# intente resolver 'scrapers' desde site-packages.
+_scrapers_path = AGENT_DIR / "scrapers" / "__init__.py"
+_spec = importlib.util.spec_from_file_location(
+    "scrapers",
+    str(_scrapers_path),
+    submodule_search_locations=[str(AGENT_DIR / "scrapers")],
+)
+_mod = importlib.util.module_from_spec(_spec)
+sys.modules["scrapers"] = _mod          # registrar ANTES de exec_module
+_spec.loader.exec_module(_mod)          # ejecutar el __init__.py real
+
+# También registrar agent/ en sys.path para los sub-imports relativos
+# (ej: from .scraper_local import ...) dentro del __init__.py
+if str(AGENT_DIR) not in sys.path:
+    sys.path.insert(0, str(AGENT_DIR))
 
 # ── Logging ───────────────────────────────────────────────────────────────
-LOG_FILE = LOG_DIR / "agent.log"   # FIX-6
+LOG_FILE = LOG_DIR / "agent.log"
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s — %(message)s",
@@ -52,7 +58,7 @@ logging.basicConfig(
 )
 log = logging.getLogger("main")
 
-# ── FIX-4: Imports unificados via __init__.py ─────────────────────────────
+# ── Imports desde scrapers (ya registrado en sys.modules) ─────────────────
 from scrapers import (
     scrape_local,
     scrape_dolar,
@@ -60,8 +66,8 @@ from scrapers import (
     scrape_camel,
     scrape_pcpartpicker,
     scrape_kaggle,
-    scrape_importacion,   # None si el módulo no está listo
-    scrape_competencia,   # None si el módulo no está listo
+    scrape_importacion,
+    scrape_competencia,
     _HAS_IMPORTACION,
     _HAS_COMPETENCIA,
 )
@@ -82,14 +88,11 @@ FIELD_ORDER = [
 # ══════════════════════════════════════════════════════════════════════════
 
 def save_batch(records: list, batch_id: str, source_tag: str) -> Path:
-    """Guarda una lista de registros en data/raw/batch_{batch_id}_{tag}.csv"""
     if not records:
         log.warning(f"  [save] Sin registros para {source_tag}")
         return None
 
     out_path = DATA_DIR / f"batch_{batch_id}_{source_tag}.csv"
-
-    # FIX-5: Orden lógico — columnas conocidas primero, resto alfabético al final
     all_keys  = set(k for r in records for k in r.keys())
     ordered   = [f for f in FIELD_ORDER if f in all_keys]
     remainder = sorted(all_keys - set(ordered))
@@ -109,15 +112,10 @@ def save_batch(records: list, batch_id: str, source_tag: str) -> Path:
 # ══════════════════════════════════════════════════════════════════════════
 
 def merge_to_master(batch_files: list) -> int:
-    """
-    Agrega todos los batch CSV al MASTER_hardware_peru.csv.
-    FIX-1: Deduplicación por (source, sku, price_date) para evitar inflado.
-    """
     master_path = DATA_DIR / "MASTER_hardware_peru.csv"
     new_records = []
     all_fields  = set(FIELD_ORDER)
 
-    # Leer batch files nuevos
     for f in batch_files:
         if f is None or not f.exists():
             continue
@@ -134,7 +132,6 @@ def merge_to_master(batch_files: list) -> int:
         log.warning("  [master] Sin registros nuevos para agregar")
         return 0
 
-    # Leer master existente
     existing_records = []
     existing_keys    = set()
 
@@ -145,7 +142,6 @@ def merge_to_master(batch_files: list) -> int:
                 for row in reader:
                     existing_records.append(row)
                     all_fields.update(row.keys())
-                    # FIX-1: Construir set de claves existentes
                     dedup_key = (
                         row.get("source", ""),
                         row.get("sku", ""),
@@ -155,7 +151,6 @@ def merge_to_master(batch_files: list) -> int:
         except Exception as e:
             log.warning(f"  Error leyendo MASTER: {e}")
 
-    # FIX-1: Solo agregar registros que no existen ya
     added   = 0
     skipped = 0
     for row in new_records:
@@ -164,7 +159,6 @@ def merge_to_master(batch_files: list) -> int:
             row.get("sku", ""),
             row.get("price_date", ""),
         )
-        # Registros sin SKU (ej: tipo de cambio) siempre se agregan
         if not row.get("sku") or dedup_key not in existing_keys:
             existing_records.append(row)
             existing_keys.add(dedup_key)
@@ -173,9 +167,8 @@ def merge_to_master(batch_files: list) -> int:
             skipped += 1
 
     if skipped:
-        log.info(f"  [master] Deduplicados: {skipped:,} registros omitidos (ya existen)")
+        log.info(f"  [master] Deduplicados: {skipped:,} registros omitidos")
 
-    # FIX-5: Orden lógico de columnas
     ordered    = [f for f in FIELD_ORDER if f in all_fields]
     remainder  = sorted(all_fields - set(ordered))
     fieldnames = ordered + remainder
@@ -195,7 +188,6 @@ def merge_to_master(batch_files: list) -> int:
 # ══════════════════════════════════════════════════════════════════════════
 
 def save_report(batch_id: str, stats: dict, elapsed: float):
-    # FIX-3: excluir master_total del total de scrapers
     scraper_keys = [k for k in stats if k != "master_total"]
     report = {
         "batch_id":     batch_id,
@@ -222,10 +214,10 @@ def run(mode: str, batch_id: str):
     batches = []
 
     log.info("═" * 60)
-    log.info(f"  PIPELINE v5.1 — modo={mode} | batch={batch_id}")
+    log.info(f"  PIPELINE v5.2 — modo={mode} | batch={batch_id}")
     log.info("═" * 60)
 
-    # ── 1. Tipo de cambio (siempre) ────────────────────────────────────
+    # ── 1. Tipo de cambio (siempre) ──────────────────────────────────
     log.info("\n[1/8] 💱 Tipo de cambio USD/PEN")
     try:
         dolar_records = scrape_dolar(batch_id)
@@ -237,9 +229,9 @@ def run(mode: str, batch_id: str):
         log.error(f"  ❌ Dolar: {e}")
         stats["dolar"] = 0
 
-    # ── 2. Scrapers locales PE ─────────────────────────────────────────
+    # ── 2. Scrapers locales PE ───────────────────────────────────────
     if mode in ("normal", "local_only", "full"):
-        log.info("\n[2/8] 🇵🇪 Tiendas locales PE (Falabella / Ripley / Hiraoka)")
+        log.info("\n[2/8] 🇵🇪 Tiendas locales PE")
         try:
             local_records = scrape_local(batch_id)
             p = save_batch(local_records, batch_id, "local")
@@ -252,9 +244,9 @@ def run(mode: str, batch_id: str):
     else:
         stats["local"] = 0
 
-    # ── 3. eBay ────────────────────────────────────────────────────────
+    # ── 3. eBay ──────────────────────────────────────────────────────
     if mode in ("normal", "historical", "full"):
-        log.info("\n[3/8] 🛒 eBay USA (ventas completadas 90 días)")
+        log.info("\n[3/8] 🛒 eBay USA")
         try:
             ebay_records = scrape_ebay(batch_id)
             p = save_batch(ebay_records, batch_id, "ebay")
@@ -267,9 +259,9 @@ def run(mode: str, batch_id: str):
     else:
         stats["ebay"] = 0
 
-    # ── 4. CamelCamelCamel ─────────────────────────────────────────────
+    # ── 4. CamelCamelCamel ───────────────────────────────────────────
     if mode in ("historical", "full"):
-        log.info("\n[4/8] 🐪 CamelCamelCamel (historial Amazon)")
+        log.info("\n[4/8] 🐪 CamelCamelCamel")
         try:
             camel_records = scrape_camel(batch_id)
             p = save_batch(camel_records, batch_id, "camel")
@@ -282,9 +274,9 @@ def run(mode: str, batch_id: str):
     else:
         stats["camel"] = 0
 
-    # ── 5. PCPartPicker ────────────────────────────────────────────────
+    # ── 5. PCPartPicker ──────────────────────────────────────────────
     if mode in ("historical", "full"):
-        log.info("\n[5/8] 🖥️ PCPartPicker (historial USA multi-tienda)")
+        log.info("\n[5/8] 🖥️ PCPartPicker")
         try:
             pcp_records = scrape_pcpartpicker(batch_id)
             p = save_batch(pcp_records, batch_id, "pcpartpicker")
@@ -297,9 +289,9 @@ def run(mode: str, batch_id: str):
     else:
         stats["pcpartpicker"] = 0
 
-    # ── 6. Kaggle ──────────────────────────────────────────────────────
+    # ── 6. Kaggle ────────────────────────────────────────────────────
     if mode in ("kaggle_only", "full"):
-        log.info("\n[6/8] 📦 Kaggle datasets (bulk histórico)")
+        log.info("\n[6/8] 📦 Kaggle datasets")
         try:
             kaggle_records = scrape_kaggle(batch_id)
             p = save_batch(kaggle_records, batch_id, "kaggle")
@@ -312,7 +304,7 @@ def run(mode: str, batch_id: str):
     else:
         stats["kaggle"] = 0
 
-    # ── 7. FIX-2: Importación (si está disponible) ────────────────────
+    # ── 7. Importación ───────────────────────────────────────────────
     if _HAS_IMPORTACION and mode in ("normal", "historical", "full"):
         log.info("\n[7/8] 📦 Precios de importación")
         try:
@@ -327,9 +319,9 @@ def run(mode: str, batch_id: str):
     else:
         stats["importacion"] = 0
 
-    # ── 8. FIX-2: Competencia (si está disponible) ────────────────────
+    # ── 8. Competencia ───────────────────────────────────────────────
     if _HAS_COMPETENCIA and mode in ("normal", "local_only", "full"):
-        log.info("\n[8/8] 🔍 Análisis de competencia local PE")
+        log.info("\n[8/8] 🔍 Competencia local PE")
         try:
             comp_records = scrape_competencia(batch_id)
             p = save_batch(comp_records, batch_id, "competencia")
@@ -342,16 +334,16 @@ def run(mode: str, batch_id: str):
     else:
         stats["competencia"] = 0
 
-    # ── Merge al MASTER ────────────────────────────────────────────────
+    # ── Merge al MASTER ──────────────────────────────────────────────
     log.info("\n[MERGE] Actualizando MASTER_hardware_peru.csv...")
     master_total = merge_to_master([b for b in batches if b])
     stats["master_total"] = master_total
 
-    # ── Reporte ────────────────────────────────────────────────────────
+    # ── Reporte ──────────────────────────────────────────────────────
     elapsed = time.time() - start
     report  = save_report(batch_id, stats, elapsed)
 
-    # ── Resumen final ──────────────────────────────────────────────────
+    # ── Resumen final ─────────────────────────────────────────────────
     log.info("\n" + "═" * 60)
     log.info("  RESUMEN FINAL")
     log.info("═" * 60)
@@ -364,7 +356,7 @@ def run(mode: str, batch_id: str):
         if src != "master_total":
             log.info(f"  {src:<18} {count:>10,}")
     log.info(f"  {'-'*30}")
-    log.info(f"  {'TOTAL NUEVOS':<18} {report['total_new']:>10,}")   # FIX-3
+    log.info(f"  {'TOTAL NUEVOS':<18} {report['total_new']:>10,}")
     log.info(f"  {'MASTER TOTAL':<18} {master_total:>10,}")
     log.info("═" * 60)
 
@@ -377,7 +369,7 @@ def run(mode: str, batch_id: str):
 
 def _parse_args():
     parser = argparse.ArgumentParser(
-        description="Pipeline de recolección de datos — tesis-hardware-peru v5.1",
+        description="Pipeline de recolección — tesis-hardware-peru v5.2",
         formatter_class=argparse.RawTextHelpFormatter,
     )
     parser.add_argument(
@@ -386,17 +378,17 @@ def _parse_args():
         choices=["normal", "local_only", "historical", "kaggle_only", "full"],
         help=(
             "Modo de ejecución:\n"
-            "  normal      → local PE + eBay + importacion (default, ~25 min)\n"
+            "  normal      → local PE + eBay + importacion (~25 min)\n"
             "  local_only  → solo Falabella/Ripley/Hiraoka (~17 min)\n"
             "  historical  → eBay + CamelCamelCamel + PCPartPicker (~39 min)\n"
             "  kaggle_only → solo descarga Kaggle (~30 min)\n"
-            "  full        → todo (~86 min) ⚠️ supera timeout de 55 min del workflow"
+            "  full        → todo (~86 min) ⚠️ supera timeout de 55 min"
         ),
     )
     parser.add_argument(
         "--batch-id",
         default=None,
-        help="Batch ID manual (default: timestamp automático YYYYMMDD_HHMMSS)",
+        help="Batch ID manual (default: timestamp automático)",
     )
     return parser.parse_args()
 
