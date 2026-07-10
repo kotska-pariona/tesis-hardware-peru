@@ -1,0 +1,18 @@
+{
+  "batch_id": "batch_20260710_180245",
+  "timestamp": "2026-07-10T23:57:01.583416+00:00",
+  "elapsed_s": 3255.0,
+  "stats": {
+    "dolar": 1,
+    "local": 7356,
+    "ebay": 0,
+    "camel": 0,
+    "pcpartpicker": 0,
+    "kaggle": 0,
+    "importacion": 2828,
+    "competencia": 4097,
+    "master_total": 14095
+  },
+  "total_new": 14282,
+  "master_total": 14095
+}
