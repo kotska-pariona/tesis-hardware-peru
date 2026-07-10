@@ -1,5 +1,5 @@
 """
-scraper_importacion.py  v3.0
+scraper_importacion.py  v3.1
 ════════════════════════════
 Fuentes de PRECIO DE IMPORTACIÓN (referencia precio piso USA):
   - Amazon USA    (HTML + Session/Retry + CAPTCHA detection)
@@ -10,11 +10,17 @@ Fixes v3.0:
   - [FIX-1] Alias scrape_importacion() → interfaz compatible con main.py
   - [FIX-2] scrape_importacion() retorna list[dict] — no tupla
   - [FIX-3] logging.basicConfig() eliminado del top-level
-  - [FIX-4] OUTPUT_DIR default corregido: 'data/raw' (no '/home/user')
+  - [FIX-4] OUTPUT_DIR default corregido: absoluto desde __file__
   - [FIX-5] eBay Finding API eliminada (deprecada Dic 2024) → solo HTML
   - [FIX-6] 'fingerprint' excluido del retorno público
   - [FIX-7] Amazon rh= node filter hecho opcional
   - [FIX-8] shipping_usd default documentado como estimado
+
+Fixes v3.1:
+  - [FIX-9]  'sku' agregado en todos los records → dedup correcto en merge_to_master
+  - [FIX-10] 'price_date' agregado en todos los records → clave dedup completa
+  - [FIX-11] OUTPUT_DIR usa path absoluto desde __file__ → independiente del CWD
+  - [FIX-12] AliExpress: eliminado requests.utils.quote() → evita double-encoding
 """
 
 import os
@@ -36,8 +42,9 @@ from bs4 import BeautifulSoup
 log = logging.getLogger(__name__)
 
 # ── Constantes ───────────────────────────────────────────────────────────
-# FIX-4: default 'data/raw' — consistente con el resto del proyecto
-OUTPUT_DIR        = Path(os.getenv("OUTPUT_DIR", "data/raw"))
+# FIX-11: path absoluto — independiente del CWD al ejecutar desde GitHub Actions
+_DEFAULT_OUTPUT = str(Path(__file__).resolve().parent.parent.parent / "data" / "raw")
+OUTPUT_DIR        = Path(os.getenv("OUTPUT_DIR", _DEFAULT_OUTPUT))
 MAX_PAGES         = int(os.getenv("MAX_PAGES_IMPORT", "5"))
 DELAY_REQ         = float(os.getenv("DELAY_REQ", "2.5"))
 DELAY_CAT         = float(os.getenv("DELAY_CAT", "5.0"))
@@ -251,9 +258,10 @@ class AmazonScraper:
             return []
 
     def _parse(self, html: str, category: str, batch_id: str) -> list:
-        soup  = BeautifulSoup(html, "html.parser")
-        items = []
-        ts    = datetime.now(timezone.utc).isoformat()
+        soup       = BeautifulSoup(html, "html.parser")
+        items      = []
+        ts         = datetime.now(timezone.utc).isoformat()
+        price_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")  # FIX-10
 
         for card in soup.select("div[data-component-type='s-search-result']"):
             try:
@@ -321,11 +329,13 @@ class AmazonScraper:
                         "source":        "amazon_usa",
                         "category":      category,
                         "title":         title[:200],
+                        "sku":           asin,           # FIX-9
+                        "asin_sku":      asin,
                         "price_usd":     round(price_usd, 2),
+                        "price_date":    price_date,     # FIX-10
                         "shipping_usd":  shipping_usd,
                         "total_usd":     round(price_usd + shipping_usd, 2),
                         "url":           url[:300],
-                        "asin_sku":      asin,
                         "rating":        rating,
                         "reviews":       reviews,
                         "timestamp":     ts,
@@ -360,7 +370,7 @@ class AliExpressScraper:
     def _fetch_page(self, query: str, page: int, category: str, batch_id: str) -> list:
         try:
             params = {
-                "SearchText": requests.utils.quote(query),
+                "SearchText": query,   # FIX-12: sin quote() — requests encodea solo
                 "page":       page,
                 "g":          "y",
                 "isrefine":   "y",
@@ -433,6 +443,7 @@ class AliExpressScraper:
         return current
 
     def _parse_ali_product(self, p: dict, category: str, batch_id: str, ts: str) -> Optional[dict]:
+        price_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")  # FIX-10
         try:
             title = (
                 self._dig(p, ["title", "displayTitle"]) or
@@ -480,11 +491,13 @@ class AliExpressScraper:
                     "source":       "aliexpress",
                     "category":     category,
                     "title":        title[:200],
+                    "sku":          sku,            # FIX-9
+                    "asin_sku":     sku,
                     "price_usd":    round(price, 2),
-                    "shipping_usd": 0.0,   # AliExpress: variable, no siempre disponible
+                    "price_date":   price_date,     # FIX-10
+                    "shipping_usd": 0.0,
                     "total_usd":    round(price, 2),
                     "url":          str(url)[:300],
-                    "asin_sku":     sku,
                     "rating":       rating,
                     "reviews":      reviews,
                     "timestamp":    ts,
@@ -494,9 +507,10 @@ class AliExpressScraper:
         return None
 
     def _parse_html_fallback(self, html: str, category: str, batch_id: str) -> list:
-        soup  = BeautifulSoup(html, "html.parser")
-        items = []
-        ts    = datetime.now(timezone.utc).isoformat()
+        soup       = BeautifulSoup(html, "html.parser")
+        items      = []
+        ts         = datetime.now(timezone.utc).isoformat()
+        price_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")  # FIX-10
         for card in soup.select("a[href*='aliexpress.com/item/']")[:40]:
             try:
                 title = ""
@@ -518,12 +532,16 @@ class AliExpressScraper:
                     url = "https:" + url
                 if price > 0 and title:
                     items.append({
-                        "batch_id": batch_id, "source": "aliexpress",
-                        "category": category, "title": title[:200],
-                        "price_usd": round(price, 2), "shipping_usd": 0.0,
-                        "total_usd": round(price, 2), "url": url[:300],
-                        "asin_sku": "", "rating": 0.0, "reviews": 0,
-                        "timestamp": ts,
+                        "batch_id":   batch_id,   "source":    "aliexpress",
+                        "category":   category,   "title":     title[:200],
+                        "sku":        "",          "asin_sku":  "",   # FIX-9
+                        "price_usd":  round(price, 2),
+                        "price_date": price_date,                     # FIX-10
+                        "shipping_usd": 0.0,
+                        "total_usd":  round(price, 2),
+                        "url":        url[:300],
+                        "rating":     0.0,         "reviews":   0,
+                        "timestamp":  ts,
                     })
             except Exception:
                 continue
@@ -534,15 +552,15 @@ class AliExpressScraper:
 # SCRAPER 3 — EBAY USA (solo HTML — Finding API deprecada Dic 2024)
 # ══════════════════════════════════════════════════════════════════════════
 class EbayScraper:
-    # FIX-5: Finding API eliminada — solo HTML scraping
     BROWSE_URL = "https://www.ebay.com/sch/i.html"
 
     def __init__(self):
         self.session = _make_session()
 
     def search(self, query: str, category: str, batch_id: str, max_pages: int = MAX_PAGES) -> list:
-        items = []
-        ts    = datetime.now(timezone.utc).isoformat()
+        items      = []
+        ts         = datetime.now(timezone.utc).isoformat()
+        price_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")  # FIX-10
 
         for page in range(1, max_pages + 1):
             log.info(f"  [eBay] {category} | '{query[:40]}' | pág {page}")
@@ -605,11 +623,13 @@ class EbayScraper:
                                 "source":       "ebay_usa",
                                 "category":     category,
                                 "title":        title[:200],
+                                "sku":          sku,            # FIX-9
+                                "asin_sku":     sku,
                                 "price_usd":    round(price, 2),
+                                "price_date":   price_date,     # FIX-10
                                 "shipping_usd": round(ship, 2),
                                 "total_usd":    round(price + ship, 2),
                                 "url":          url[:300],
-                                "asin_sku":     sku,
                                 "rating":       0.0,
                                 "reviews":      0,
                                 "timestamp":    ts,
