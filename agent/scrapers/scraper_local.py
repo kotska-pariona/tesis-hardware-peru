@@ -1,32 +1,26 @@
 """
-scraper_local.py  v3.2
+scraper_local.py  v3.3
 Scraper de tiendas locales Perú — Falabella, Ripley, Hiraoka
 
-ROOT CAUSE confirmado (julio 2026):
-  - Falabella: /search + categoryId como FILTRO → bloquea resultados.
-    scraper_competencia usa SOLO searchTerm sin categoryId → 48 items/pág ✅
-    Fix: eliminar categoryId de los params de /search.
-  - Ripley: 403 Cloudflare persistente incluso con warm-up.
-    requests no ejecuta JS → no obtiene cf_clearance cookie.
-    Fix: marcado como no_disponible, se omite sin crashear el pipeline.
-  - Hiraoka: 404 en todas las URLs con .html
-    Fix: probar sin .html y con slash final como alternativa.
+ROOT CAUSE confirmado comparando con scraper_competencia.py (funciona):
 
-Cambios v3.2:
-  [A] Falabella: searchTerm SOLO, sin categoryId en params.
-      Categorías mapeadas a keywords específicas de hardware PE.
-  [B] Falabella: eliminar fallback a /listing (siempre 404).
-      Un solo endpoint limpio: /search con searchTerm.
-  [C] Ripley: deshabilitado con log claro. No crashea el pipeline.
-      Razón: Cloudflare JS Challenge no superable con requests puro.
-  [D] Hiraoka: probar 3 formatos de URL por categoría:
-      1. /categoria/subcategoria (sin .html)
-      2. /categoria/subcategoria/ (con slash)
-      3. /categoria/subcategoria.html (con .html)
-  [E] Log de diagnóstico mejorado para detectar cambios futuros.
+FALABELLA:
+  ❌ v3.2: endpoint /s/browse/v1/search/pe  + param "searchTerm"
+  ✅ v3.3: endpoint /s/browse/v1/listing/pe + param "Ntt" + zones=15 + imageSize=zoom
+  (copiado exactamente de FalabellaScraper._fetch_page que da 48 items/pág)
+
+HIRAOKA:
+  ❌ v3.2: /laptops-y-accesorios/laptops.html  → 404
+  ✅ v3.3: /memorias-ram, /procesadores-y-accesorios, etc. (paths de scraper_competencia)
+           + fallback a /catalogsearch/result/?q= (igual que scraper_competencia)
+
+RIPLEY:
+  ❌ Bloqueado en ambos scrapers (403 Cloudflare / simple.ripley deprecado)
+  ✅ Deshabilitado limpiamente — no crashea el pipeline
 """
 
 import re
+import json
 import time
 import logging
 from datetime import datetime, timezone
@@ -42,34 +36,27 @@ logger = logging.getLogger(__name__)
 # ──────────────────────────────────────────────
 # CONFIGURACIÓN GLOBAL
 # ──────────────────────────────────────────────
-REQUEST_DELAY = 1.2
-TIMEOUT       = (10, 25)
+REQUEST_DELAY = 2.0   # igual que scraper_competencia (DELAY_REQ)
+TIMEOUT       = 20    # igual que scraper_competencia
 
-HEADERS_BROWSER = {
+HEADERS_JSON = {
     "User-Agent": (
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
         "AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/126.0.0.0 Safari/537.36"
+        "Chrome/124.0.0.0 Safari/537.36"
     ),
-    "Accept-Language":            "es-PE,es;q=0.9,en-US;q=0.8,en;q=0.7",
-    "Accept-Encoding":            "gzip, deflate, br",
-    "Connection":                 "keep-alive",
-    "Upgrade-Insecure-Requests":  "1",
-    "sec-ch-ua":                  '"Chromium";v="126", "Google Chrome";v="126", "Not-A.Brand";v="99"',
-    "sec-ch-ua-mobile":           "?0",
-    "sec-ch-ua-platform":         '"Windows"',
-    "sec-fetch-dest":             "document",
-    "sec-fetch-mode":             "navigate",
-    "sec-fetch-site":             "none",
-    "sec-fetch-user":             "?1",
+    "Accept":     "application/json, text/plain, */*",
+    "Referer":    "https://www.falabella.com.pe/",
 }
 
-HEADERS_JSON = {
-    **HEADERS_BROWSER,
-    "Accept":         "application/json, text/plain, */*",
-    "sec-fetch-dest": "empty",
-    "sec-fetch-mode": "cors",
-    "sec-fetch-site": "same-origin",
+HEADERS_HTML = {
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/124.0.0.0 Safari/537.36"
+    ),
+    "Accept":          "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Language": "es-PE,es;q=0.9,en;q=0.8",
 }
 
 
@@ -88,15 +75,9 @@ def _make_session(retries: int = 3) -> requests.Session:
     return session
 
 
-def _warm_session(session: requests.Session, url: str) -> bool:
-    try:
-        resp = session.get(url, headers=HEADERS_BROWSER, timeout=TIMEOUT)
-        logger.debug(f"  Warm-up {url} → HTTP {resp.status_code}")
-        return resp.status_code == 200
-    except Exception as e:
-        logger.debug(f"  Warm-up error: {e}")
-        return False
-
+# ──────────────────────────────────────────────
+# Parser de precios (idéntico a scraper_competencia)
+# ──────────────────────────────────────────────
 
 def _parse_price_str(text: str) -> Optional[float]:
     if not text:
@@ -112,10 +93,8 @@ def _parse_price_str(text: str) -> Optional[float]:
                 clean = clean.replace(",", "")
         elif "," in clean:
             parts = clean.split(",")
-            if len(parts) == 2 and len(parts[1]) <= 2:
-                clean = clean.replace(",", ".")
-            else:
-                clean = clean.replace(",", "")
+            clean = (clean.replace(",", ".") if len(parts) == 2 and len(parts[1]) <= 2
+                     else clean.replace(",", ""))
         val = float(clean)
         return val if val > 0 else None
     except ValueError:
@@ -124,171 +103,212 @@ def _parse_price_str(text: str) -> Optional[float]:
 
 KNOWN_BRANDS = [
     "ASUS", "Acer", "Apple", "AMD", "Alienware", "AOC",
-    "BenQ", "Brother",
-    "Canon", "Corsair", "Creative",
-    "Dell", "D-Link",
-    "Epson",
-    "Gigabyte", "G.Skill",
-    "HP", "HyperX", "Hisense", "Honor", "Huawei",
-    "Intel",
-    "JBL",
-    "Kingston",
-    "Lenovo", "LG", "Logitech",
-    "Microsoft", "MSI", "Motorola",
-    "Nikon", "NVIDIA",
-    "Panasonic", "Philips",
-    "Razer",
-    "Samsung", "Seagate", "Sony",
-    "TP-Link", "Toshiba",
-    "WD", "Western Digital",
-    "Xiaomi",
+    "BenQ", "Brother", "Canon", "Corsair", "Creative",
+    "Dell", "D-Link", "Epson", "Gigabyte", "G.Skill",
+    "HP", "HyperX", "Hisense", "Honor", "Huawei", "Intel",
+    "JBL", "Kingston", "Lenovo", "LG", "Logitech",
+    "Microsoft", "MSI", "Motorola", "Nikon", "NVIDIA",
+    "Panasonic", "Philips", "Razer", "Samsung", "Seagate",
+    "Sony", "TP-Link", "Toshiba", "WD", "Western Digital", "Xiaomi",
 ]
-_BRAND_PATTERN = re.compile(
+_BRAND_RE = re.compile(
     r"\b(" + "|".join(re.escape(b) for b in KNOWN_BRANDS) + r")\b",
     re.IGNORECASE
 )
 
 def _extract_brand(title: str) -> str:
-    if not title:
-        return ""
-    m = _BRAND_PATTERN.search(title)
+    m = _BRAND_RE.search(title or "")
     return m.group(1).upper() if m else ""
 
 
 # ══════════════════════════════════════════════
-# FALABELLA — Fix [A][B]
+# FALABELLA — copiado de FalabellaScraper (scraper_competencia)
 # ══════════════════════════════════════════════
 #
-# CAUSA RAÍZ: categoryId como filtro adicional en /search
-# bloquea resultados. scraper_competencia usa SOLO searchTerm
-# y obtiene 48 items/pág consistentemente.
-#
-# Fix: usar SOLO searchTerm, sin categoryId.
+# CLAVE: endpoint /listing/pe + param "Ntt" + zones="15" + imageSize="zoom"
+# Esto es exactamente lo que usa scraper_competencia y da 48 items/pág.
 # ──────────────────────────────────────────────
 
-FALABELLA_SEARCH_API = "https://www.falabella.com.pe/s/browse/v1/search/pe"
+FALABELLA_API = "https://www.falabella.com.pe/s/browse/v1/listing/pe"
 
-# [A] Keywords específicas — sin categoryId
-# Cada keyword mapea a productos de hardware/electrónica en Falabella PE
+# Queries para hardware/electrónica local PE
+# Mismo estilo que scraper_competencia (términos en español)
 FALABELLA_QUERIES = {
-    # Hardware PC
     "laptops":        "laptop",
     "computadoras":   "computadora escritorio",
     "monitores":      "monitor",
     "memorias_ram":   "memoria ram",
-    "discos_ssd":     "disco ssd nvme",
-    "procesadores":   "procesador intel amd",
+    "discos_ssd":     "disco solido ssd nvme",
+    "procesadores":   "procesador intel amd ryzen",
     "tarjetas_video": "tarjeta de video nvidia amd",
-    # Periféricos
     "teclados":       "teclado mecanico gaming",
     "mouse":          "mouse gaming",
     "auriculares":    "audifonos auriculares",
     "parlantes":      "parlante bluetooth",
-    # Móviles y TV
     "celulares":      "celular smartphone",
     "tablets":        "tablet",
     "televisores":    "televisor smart tv",
-    # Gaming
     "videojuegos":    "consola videojuegos",
     "smartwatch":     "smartwatch reloj inteligente",
 }
 
 FALABELLA_MAX_PAGES = 15   # 15 × 48 = 720 items máx por categoría
-FALABELLA_PAGE_SIZE = 48   # Tamaño real que usa Falabella
 
 
 def _falabella_fetch_page(
     session: requests.Session,
-    keyword: str,
+    query: str,
     page: int,
 ) -> list:
     """
-    [A][B] SOLO searchTerm, sin categoryId.
-    Mismo patrón que scraper_competencia (que funciona con 48 items/pág).
+    Copia exacta de FalabellaScraper._fetch_page() de scraper_competencia.
+    Usa Ntt + zones=15 + imageSize=zoom — la combinación que funciona.
     """
-    params = {
-        "searchTerm": keyword,
-        "page":       page,
-        "pageSize":   FALABELLA_PAGE_SIZE,
-        "sortBy":     "TOP_SELLERS",
-        "channel":    "web",
-        "locale":     "es_PE",
-        "country":    "PE",
-    }
-    headers = {
-        **HEADERS_JSON,
-        "Referer": f"https://www.falabella.com.pe/falabella-pe/search?Ntt={keyword.replace(' ', '+')}",
-        "Origin":  "https://www.falabella.com.pe",
-    }
+    # Intento 1: API JSON (igual que scraper_competencia)
     try:
+        params = {
+            "Ntt":       query,
+            "page":      page,
+            "imageSize": "zoom",
+            "zones":     "15",        # Lima — crítico para precios PE
+        }
         resp = session.get(
-            FALABELLA_SEARCH_API, params=params,
-            headers=headers, timeout=TIMEOUT
+            FALABELLA_API, params=params,
+            headers=HEADERS_JSON, timeout=TIMEOUT
         )
-        if resp.status_code != 200:
-            logger.warning(
-                f"  [Falabella] HTTP {resp.status_code} keyword='{keyword}' p={page}"
-            )
-            return []
-        data    = resp.json()
-        results = (
-            data.get("data", {}).get("results", []) or
-            data.get("results", []) or
-            data.get("products", [])
-        )
-        return results
-    except requests.RequestException as e:
-        logger.warning(f"  [Falabella] Error keyword='{keyword}' p={page}: {e}")
-        return []
-    except (ValueError, KeyError) as e:
-        logger.warning(f"  [Falabella] JSON error p={page}: {e}")
-        return []
+        if resp.status_code == 200:
+            data  = resp.json()
+            items = _falabella_parse_api_data(data)
+            if items:
+                return items
+        else:
+            logger.debug(f"  [Falabella] API HTTP {resp.status_code} '{query}' p{page}")
+    except Exception as e:
+        logger.debug(f"  [Falabella] API error '{query}' p{page}: {e}")
 
-
-def _falabella_parse(raw: dict, category: str, batch_id: str, now_iso: str) -> Optional[dict]:
+    # Intento 2: HTML con __NEXT_DATA__ (igual que scraper_competencia._fetch_html)
     try:
-        prices     = raw.get("prices", [{}])
-        price_info = prices[0] if isinstance(prices, list) and prices else (
-            prices if isinstance(prices, dict) else {}
-        )
-        price      = (
-            price_info.get("originalPrice") or
-            price_info.get("normalPrice") or
-            price_info.get("price")
-        )
-        price_sale = (
-            price_info.get("specialPrice") or
-            price_info.get("salePrice") or
-            price_info.get("offerPrice")
-        )
+        url  = (f"https://www.falabella.com.pe/falabella-pe/search"
+                f"?Ntt={requests.utils.quote(query)}&page={page}")
+        resp = session.get(url, headers={**HEADERS_HTML, "Referer": "https://www.falabella.com.pe/"}, timeout=TIMEOUT)
+        if resp.status_code == 200:
+            m = re.search(
+                r'<script id="__NEXT_DATA__" type="application/json">(.*?)</script>',
+                resp.text, re.DOTALL
+            )
+            if m:
+                data  = json.loads(m.group(1))
+                items = _falabella_parse_api_data(data)
+                if items:
+                    return items
+    except Exception as e:
+        logger.debug(f"  [Falabella] HTML error '{query}' p{page}: {e}")
 
-        if not price and not price_sale:
+    return []
+
+
+def _falabella_parse_api_data(data: dict) -> list:
+    """
+    Extrae productos del JSON de Falabella.
+    Copia de FalabellaScraper._parse_api() — depth=4, busca displayName+prices.
+    """
+    def extract_products(obj, depth=0):
+        if depth > 4:
+            return []
+        found = []
+        if isinstance(obj, list):
+            for item in obj:
+                if isinstance(item, dict):
+                    if any(k in item for k in ["displayName", "productName", "name", "title"]):
+                        if any(k in item for k in ["prices", "price", "offerPrice"]):
+                            found.append(item)
+                    found.extend(extract_products(item, depth + 1))
+        elif isinstance(obj, dict):
+            for v in obj.values():
+                found.extend(extract_products(v, depth + 1))
+        return found
+
+    return extract_products(data)
+
+
+def _falabella_parse_product(
+    p: dict, category: str, batch_id: str, now_iso: str
+) -> Optional[dict]:
+    """Normaliza un producto crudo de Falabella al esquema unificado."""
+    try:
+        pid = p.get("productId") or p.get("id") or p.get("skuId") or ""
+        title = (p.get("displayName") or p.get("productName") or
+                 p.get("name") or p.get("title") or "")
+        if not title:
             return None
 
-        final_price = float(price_sale or price)
-        if final_price <= 0:
+        price_pen  = 0.0
+        price_orig = 0.0
+        prices_obj = p.get("prices") or p.get("price") or {}
+
+        if isinstance(prices_obj, list):
+            for pr in prices_obj:
+                if isinstance(pr, dict):
+                    val    = pr.get("price") or pr.get("value") or 0
+                    label  = str(pr.get("label", "")).lower()
+                    parsed = _parse_price_str(str(val))
+                    if parsed:
+                        if "oferta" in label or "precio" in label or not label:
+                            price_pen  = parsed
+                        elif "normal" in label or "original" in label:
+                            price_orig = parsed
+        elif isinstance(prices_obj, dict):
+            for key in ["offerPrice", "salePrice", "normalPrice", "originalPrice", "price"]:
+                val = prices_obj.get(key)
+                if val:
+                    parsed = _parse_price_str(str(val))
+                    if parsed:
+                        price_pen = parsed
+                        break
+            for key in ["normalPrice", "originalPrice", "regularPrice"]:
+                val = prices_obj.get(key)
+                if val:
+                    parsed = _parse_price_str(str(val))
+                    if parsed:
+                        price_orig = parsed
+                        break
+
+        # Fallback directo en el producto
+        if price_pen == 0:
+            for key in ["offerPrice", "salePrice", "price", "currentPrice"]:
+                val = p.get(key)
+                if val:
+                    parsed = _parse_price_str(str(val))
+                    if parsed:
+                        price_pen = parsed
+                        break
+
+        if price_pen <= 0:
             return None
 
-        brand = raw.get("brand", "")
-        name  = raw.get("displayName", raw.get("name", ""))
-        title = f"{brand} {name}".strip()
+        discount = 0.0
+        if price_orig > 0 and price_pen > 0 and price_orig > price_pen:
+            discount = round((price_orig - price_pen) / price_orig * 100, 1)
+
+        brand    = p.get("brand") or p.get("brandName") or _extract_brand(title)
+        url_path = p.get("url") or p.get("pdpUrl") or p.get("productUrl") or ""
+        url      = (f"https://www.falabella.com.pe{url_path}"
+                    if url_path and not url_path.startswith("http") else url_path)
 
         return {
             "batch_id":       batch_id,
             "timestamp":      now_iso,
             "source":         "falabella_pe",
             "category":       category,
-            "sku":            str(raw.get("skuId", raw.get("id", ""))),
-            "brand":          brand or _extract_brand(title),
-            "title":          title,
-            "price_pen":      final_price,
-            "price_orig_pen": float(price) if price else final_price,
-            "discount_pct":   round(
-                (1 - final_price / float(price)) * 100, 1
-            ) if price and float(price) > 0 else 0.0,
-            "rating":         raw.get("rating"),
-            "reviews":        raw.get("totalReviews", raw.get("reviewCount")),
-            "url":            "https://www.falabella.com.pe" + raw.get("url", ""),
+            "sku":            str(pid),
+            "brand":          str(brand)[:100],
+            "title":          str(title)[:200],
+            "price_pen":      round(price_pen, 2),
+            "price_orig_pen": round(price_orig, 2),
+            "discount_pct":   discount,
+            "rating":         float(p.get("rating") or p.get("averageRating") or 0),
+            "reviews":        p.get("totalReviews") or p.get("reviewCount"),
+            "url":            str(url)[:300],
         }
     except (TypeError, ValueError, KeyError, ZeroDivisionError) as e:
         logger.debug(f"  [Falabella] Parse error: {e}")
@@ -300,13 +320,10 @@ def scrape_falabella(batch_id: str) -> list:
     now_iso     = datetime.now(timezone.utc).isoformat()
     session     = _make_session()
 
-    logger.info("[Falabella] Warm-up...")
-    _warm_session(session, "https://www.falabella.com.pe/falabella-pe")
-    time.sleep(1.0)
-
     for cat_name, keyword in FALABELLA_QUERIES.items():
-        logger.info(f"[Falabella] '{cat_name}' → keyword='{keyword}'")
+        logger.info(f"[Falabella] '{cat_name}' → '{keyword}'")
         cat_records = []
+        seen_ids    = set()
 
         for page in range(1, FALABELLA_MAX_PAGES + 1):
             raw_items = _falabella_fetch_page(session, keyword, page)
@@ -315,12 +332,19 @@ def scrape_falabella(batch_id: str) -> list:
                 logger.debug(f"  p{page}: sin items → fin")
                 break
 
+            added = 0
             for raw in raw_items:
-                record = _falabella_parse(raw, cat_name, batch_id, now_iso)
+                pid = raw.get("productId") or raw.get("id") or raw.get("skuId") or ""
+                if pid and pid in seen_ids:
+                    continue
+                if pid:
+                    seen_ids.add(pid)
+                record = _falabella_parse_product(raw, cat_name, batch_id, now_iso)
                 if record:
                     cat_records.append(record)
+                    added += 1
 
-            logger.info(f"  p{page}: +{len(raw_items)} → acum {len(cat_records)}")
+            logger.info(f"  p{page}: +{len(raw_items)} raw → +{added} válidos (acum {len(cat_records)})")
             time.sleep(REQUEST_DELAY)
 
         all_records.extend(cat_records)
@@ -331,258 +355,181 @@ def scrape_falabella(batch_id: str) -> list:
 
 
 # ══════════════════════════════════════════════
-# RIPLEY — [C] Deshabilitado temporalmente
+# RIPLEY — Deshabilitado (403 en ambos scrapers)
 # ══════════════════════════════════════════════
 #
-# CAUSA: Cloudflare JS Challenge en www.ripley.com.pe
-# requests no ejecuta JavaScript → no obtiene cf_clearance
-# El warm-up con requests puro NO resuelve el 403.
-#
-# SOLUCIÓN FUTURA: usar playwright/selenium headless, o
-# esperar a que scraper_competencia implemente Ripley.
+# scraper_competencia usa simple.ripley.com.pe → 403 (deprecado)
+# scraper_local usó www.ripley.com.pe → 403 (Cloudflare JS)
+# Ambas rutas bloqueadas en GitHub Actions (IP de servidor).
 # ──────────────────────────────────────────────
 
-RIPLEY_DISABLED_REASON = (
-    "Cloudflare JS Challenge activo en www.ripley.com.pe. "
-    "requests puro no puede obtener cf_clearance. "
-    "Requiere playwright/selenium para bypass."
-)
-
-
 def scrape_ripley(batch_id: str) -> list:
-    """[C] Deshabilitado — Cloudflare JS Challenge."""
-    logger.warning(f"[Ripley] DESHABILITADO: {RIPLEY_DISABLED_REASON}")
+    logger.warning(
+        "[Ripley] DESHABILITADO — 403 en simple.ripley.com.pe (deprecado) "
+        "y www.ripley.com.pe (Cloudflare JS Challenge). "
+        "Requiere playwright headless para bypass."
+    )
     return []
 
 
 # ══════════════════════════════════════════════
-# HIRAOKA — [D] Detección automática de URL
+# HIRAOKA — paths de scraper_competencia + fallback search
 # ══════════════════════════════════════════════
 #
-# 404 en todas las URLs con .html → probar múltiples formatos
+# scraper_competencia usa /memorias-ram, /procesadores-y-accesorios, etc.
+# (rutas de primer nivel sin .html ni subcarpetas)
+# + fallback a /catalogsearch/result/?q= para categorías sin path directo
 # ──────────────────────────────────────────────
 
 HIRAOKA_BASE = "https://www.hiraoka.com.pe"
 
-# [D] Candidatos de URL por categoría — se prueba en orden
-# hasta encontrar uno que responda 200
+# Paths directos de scraper_competencia (verificados)
+# + paths adicionales para categorías de electrónica general
 HIRAOKA_CATEGORIES = {
-    "laptops": [
-        "/laptops-y-accesorios/laptops",
-        "/laptops-y-accesorios/laptops.html",
-        "/computadoras/laptops",
-        "/computadoras/laptops.html",
-    ],
-    "computadoras": [
-        "/laptops-y-accesorios/computadoras-de-escritorio",
-        "/laptops-y-accesorios/computadoras-de-escritorio.html",
-        "/computadoras/computadoras-de-escritorio",
-    ],
-    "monitores": [
-        "/laptops-y-accesorios/monitores",
-        "/laptops-y-accesorios/monitores.html",
-        "/computadoras/monitores",
-    ],
-    "impresoras": [
-        "/impresoras-y-accesorios/impresoras",
-        "/impresoras-y-accesorios/impresoras.html",
-        "/impresoras/impresoras",
-    ],
-    "tablets": [
-        "/celulares-y-tablets/tablets",
-        "/celulares-y-tablets/tablets.html",
-        "/tablets/tablets",
-    ],
-    "celulares": [
-        "/celulares-y-tablets/celulares",
-        "/celulares-y-tablets/celulares.html",
-        "/celulares/celulares",
-    ],
-    "televisores": [
-        "/television-y-video/televisores",
-        "/television-y-video/televisores.html",
-        "/tv-y-video/televisores",
-    ],
-    "auriculares": [
-        "/audio/audifonos",
-        "/audio/audifonos.html",
-        "/audio/auriculares",
-    ],
-    "camaras": [
-        "/camaras-y-accesorios/camaras-digitales",
-        "/camaras-y-accesorios/camaras-digitales.html",
-        "/camaras/camaras-digitales",
-    ],
-    "videojuegos": [
-        "/videojuegos/consolas",
-        "/videojuegos/consolas.html",
-        "/gaming/consolas",
-    ],
-    "memorias": [
-        "/laptops-y-accesorios/memorias-ram",
-        "/laptops-y-accesorios/memorias-ram.html",
-        "/computadoras/memorias-ram",
-    ],
-    "discos": [
-        "/laptops-y-accesorios/discos-duros-y-ssd",
-        "/laptops-y-accesorios/discos-duros-y-ssd.html",
-        "/computadoras/discos-duros",
-    ],
-    "procesadores": [
-        "/laptops-y-accesorios/procesadores",
-        "/laptops-y-accesorios/procesadores.html",
-        "/computadoras/procesadores",
-    ],
+    # Hardware PC — paths de scraper_competencia
+    "procesadores":   "/procesadores-y-accesorios",
+    "tarjetas_video": "/tarjetas-de-video",
+    "memorias_ram":   "/memorias-ram",
+    "discos_ssd":     "/discos-solidos-ssd",
+    "placas_madre":   "/placas-madre",
+    "fuentes_poder":  "/fuentes-de-poder",
+    "coolers":        "/coolers-cpu",
+    "cases":          "/cases-gabinetes",
+    # Electrónica general — búsqueda por keyword como fallback
+    "laptops":        None,   # → /catalogsearch/result/?q=laptop
+    "computadoras":   None,   # → /catalogsearch/result/?q=computadora
+    "monitores":      None,
+    "impresoras":     None,
+    "tablets":        None,
+    "celulares":      None,
+    "televisores":    None,
+    "auriculares":    None,
 }
 
-HIRAOKA_MAX_PAGES      = 30
+# Keywords para categorías sin path directo
+HIRAOKA_SEARCH_KEYWORDS = {
+    "laptops":      "laptop",
+    "computadoras": "computadora escritorio",
+    "monitores":    "monitor",
+    "impresoras":   "impresora",
+    "tablets":      "tablet",
+    "celulares":    "celular",
+    "televisores":  "televisor",
+    "auriculares":  "audifonos",
+}
+
+HIRAOKA_MAX_PAGES      = 10
 HIRAOKA_MIN_ITEMS_PAGE = 2
 
-# Cache de URLs válidas descubiertas en este run
-_hiraoka_valid_urls: dict = {}
 
-
-def _hiraoka_discover_url(
-    session: requests.Session, category: str, candidates: list
-) -> Optional[str]:
-    """
-    [D] Prueba cada URL candidata hasta encontrar una que responda 200.
-    Cachea el resultado para no repetir el discovery en páginas 2+.
-    """
-    if category in _hiraoka_valid_urls:
-        return _hiraoka_valid_urls[category]
-
-    headers = {
-        **HEADERS_BROWSER,
-        "Accept":         "text/html,application/xhtml+xml,*/*;q=0.8",
-        "sec-fetch-dest": "document",
-        "sec-fetch-mode": "navigate",
-        "sec-fetch-site": "none",
-    }
-    for path in candidates:
-        url = f"{HIRAOKA_BASE}{path}?p=1"
-        try:
-            resp = session.get(url, headers=headers, timeout=TIMEOUT, allow_redirects=True)
-            if resp.status_code == 200:
-                # Verificar que tiene productos
-                soup  = BeautifulSoup(resp.text, "lxml")
-                items = (
-                    soup.select("li.product-item") or
-                    soup.select("div.product-item-info") or
-                    soup.select(".products-grid .item")
-                )
-                if items:
-                    logger.info(f"  [Hiraoka] URL válida para '{category}': {path} ({len(items)} items)")
-                    _hiraoka_valid_urls[category] = path
-                    return path
-                else:
-                    logger.debug(f"  [Hiraoka] {path} → 200 pero sin productos")
-            else:
-                logger.debug(f"  [Hiraoka] {path} → HTTP {resp.status_code}")
-        except Exception as e:
-            logger.debug(f"  [Hiraoka] {path} → error: {e}")
-        time.sleep(0.5)
-
-    logger.warning(f"  [Hiraoka] No se encontró URL válida para '{category}'")
-    logger.warning(f"  [Hiraoka] Candidatas probadas: {candidates}")
-    return None
-
-
-def _hiraoka_fetch_page(
-    session: requests.Session,
-    category: str,
-    path: str,
-    page: int
+def _hiraoka_fetch_url(
+    session: requests.Session, url: str
 ) -> list:
-    url = f"{HIRAOKA_BASE}{path}?p={page}"
+    """Fetches una URL de Hiraoka y retorna lista de cards BeautifulSoup."""
     headers = {
-        **HEADERS_BROWSER,
-        "Accept":         "text/html,application/xhtml+xml,*/*;q=0.8",
-        "Referer":        f"{HIRAOKA_BASE}{path}?p={max(1, page-1)}",
-        "sec-fetch-dest": "document",
-        "sec-fetch-mode": "navigate",
-        "sec-fetch-site": "same-origin",
-        "sec-fetch-user": "?1",
-        "Cache-Control":  "max-age=0",
+        **HEADERS_HTML,
+        "Referer": HIRAOKA_BASE + "/",
     }
     try:
-        resp = session.get(url, headers=headers, timeout=TIMEOUT)
-        if resp.status_code == 403:
-            logger.warning(f"  [Hiraoka] 403 {path} p{page}")
-            time.sleep(3.0)
-            return []
+        resp = session.get(url, headers=headers, timeout=25)
         if resp.status_code == 404:
+            logger.debug(f"  [Hiraoka] 404: {url}")
             return []
-        resp.raise_for_status()
-        soup = BeautifulSoup(resp.text, "lxml")
-        if soup.find("div", class_="message empty"):
+        if resp.status_code != 200:
+            logger.warning(f"  [Hiraoka] HTTP {resp.status_code}: {url}")
             return []
-        products = (
-            soup.select("li.product-item") or
-            soup.select("div.product-item-info") or
-            soup.select("article.product-item") or
-            soup.select(".products-grid .item")
-        )
-        return products
-    except requests.RequestException as e:
-        logger.warning(f"  [Hiraoka] Error p{page} {category}: {e}")
+
+        soup  = BeautifulSoup(resp.text, "lxml")
+        cards = []
+        for sel in [
+            "li.product-item",
+            "div.product-item-info",
+            "div[class*='product-item']",
+            "li[class*='item product']",
+        ]:
+            cards = soup.select(sel)
+            if cards:
+                break
+        return cards
+    except Exception as e:
+        logger.warning(f"  [Hiraoka] Error {url}: {e}")
         return []
 
 
-def _hiraoka_parse(item, category: str, batch_id: str, now_iso: str) -> Optional[dict]:
+def _hiraoka_parse_card(
+    card, category: str, batch_id: str, now_iso: str
+) -> Optional[dict]:
+    """
+    Parser de tarjeta Hiraoka — copia de HiraokaScraper._parse_html()
+    de scraper_competencia con esquema unificado.
+    """
     try:
-        name_tag = (
-            item.select_one("a.product-item-link") or
-            item.select_one(".product-item-name a") or
-            item.select_one("strong.product-item-name a") or
-            item.select_one(".product-name a")
+        title_el = (
+            card.select_one("a.product-item-link") or
+            card.select_one("strong.product-item-name a") or
+            card.select_one("a[class*='product-item-link']") or
+            card.select_one("span[class*='product-name']")
         )
-        if not name_tag:
+        if not title_el:
             return None
-        title = name_tag.get_text(strip=True)
-        url   = name_tag.get("href", "")
-
-        price_special = item.select_one(
-            "span[data-price-type='finalPrice'] .price,"
-            " .special-price .price,"
-            " .price-box .price-final_price .price"
-        )
-        price_regular = item.select_one(
-            "span[data-price-type='regularPrice'] .price,"
-            " .old-price .price,"
-            " .regular-price .price,"
-            " .price-box .price-container .price"
-        )
-
-        final_price = _parse_price_str(
-            price_special.get_text(strip=True) if price_special else None
-        ) or _parse_price_str(
-            price_regular.get_text(strip=True) if price_regular else None
-        )
-        orig_price = _parse_price_str(
-            price_regular.get_text(strip=True) if price_regular else None
-        ) or final_price
-
-        if not final_price or final_price <= 0:
+        title = title_el.get_text(strip=True)
+        if not title:
             return None
 
-        rating = None
-        rating_tag = item.select_one(".rating-result, .rating-summary")
-        if rating_tag:
-            style = rating_tag.get("style", "")
+        # Precio final
+        final_el = (
+            card.select_one("span[data-price-type='finalPrice'] span.price") or
+            card.select_one("span[class*='price-final'] span.price") or
+            card.select_one("span.special-price span.price") or
+            card.select_one("span.price")
+        )
+        price_pen = _parse_price_str(final_el.get_text(strip=True) if final_el else None) or 0.0
+
+        # Precio original
+        orig_el = (
+            card.select_one("span[data-price-type='oldPrice'] span.price") or
+            card.select_one("span.old-price span.price") or
+            card.select_one("span[class*='regular-price'] span.price")
+        )
+        price_orig = _parse_price_str(orig_el.get_text(strip=True) if orig_el else None) or 0.0
+
+        if price_pen <= 0:
+            return None
+
+        discount = 0.0
+        if price_orig > price_pen > 0:
+            discount = round((price_orig - price_pen) / price_orig * 100, 1)
+
+        link_el  = card.select_one("a.product-item-link") or card.select_one("a[href*='hiraoka']")
+        item_url = link_el.get("href", "") if link_el else ""
+        if item_url and not item_url.startswith("http"):
+            item_url = HIRAOKA_BASE + item_url
+
+        brand_el = (
+            card.select_one("div.product-item-brand") or
+            card.select_one("span[class*='brand']")
+        )
+        brand = brand_el.get_text(strip=True) if brand_el else _extract_brand(title)
+
+        # SKU desde data-product-id o URL
+        sku = card.get("data-product-id", "")
+        if not sku:
+            sku_tag = card.select_one("[data-product-id]")
+            if sku_tag:
+                sku = sku_tag.get("data-product-id", "")
+        if not sku and item_url:
+            m = re.search(r"-(\d{5,})\.html", item_url)
+            if m:
+                sku = m.group(1)
+
+        # Rating
+        rating = 0.0
+        rating_el = card.select_one("span.rating-result, div[class*='rating']")
+        if rating_el:
+            style = rating_el.get("style", "")
             m     = re.search(r"width:\s*([\d.]+)%", style)
             if m:
                 rating = round(float(m.group(1)) / 20, 1)
-
-        sku = item.get("data-product-id", "")
-        if not sku:
-            sku_tag = item.select_one("[data-product-id]")
-            if sku_tag:
-                sku = sku_tag.get("data-product-id", "")
-        if not sku and url:
-            m = re.search(r"-(\d{5,})\.html", url)
-            if m:
-                sku = m.group(1)
 
         return {
             "batch_id":       batch_id,
@@ -590,16 +537,14 @@ def _hiraoka_parse(item, category: str, batch_id: str, now_iso: str) -> Optional
             "source":         "hiraoka_pe",
             "category":       category,
             "sku":            str(sku),
-            "brand":          _extract_brand(title),
-            "title":          title,
-            "price_pen":      final_price,
-            "price_orig_pen": orig_price,
-            "discount_pct":   round(
-                (1 - final_price / orig_price) * 100, 1
-            ) if orig_price and orig_price > 0 else 0.0,
+            "brand":          str(brand)[:100],
+            "title":          str(title)[:200],
+            "price_pen":      round(price_pen, 2),
+            "price_orig_pen": round(price_orig, 2),
+            "discount_pct":   discount,
             "rating":         rating,
             "reviews":        None,
-            "url":            url if url.startswith("http") else f"{HIRAOKA_BASE}{url}",
+            "url":            str(item_url)[:300],
         }
     except (TypeError, ValueError, AttributeError, ZeroDivisionError) as e:
         logger.debug(f"  [Hiraoka] Parse error: {e}")
@@ -611,33 +556,33 @@ def scrape_hiraoka(batch_id: str) -> list:
     now_iso     = datetime.now(timezone.utc).isoformat()
     session     = _make_session()
 
-    logger.info("[Hiraoka] Warm-up...")
-    _warm_session(session, HIRAOKA_BASE)
-    time.sleep(1.5)
-
-    for cat_name, candidates in HIRAOKA_CATEGORIES.items():
+    for cat_name, cat_path in HIRAOKA_CATEGORIES.items():
         logger.info(f"[Hiraoka] Categoría: {cat_name}")
         cat_records = []
 
-        # [D] Descubrir URL válida
-        valid_path = _hiraoka_discover_url(session, cat_name, candidates)
-        if not valid_path:
-            logger.warning(f"  [Hiraoka] Saltando '{cat_name}' — sin URL válida")
-            continue
-
         for page in range(1, HIRAOKA_MAX_PAGES + 1):
-            items = _hiraoka_fetch_page(session, cat_name, valid_path, page)
+            # Construir URL según si tiene path directo o usa búsqueda
+            if cat_path:
+                url = f"{HIRAOKA_BASE}{cat_path}?p={page}"
+            else:
+                keyword = HIRAOKA_SEARCH_KEYWORDS.get(cat_name, cat_name)
+                url = (f"{HIRAOKA_BASE}/catalogsearch/result/"
+                       f"?q={requests.utils.quote(keyword)}&p={page}")
 
-            if not items or len(items) < HIRAOKA_MIN_ITEMS_PAGE:
-                logger.debug(f"  p{page}: {len(items)} items → fin")
+            cards = _hiraoka_fetch_url(session, url)
+
+            if not cards or len(cards) < HIRAOKA_MIN_ITEMS_PAGE:
+                logger.debug(f"  p{page}: {len(cards)} cards → fin")
                 break
 
-            for item in items:
-                record = _hiraoka_parse(item, cat_name, batch_id, now_iso)
+            added = 0
+            for card in cards:
+                record = _hiraoka_parse_card(card, cat_name, batch_id, now_iso)
                 if record:
                     cat_records.append(record)
+                    added += 1
 
-            logger.debug(f"  p{page}: +{len(items)} items")
+            logger.info(f"  p{page}: +{len(cards)} cards → +{added} válidos")
             time.sleep(REQUEST_DELAY)
 
         all_records.extend(cat_records)
@@ -652,10 +597,14 @@ def scrape_hiraoka(batch_id: str) -> list:
 # ══════════════════════════════════════════════
 
 def scrape_local(batch_id: str) -> list:
+    """
+    Ejecuta los 3 scrapers locales en secuencia.
+    Deduplica por (source, sku) al final.
+    """
     all_records = []
 
     logger.info("═" * 50)
-    logger.info("  SCRAPING TIENDAS LOCALES PERÚ  v3.2")
+    logger.info("  SCRAPING TIENDAS LOCALES PERÚ  v3.3")
     logger.info("═" * 50)
 
     for name, fn in [
@@ -703,9 +652,9 @@ if __name__ == "__main__":
     results    = scrape_local(test_batch)
     print(f"\nTotal registros: {len(results)}")
     if results:
-        import json
+        import json as _json
         for src in ["falabella_pe", "hiraoka_pe"]:
             ex = next((r for r in results if r["source"] == src), None)
             if ex:
                 print(f"\nEjemplo {src}:")
-                print(json.dumps(ex, ensure_ascii=False, indent=2))
+                print(_json.dumps(ex, ensure_ascii=False, indent=2))
