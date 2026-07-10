@@ -1,13 +1,18 @@
 """
-scraper_pcpartpicker.py
-PCPartPicker — Historial de precios USA + precios actuales multi-tienda
+scraper_pcpartpicker.py  v2.0
+PCPartPicker — Precios actuales multi-tienda + historial USA
 
-Estrategia:
-  1. Listado de productos por categoría (JSON interno de PCPartPicker)
-  2. Historial de precios por producto (endpoint /api/v0/prices/{part_id})
-  3. Comparativa multi-tienda (Amazon, Newegg, BestBuy, etc.)
-
-No requiere API key. Rate limit: 1 req/seg recomendado.
+Fixes v2.0:
+  - [FIX-1] /api/v0/prices/: log de warning para 403/401/500 (no solo 404)
+  - [FIX-2] URL fallback normalizada con rstrip('/') — evita doble slash
+  - [FIX-3] Variable 'url' muerta eliminada del loop
+  - [FIX-4] CATEGORIES: paths sin fragment # — limpieza explícita
+  - [FIX-5] REQUEST_DELAY aumentado a 1.5s + detección de Cloudflare
+  - [FIX-6] MAX_PAGES_PER_CATEGORY reducido a 5 (era 8)
+  - [FIX-7] Deduplicación de part_id — evita historial duplicado
+  - [FIX-8] Log por categoría corregido (registros de la cat, no acumulado)
+  - [FIX-9] Warning cuando rows=[] en página 1
+  - [FIX-10] Regex de precio simplificado
 """
 
 import re
@@ -27,8 +32,11 @@ logger = logging.getLogger(__name__)
 # ──────────────────────────────────────────────
 BASE_URL      = "https://pcpartpicker.com"
 API_BASE      = f"{BASE_URL}/api/v0"
-REQUEST_DELAY = 1.0
+REQUEST_DELAY = 1.5    # FIX-5: aumentado de 1.0 → 1.5s
 TIMEOUT       = 20
+
+# FIX-6: reducido de 8 → 5 páginas (~100 productos/categoría)
+MAX_PAGES_PER_CATEGORY = 5
 
 HEADERS = {
     "User-Agent": (
@@ -41,94 +49,138 @@ HEADERS = {
     "Referer":         "https://pcpartpicker.com/",
 }
 
-# Categorías de PCPartPicker con sus slugs
+# FIX-4: paths sin fragment # — solo la ruta base
 CATEGORIES = {
-    "cpu":          "/products/cpu/#page=1&s=40",        # sort by reviews
-    "video-card":   "/products/video-card/#page=1&s=40",
-    "memory":       "/products/memory/#page=1&s=40",
-    "internal-hard-drive": "/products/internal-hard-drive/#page=1&s=40",
-    "motherboard":  "/products/motherboard/#page=1&s=40",
-    "laptop":       "/products/laptop/#page=1&s=40",
-    "monitor":      "/products/monitor/#page=1&s=40",
-    "case":         "/products/case/#page=1&s=40",
-    "power-supply": "/products/power-supply/#page=1&s=40",
-    "cpu-cooler":   "/products/cpu-cooler/#page=1&s=40",
+    "cpu":                   "/products/cpu/",
+    "video-card":            "/products/video-card/",
+    "memory":                "/products/memory/",
+    "internal-hard-drive":   "/products/internal-hard-drive/",
+    "motherboard":           "/products/motherboard/",
+    "laptop":                "/products/laptop/",
+    "monitor":               "/products/monitor/",
+    "case":                  "/products/case/",
+    "power-supply":          "/products/power-supply/",
+    "cpu-cooler":            "/products/cpu-cooler/",
 }
 
-MAX_PAGES_PER_CATEGORY = 8   # ~20 items/página = 160 productos por categoría
+
+# ──────────────────────────────────────────────
+# FIX-5: Detección de Cloudflare
+# ──────────────────────────────────────────────
+
+def _is_cloudflare_block(resp: requests.Response) -> bool:
+    """Detecta si la respuesta es una página de challenge de Cloudflare."""
+    if resp.status_code in (403, 503):
+        content = resp.text.lower()
+        return any(k in content for k in [
+            "cloudflare", "cf-ray", "just a moment", "checking your browser"
+        ])
+    return False
 
 
 # ──────────────────────────────────────────────
 # OBTENER LISTA DE PRODUCTOS POR CATEGORÍA
 # ──────────────────────────────────────────────
 
-def _get_products_from_category(category: str, path: str) -> list:
+def _get_products_from_category(category: str, base_path: str) -> list:
     """
     Extrae la lista de productos de una categoría de PCPartPicker.
-    Retorna lista de dicts con {name, url, part_id, price, ratings}.
+    FIX-2: URL normalizada. FIX-3: variable 'url' muerta eliminada.
+    FIX-9: warning cuando rows=[] en página 1.
     """
-    products = []
-    base_path = path.split("#")[0]
+    products  = []
+    # FIX-2: normalizar path — eliminar slash final para evitar doble slash
+    base_path = base_path.rstrip("/")
 
     for page in range(1, MAX_PAGES_PER_CATEGORY + 1):
-        url = f"{BASE_URL}{base_path}#page={page}&s=40"
-        # PCPartPicker usa JSON en el atributo data-component
-        json_url = f"{BASE_URL}{base_path}/fetch?page={page}&s=40"
+        # FIX-2: URL limpia sin doble slash
+        fetch_url = f"{BASE_URL}{base_path}/fetch?page={page}&s=40"
+        page_url  = f"{BASE_URL}{base_path}/?page={page}"
 
+        soup = None
         try:
-            resp = requests.get(json_url, headers=HEADERS, timeout=TIMEOUT)
+            resp = requests.get(fetch_url, headers=HEADERS, timeout=TIMEOUT)
+
+            # FIX-5: Detectar Cloudflare
+            if _is_cloudflare_block(resp):
+                logger.warning(
+                    f"  [{category}] Cloudflare block en página {page} "
+                    f"— esperando {REQUEST_DELAY * 3:.0f}s"
+                )
+                time.sleep(REQUEST_DELAY * 3)
+                break
 
             if resp.status_code == 200:
                 try:
-                    data = resp.json()
-                    # Intentar extraer de la respuesta JSON
+                    data         = resp.json()
                     html_content = data.get("result", {}).get("html", "")
-                    if html_content:
-                        soup = BeautifulSoup(html_content, "html.parser")
-                    else:
-                        soup = BeautifulSoup(resp.text, "html.parser")
+                    soup = BeautifulSoup(
+                        html_content if html_content else resp.text,
+                        "html.parser"
+                    )
                 except (json.JSONDecodeError, ValueError):
                     soup = BeautifulSoup(resp.text, "html.parser")
             else:
-                # Fallback: scraping HTML directo
-                page_url = f"{BASE_URL}{base_path}/?page={page}"
+                # Fallback: HTML directo con URL limpia
                 resp2 = requests.get(page_url, headers=HEADERS, timeout=TIMEOUT)
+                if _is_cloudflare_block(resp2):
+                    logger.warning(f"  [{category}] Cloudflare block (fallback)")
+                    break
                 resp2.raise_for_status()
                 soup = BeautifulSoup(resp2.text, "html.parser")
-
-            # Parsear tabla de productos
-            rows = soup.select("tr.tr__product")
-            if not rows:
-                rows = soup.select("div.productCard")
-
-            if not rows:
-                logger.debug(f"  [{category}] Página {page}: sin productos. Fin.")
-                break
-
-            for row in rows:
-                try:
-                    product = _parse_product_row(row, category)
-                    if product:
-                        products.append(product)
-                except Exception as e:
-                    logger.debug(f"Error parseando fila: {e}")
-                    continue
-
-            logger.debug(f"  [{category}] Página {page}: +{len(rows)} productos")
-            time.sleep(REQUEST_DELAY)
 
         except requests.RequestException as e:
             logger.warning(f"  [{category}] Error en página {page}: {e}")
             time.sleep(2)
             break
 
+        if soup is None:
+            break
+
+        # Parsear filas de productos
+        rows = (
+            soup.select("tr.tr__product") or
+            soup.select("div.productCard") or
+            soup.select("li.product__wrap")
+        )
+
+        # FIX-9: Warning si página 1 no tiene productos
+        if not rows:
+            if page == 1:
+                logger.warning(
+                    f"  [{category}] Página 1 sin productos — "
+                    f"¿selector CSS cambió? Selectores probados: "
+                    f"tr.tr__product, div.productCard, li.product__wrap"
+                )
+            else:
+                logger.debug(f"  [{category}] Página {page}: sin productos. Fin.")
+            break
+
+        for row in rows:
+            try:
+                product = _parse_product_row(row, category)
+                if product:
+                    products.append(product)
+            except Exception as e:
+                logger.debug(f"Error parseando fila: {e}")
+                continue
+
+        logger.debug(f"  [{category}] Página {page}: +{len(rows)} productos")
+        time.sleep(REQUEST_DELAY)
+
     return products
 
 
 def _parse_product_row(row, category: str) -> Optional[dict]:
-    """Parsea una fila/card de producto de PCPartPicker."""
-    # Nombre y URL
-    name_tag = row.select_one("p.td__name a") or row.select_one(".productCard__title a")
+    """
+    Parsea una fila/card de producto de PCPartPicker.
+    FIX-10: regex de precio simplificado.
+    """
+    name_tag = (
+        row.select_one("p.td__name a") or
+        row.select_one(".productCard__title a") or
+        row.select_one("p.td__title a")
+    )
     if not name_tag:
         return None
 
@@ -136,16 +188,20 @@ def _parse_product_row(row, category: str) -> Optional[dict]:
     href = name_tag.get("href", "")
     url  = f"{BASE_URL}{href}" if href.startswith("/") else href
 
-    # Extraer part_id de la URL (/product/XXXXX/...)
+    # Extraer part_id de la URL
     part_id_match = re.search(r"/product/([^/]+)/", href)
     part_id = part_id_match.group(1) if part_id_match else ""
 
-    # Precio
-    price_tag = row.select_one("td.td__price a") or row.select_one(".productCard__price")
+    # FIX-10: regex simplificado — coma ya eliminada antes
     price = None
+    price_tag = (
+        row.select_one("td.td__price a") or
+        row.select_one(".productCard__price") or
+        row.select_one("td.td__finalPrice")
+    )
     if price_tag:
-        price_text = price_tag.text.strip()
-        price_match = re.search(r"[\d,]+\.?\d*", price_text.replace(",", ""))
+        price_text  = price_tag.text.strip().replace(",", "")
+        price_match = re.search(r"\d+\.?\d*", price_text)   # FIX-10: sin coma
         if price_match:
             try:
                 price = float(price_match.group())
@@ -153,8 +209,11 @@ def _parse_product_row(row, category: str) -> Optional[dict]:
                 pass
 
     # Rating
-    rating_tag = row.select_one("td.td__rating") or row.select_one(".productCard__rating")
     rating = None
+    rating_tag = (
+        row.select_one("td.td__rating") or
+        row.select_one(".productCard__rating")
+    )
     if rating_tag:
         rating_match = re.search(r"([\d.]+)", rating_tag.text)
         if rating_match:
@@ -163,9 +222,9 @@ def _parse_product_row(row, category: str) -> Optional[dict]:
             except ValueError:
                 pass
 
-    # Reviews count
-    reviews_tag = row.select_one("td.td__reviews")
+    # Reviews
     reviews = None
+    reviews_tag = row.select_one("td.td__reviews")
     if reviews_tag:
         reviews_match = re.search(r"(\d+)", reviews_tag.text.replace(",", ""))
         if reviews_match:
@@ -186,28 +245,41 @@ def _parse_product_row(row, category: str) -> Optional[dict]:
 
 
 # ──────────────────────────────────────────────
-# OBTENER HISTORIAL DE PRECIOS POR PRODUCTO
+# OBTENER HISTORIAL DE PRECIOS
 # ──────────────────────────────────────────────
 
 def _get_price_history(part_id: str) -> list:
     """
-    Obtiene el historial de precios de un producto específico.
-    PCPartPicker expone esto en /api/v0/prices/{part_id}
+    Obtiene historial de precios de un producto.
+    NOTA: /api/v0/prices/ no es una API pública documentada.
+    FIX-1: log de warning para códigos != 200 y != 404.
     """
     if not part_id:
         return []
 
-    url = f"{API_BASE}/prices/{part_id}"
+    url     = f"{API_BASE}/prices/{part_id}"
     history = []
 
     try:
         resp = requests.get(url, headers=HEADERS, timeout=TIMEOUT)
+
+        # FIX-1: Manejar todos los códigos de error, no solo 404
         if resp.status_code == 404:
             return []
-        resp.raise_for_status()
-        data = resp.json()
+        if resp.status_code in (401, 403):
+            logger.warning(
+                f"  [PCPartPicker] API /api/v0/prices/ retornó {resp.status_code} "
+                f"para {part_id} — endpoint puede requerir autenticación"
+            )
+            return []
+        if resp.status_code >= 500:
+            logger.warning(
+                f"  [PCPartPicker] API error {resp.status_code} para {part_id}"
+            )
+            return []
 
-        # Estructura: { "prices": { "amazon": [[timestamp, price], ...], ... } }
+        resp.raise_for_status()
+        data        = resp.json()
         prices_data = data.get("prices", {})
 
         for retailer, price_points in prices_data.items():
@@ -219,10 +291,12 @@ def _get_price_history(part_id: str) -> list:
                             price = float(point[1])
                             if price > 0:
                                 history.append({
-                                    "retailer":   retailer,
-                                    "timestamp":  ts,
-                                    "date":       datetime.fromtimestamp(ts, tz=timezone.utc).strftime("%Y-%m-%d"),
-                                    "price_usd":  price,
+                                    "retailer":  retailer,
+                                    "timestamp": ts,
+                                    "date":      datetime.fromtimestamp(
+                                        ts, tz=timezone.utc
+                                    ).strftime("%Y-%m-%d"),
+                                    "price_usd": price,
                                 })
                         except (ValueError, TypeError):
                             continue
@@ -242,59 +316,66 @@ def _get_price_history(part_id: str) -> list:
 def scrape_pcpartpicker(batch_id: str) -> list:
     """
     Scraper principal de PCPartPicker.
-    Retorna lista de registros con precio actual + historial por retailer.
+    FIX-7: Deduplicación de part_id.
+    FIX-8: Log por categoría corregido.
     """
-    all_records = []
-    now_iso = datetime.now(timezone.utc).isoformat()
+    all_records  = []
+    seen_part_ids = set()   # FIX-7
+    now_iso      = datetime.now(timezone.utc).isoformat()
 
     for category, path in CATEGORIES.items():
         logger.info(f"[PCPartPicker] Categoría: {category}")
+        cat_records_before = len(all_records)   # FIX-8
+
         products = _get_products_from_category(category, path)
         logger.info(f"  Productos encontrados: {len(products)}")
 
         for product in products:
             part_id = product.get("part_id", "")
 
-            # Registro del precio actual
+            # Precio actual
             if product.get("price"):
                 all_records.append({
-                    "batch_id":      batch_id,
-                    "timestamp":     now_iso,
-                    "source":        "pcpartpicker_current",
-                    "category":      category,
-                    "part_id":       part_id,
-                    "name":          product["name"],
-                    "price_usd":     product["price"],
-                    "price_date":    now_iso[:10],
-                    "retailer":      "pcpartpicker_best",
-                    "rating":        product.get("rating"),
-                    "reviews":       product.get("reviews"),
-                    "url":           product["url"],
+                    "batch_id":   batch_id,
+                    "timestamp":  now_iso,
+                    "source":     "pcpartpicker_current",
+                    "category":   category,
+                    "part_id":    part_id,
+                    "name":       product["name"],
+                    "price_usd":  product["price"],
+                    "price_date": now_iso[:10],
+                    "retailer":   "pcpartpicker_best",
+                    "rating":     product.get("rating"),
+                    "reviews":    product.get("reviews"),
+                    "url":        product["url"],
                 })
 
-            # Historial de precios (por retailer)
-            if part_id:
+            # FIX-7: Historial solo si part_id no fue procesado antes
+            if part_id and part_id not in seen_part_ids:
+                seen_part_ids.add(part_id)
                 history = _get_price_history(part_id)
                 for point in history:
                     all_records.append({
-                        "batch_id":      batch_id,
-                        "timestamp":     now_iso,
-                        "source":        "pcpartpicker_history",
-                        "category":      category,
-                        "part_id":       part_id,
-                        "name":          product["name"],
-                        "price_usd":     point["price_usd"],
-                        "price_date":    point["date"],
-                        "retailer":      point["retailer"],
-                        "rating":        product.get("rating"),
-                        "reviews":       product.get("reviews"),
-                        "url":           product["url"],
+                        "batch_id":   batch_id,
+                        "timestamp":  now_iso,
+                        "source":     "pcpartpicker_history",
+                        "category":   category,
+                        "part_id":    part_id,
+                        "name":       product["name"],
+                        "price_usd":  point["price_usd"],
+                        "price_date": point["date"],
+                        "retailer":   point["retailer"],
+                        "rating":     product.get("rating"),
+                        "reviews":    product.get("reviews"),
+                        "url":        product["url"],
                     })
                 time.sleep(REQUEST_DELAY * 0.5)
+            elif part_id in seen_part_ids:
+                logger.debug(f"  [PCPartPicker] part_id {part_id} ya procesado — skip historial")
 
-        logger.info(
-            f"  ✅ {category}: {len(all_records)} registros acumulados"
-        )
+        # FIX-8: Log con registros de ESTA categoría, no el acumulado global
+        cat_records_added = len(all_records) - cat_records_before
+        logger.info(f"  ✅ {category}: +{cat_records_added} registros")
         time.sleep(REQUEST_DELAY)
 
     logger.info(f"[PCPartPicker] TOTAL: {len(all_records)} registros")
@@ -302,12 +383,12 @@ def scrape_pcpartpicker(batch_id: str) -> list:
 
 
 # ──────────────────────────────────────────────
-# EJECUCIÓN STANDALONE
+# STANDALONE
 # ──────────────────────────────────────────────
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     test_batch = f"test_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-    results = scrape_pcpartpicker(test_batch)
+    results    = scrape_pcpartpicker(test_batch)
     print(f"\nTotal registros: {len(results)}")
     if results:
         print("Ejemplo:", results[0])
