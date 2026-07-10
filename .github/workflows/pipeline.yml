@@ -1,1 +1,114 @@
+name: Pipeline ROI Importación PE
 
+on:
+  schedule:
+    # Ejecutar lunes, miércoles y viernes a las 08:00 Lima (UTC-5 = 13:00 UTC)
+    - cron: "0 13 * * 1,3,5"
+  workflow_dispatch:
+    inputs:
+      only:
+        description: "Step a ejecutar (vacío = completo)"
+        required: false
+        default: ""
+      categories:
+        description: "Categorías separadas por espacio (vacío = todas)"
+        required: false
+        default: ""
+      sources_import:
+        description: "Fuentes importación (amazon aliexpress ebay)"
+        required: false
+        default: "amazon aliexpress ebay"
+
+jobs:
+  pipeline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    steps:
+      # ── 1. Checkout ────────────────────────────────────────────────────────
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      # ── 2. Python ─────────────────────────────────────────────────────────
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      # ── 3. Dependencias ───────────────────────────────────────────────────
+      - name: Instalar dependencias
+        run: pip install -r requirements.txt
+
+      # ── 4. Restaurar datos históricos ─────────────────────────────────────
+      - name: Restaurar caché de datos
+        uses: actions/cache@v4
+        with:
+          path: data/
+          key: data-${{ runner.os }}-${{ github.run_number }}
+          restore-keys: |
+            data-${{ runner.os }}-
+
+      # ── 5. Crear directorios ───────────────────────────────────────────────
+      - name: Crear directorios
+        run: mkdir -p data models logs
+
+      # ── 6. Ejecutar pipeline ──────────────────────────────────────────────
+      - name: Ejecutar pipeline
+        env:
+          # Costos de importación
+          IGV:                  "0.18"
+          IPM:                  "0.02"
+          ARANCEL_AD_VALOREM:   "0.00"
+          FLETE_BASE_USD:       "25.0"
+          FLETE_POR_KG_USD:     "8.0"
+          MARGEN_GANANCIA_MIN:  "0.15"
+          LIMITE_COURIER_USD:   "200.0"
+          # Scraping
+          DELAY_REQ:            "3.0"
+          DELAY_CAT:            "6.0"
+          MAX_PAGES:            "5"
+          MAX_PAGES_IMPORT:     "5"
+          # APIs opcionales
+          EBAY_APP_ID:          ${{ secrets.EBAY_APP_ID }}
+          AMAZON_ACCESS_KEY:    ${{ secrets.AMAZON_ACCESS_KEY }}
+          AMAZON_SECRET_KEY:    ${{ secrets.AMAZON_SECRET_KEY }}
+          AMAZON_PARTNER_TAG:   ${{ secrets.AMAZON_PARTNER_TAG }}
+          # Dirs
+          DATA_DIR:             "./data"
+          MODELS_DIR:           "./models"
+          LOGS_DIR:             "./logs"
+        run: |
+          ARGS=""
+          if [ -n "${{ github.event.inputs.only }}" ]; then
+            ARGS="$ARGS --only ${{ github.event.inputs.only }}"
+          fi
+          if [ -n "${{ github.event.inputs.categories }}" ]; then
+            ARGS="$ARGS --categories ${{ github.event.inputs.categories }}"
+          fi
+          if [ -n "${{ github.event.inputs.sources_import }}" ]; then
+            ARGS="$ARGS --sources-import ${{ github.event.inputs.sources_import }}"
+          fi
+          python main.py $ARGS
+
+      # ── 7. Subir artefactos ───────────────────────────────────────────────
+      - name: Subir CSVs de resultados
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: data-${{ github.run_number }}
+          path: |
+            data/master_merged.csv
+            data/oportunidades_roi.csv
+            data/historial_dolar.csv
+            logs/pipeline.log
+          retention-days: 30
+
+      # ── 8. Subir log si falla ─────────────────────────────────────────────
+      - name: Subir log en caso de falla
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: logs-error-${{ github.run_number }}
+          path: logs/
+          retention-days: 7
