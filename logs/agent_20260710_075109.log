@@ -1,0 +1,29 @@
+2026-07-10 07:51:09,152 [INFO] ==================================================
+2026-07-10 07:51:09,152 [INFO] MODO TEST - Verificando configuracion v2.2
+2026-07-10 07:51:09,152 [INFO] ==================================================
+2026-07-10 07:51:09,152 [INFO] BASE_DIR  : /home/runner/work/tesis-hardware-peru/tesis-hardware-peru (OK)
+2026-07-10 07:51:09,152 [INFO] DATA_DIR  : /home/runner/work/tesis-hardware-peru/tesis-hardware-peru/data/raw (OK)
+2026-07-10 07:51:09,152 [INFO] LOG_DIR   : /home/runner/work/tesis-hardware-peru/tesis-hardware-peru/logs  (OK)
+2026-07-10 07:51:09,387 [INFO] scraper.py: OK - BatchOrchestrator importado
+2026-07-10 07:51:09,387 [INFO] Categorias: ['CPU', 'GPU', 'RAM', 'SSD', 'MOTHERBOARD', 'PSU', 'COOLER', 'CASE']
+2026-07-10 07:51:09,388 [INFO] pandas    : OK v2.2.2
+2026-07-10 07:51:09,388 [INFO] Python    : 3.11.15
+2026-07-10 07:51:09,388 [INFO] ==================================================
+2026-07-10 07:51:09,388 [INFO] TEST OK - Sistema listo para produccion
+2026-07-10 07:51:09,725 [INFO] ============================================================
+2026-07-10 07:51:09,725 [INFO] INICIANDO PIPELINE AGENTE ROI v2.2
+2026-07-10 07:51:09,725 [INFO] Fecha    : 2026-07-10 07:51:09
+2026-07-10 07:51:09,725 [INFO] DATA_DIR : /home/runner/work/tesis-hardware-peru/tesis-hardware-peru/data/raw
+2026-07-10 07:51:09,725 [INFO] ============================================================
+2026-07-10 07:51:09,725 [INFO] FASE 1: Scraping de datos...
+2026-07-10 08:32:59,007 [INFO]   OK 0 items en 2509.2s
+2026-07-10 08:32:59,007 [INFO] FASE 2: Leyendo Master CSV...
+2026-07-10 08:32:59,009 [INFO]   OK Master CSV: 0 registros
+2026-07-10 08:32:59,009 [INFO] FASE 3: Generando reporte...
+2026-07-10 08:32:59,010 [INFO]   OK Reporte: /home/runner/work/tesis-hardware-peru/tesis-hardware-peru/data/raw/report_20260710_075109.json
+2026-07-10 08:32:59,010 [INFO] ============================================================
+2026-07-10 08:32:59,010 [INFO] PIPELINE COMPLETADO
+2026-07-10 08:32:59,010 [INFO]   [OK] scraping: ok
+2026-07-10 08:32:59,010 [INFO]   [OK] consolidation: ok
+2026-07-10 08:32:59,010 [INFO]   [OK] report: ok
+2026-07-10 08:32:59,010 [INFO] ============================================================

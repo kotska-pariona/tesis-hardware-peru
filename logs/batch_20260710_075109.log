@@ -1,0 +1,148 @@
+2026-07-10 07:51:09,824 [INFO    ] AgentIA.20260710_075109 - ======================================================================
+2026-07-10 07:51:09,824 [INFO    ] AgentIA.20260710_075109 - BATCH 20260710_075109 INICIADO
+2026-07-10 07:51:09,824 [INFO    ] AgentIA.20260710_075109 - Categorias : ['CPU', 'GPU', 'RAM', 'SSD', 'MOTHERBOARD', 'PSU', 'COOLER', 'CASE']
+2026-07-10 07:51:09,824 [INFO    ] AgentIA.20260710_075109 - Fuentes    : ['mercadolibre', 'falabella', 'ripley', 'hiraoka']
+2026-07-10 07:51:09,824 [INFO    ] AgentIA.20260710_075109 - Max paginas: 3
+2026-07-10 07:51:09,824 [INFO    ] AgentIA.20260710_075109 - ======================================================================
+2026-07-10 07:51:09,824 [INFO    ] AgentIA.20260710_075109 - [ML] Scrapeando CPU - hasta 3 paginas
+2026-07-10 07:51:15,548 [INFO    ] AgentIA.20260710_075109 - [ML] Sin mas resultados en pagina 1
+2026-07-10 07:51:15,548 [INFO    ] AgentIA.20260710_075109 -   OK mercadolibre    ->    0 items brutos
+2026-07-10 07:51:15,548 [INFO    ] AgentIA.20260710_075109 - [Falabella] Scrapeando CPU
+2026-07-10 07:51:20,225 [INFO    ] AgentIA.20260710_075109 -   OK falabella       ->    0 items brutos
+2026-07-10 07:51:20,225 [INFO    ] AgentIA.20260710_075109 - [Ripley] Scrapeando CPU
+2026-07-10 07:51:22,873 [WARNING ] AgentIA.20260710_075109 - HTTP 403 en https://simple.ripley.com.pe/api/2.0/page/search. Intento 1/3
+2026-07-10 07:51:55,336 [WARNING ] AgentIA.20260710_075109 - HTTP 403 en https://simple.ripley.com.pe/api/2.0/page/search. Intento 2/3
+2026-07-10 07:52:58,954 [WARNING ] AgentIA.20260710_075109 - HTTP 403 en https://simple.ripley.com.pe/api/2.0/page/search. Intento 3/3
+2026-07-10 07:54:32,633 [WARNING ] AgentIA.20260710_075109 - HTTP 403 en https://www.ripley.com.pe/api/search. Intento 1/3
+2026-07-10 07:55:07,037 [WARNING ] AgentIA.20260710_075109 - HTTP 403 en https://www.ripley.com.pe/api/search. Intento 2/3
+2026-07-10 07:56:09,812 [WARNING ] AgentIA.20260710_075109 - HTTP 403 en https://www.ripley.com.pe/api/search. Intento 3/3
+2026-07-10 07:57:42,567 [WARNING ] AgentIA.20260710_075109 - HTTP 403 en https://simple.ripley.com.pe/api/2.0/page/search. Intento 1/3
+2026-07-10 07:58:16,269 [WARNING ] AgentIA.20260710_075109 - HTTP 403 en https://simple.ripley.com.pe/api/2.0/page/search. Intento 2/3
+2026-07-10 07:59:19,940 [WARNING ] AgentIA.20260710_075109 - HTTP 403 en https://simple.ripley.com.pe/api/2.0/page/search. Intento 3/3
+2026-07-10 08:00:49,941 [INFO    ] AgentIA.20260710_075109 -   OK ripley          ->    0 items brutos
+2026-07-10 08:00:49,941 [INFO    ] AgentIA.20260710_075109 - [Hiraoka] Scrapeando CPU
+2026-07-10 08:00:58,728 [INFO    ] AgentIA.20260710_075109 - [Hiraoka] CPU pag 1: 0 total
+2026-07-10 08:01:14,386 [INFO    ] AgentIA.20260710_075109 - [Hiraoka] CPU pag 2: 0 total
+2026-07-10 08:01:24,497 [INFO    ] AgentIA.20260710_075109 - [Hiraoka] CPU pag 3: 0 total
+2026-07-10 08:01:33,865 [INFO    ] AgentIA.20260710_075109 -   OK hiraoka         ->    0 items brutos
+2026-07-10 08:01:33,866 [INFO    ] AgentIA.20260710_075109 - [CPU] Brutos: 0 -> Limpios: 0
+2026-07-10 08:01:57,043 [INFO    ] AgentIA.20260710_075109 - [ML] Scrapeando GPU - hasta 3 paginas
+2026-07-10 08:02:01,327 [INFO    ] AgentIA.20260710_075109 - [ML] Sin mas resultados en pagina 1
+2026-07-10 08:02:01,327 [INFO    ] AgentIA.20260710_075109 -   OK mercadolibre    ->    0 items brutos
+2026-07-10 08:02:01,327 [INFO    ] AgentIA.20260710_075109 - [Falabella] Scrapeando GPU
+2026-07-10 08:02:05,729 [INFO    ] AgentIA.20260710_075109 -   OK falabella       ->    0 items brutos
+2026-07-10 08:02:05,730 [INFO    ] AgentIA.20260710_075109 - [Ripley] Scrapeando GPU
+2026-07-10 08:02:08,951 [WARNING ] AgentIA.20260710_075109 - HTTP 403 en https://simple.ripley.com.pe/api/2.0/page/search. Intento 1/3
+2026-07-10 08:02:43,574 [WARNING ] AgentIA.20260710_075109 - HTTP 403 en https://simple.ripley.com.pe/api/2.0/page/search. Intento 2/3
+2026-07-10 08:03:47,005 [WARNING ] AgentIA.20260710_075109 - HTTP 403 en https://simple.ripley.com.pe/api/2.0/page/search. Intento 3/3
+2026-07-10 08:05:17,007 [INFO    ] AgentIA.20260710_075109 -   OK ripley          ->    0 items brutos
+2026-07-10 08:05:17,007 [INFO    ] AgentIA.20260710_075109 - [Hiraoka] Scrapeando GPU
+2026-07-10 08:05:24,640 [INFO    ] AgentIA.20260710_075109 - [Hiraoka] GPU pag 1: 0 total
+2026-07-10 08:05:39,568 [INFO    ] AgentIA.20260710_075109 - [Hiraoka] GPU pag 2: 0 total
+2026-07-10 08:05:51,684 [INFO    ] AgentIA.20260710_075109 - [Hiraoka] GPU pag 3: 0 total
+2026-07-10 08:05:59,779 [INFO    ] AgentIA.20260710_075109 -   OK hiraoka         ->    0 items brutos
+2026-07-10 08:05:59,780 [INFO    ] AgentIA.20260710_075109 - [GPU] Brutos: 0 -> Limpios: 0
+2026-07-10 08:06:17,941 [INFO    ] AgentIA.20260710_075109 - [ML] Scrapeando RAM - hasta 3 paginas
+2026-07-10 08:06:22,611 [INFO    ] AgentIA.20260710_075109 - [ML] Sin mas resultados en pagina 1
+2026-07-10 08:06:22,611 [INFO    ] AgentIA.20260710_075109 -   OK mercadolibre    ->    0 items brutos
+2026-07-10 08:06:22,611 [INFO    ] AgentIA.20260710_075109 - [Falabella] Scrapeando RAM
+2026-07-10 08:06:26,176 [INFO    ] AgentIA.20260710_075109 -   OK falabella       ->    0 items brutos
+2026-07-10 08:06:26,177 [INFO    ] AgentIA.20260710_075109 - [Ripley] Scrapeando RAM
+2026-07-10 08:06:29,852 [WARNING ] AgentIA.20260710_075109 - HTTP 403 en https://simple.ripley.com.pe/api/2.0/page/search. Intento 1/3
+2026-07-10 08:07:02,567 [WARNING ] AgentIA.20260710_075109 - HTTP 403 en https://simple.ripley.com.pe/api/2.0/page/search. Intento 2/3
+2026-07-10 08:08:07,311 [WARNING ] AgentIA.20260710_075109 - HTTP 403 en https://simple.ripley.com.pe/api/2.0/page/search. Intento 3/3
+2026-07-10 08:09:37,313 [INFO    ] AgentIA.20260710_075109 -   OK ripley          ->    0 items brutos
+2026-07-10 08:09:37,313 [INFO    ] AgentIA.20260710_075109 - [Hiraoka] Scrapeando RAM
+2026-07-10 08:09:46,698 [INFO    ] AgentIA.20260710_075109 - [Hiraoka] RAM pag 1: 0 total
+2026-07-10 08:09:57,092 [INFO    ] AgentIA.20260710_075109 - [Hiraoka] RAM pag 2: 0 total
+2026-07-10 08:10:06,942 [INFO    ] AgentIA.20260710_075109 - [Hiraoka] RAM pag 3: 0 total
+2026-07-10 08:10:18,245 [INFO    ] AgentIA.20260710_075109 -   OK hiraoka         ->    0 items brutos
+2026-07-10 08:10:18,245 [INFO    ] AgentIA.20260710_075109 - [RAM] Brutos: 0 -> Limpios: 0
+2026-07-10 08:10:42,464 [INFO    ] AgentIA.20260710_075109 - [ML] Scrapeando SSD - hasta 3 paginas
+2026-07-10 08:10:48,035 [INFO    ] AgentIA.20260710_075109 - [ML] Sin mas resultados en pagina 1
+2026-07-10 08:10:48,035 [INFO    ] AgentIA.20260710_075109 -   OK mercadolibre    ->    0 items brutos
+2026-07-10 08:10:48,035 [INFO    ] AgentIA.20260710_075109 - [Falabella] Scrapeando SSD
+2026-07-10 08:10:53,030 [INFO    ] AgentIA.20260710_075109 -   OK falabella       ->    0 items brutos
+2026-07-10 08:10:53,030 [INFO    ] AgentIA.20260710_075109 - [Ripley] Scrapeando SSD
+2026-07-10 08:10:56,740 [WARNING ] AgentIA.20260710_075109 - HTTP 403 en https://simple.ripley.com.pe/api/2.0/page/search. Intento 1/3
+2026-07-10 08:11:31,394 [WARNING ] AgentIA.20260710_075109 - HTTP 403 en https://simple.ripley.com.pe/api/2.0/page/search. Intento 2/3
+2026-07-10 08:12:34,773 [WARNING ] AgentIA.20260710_075109 - HTTP 403 en https://simple.ripley.com.pe/api/2.0/page/search. Intento 3/3
+2026-07-10 08:14:04,774 [INFO    ] AgentIA.20260710_075109 -   OK ripley          ->    0 items brutos
+2026-07-10 08:14:04,774 [INFO    ] AgentIA.20260710_075109 - [Hiraoka] Scrapeando SSD
+2026-07-10 08:14:11,426 [INFO    ] AgentIA.20260710_075109 - [Hiraoka] SSD pag 1: 0 total
+2026-07-10 08:14:28,359 [INFO    ] AgentIA.20260710_075109 - [Hiraoka] SSD pag 2: 0 total
+2026-07-10 08:14:45,021 [INFO    ] AgentIA.20260710_075109 - [Hiraoka] SSD pag 3: 0 total
+2026-07-10 08:14:51,036 [INFO    ] AgentIA.20260710_075109 -   OK hiraoka         ->    0 items brutos
+2026-07-10 08:14:51,036 [INFO    ] AgentIA.20260710_075109 - [SSD] Brutos: 0 -> Limpios: 0
+2026-07-10 08:15:09,581 [INFO    ] AgentIA.20260710_075109 - [ML] Scrapeando MOTHERBOARD - hasta 3 paginas
+2026-07-10 08:15:15,205 [INFO    ] AgentIA.20260710_075109 - [ML] Sin mas resultados en pagina 1
+2026-07-10 08:15:15,205 [INFO    ] AgentIA.20260710_075109 -   OK mercadolibre    ->    0 items brutos
+2026-07-10 08:15:15,205 [INFO    ] AgentIA.20260710_075109 - [Falabella] Scrapeando MOTHERBOARD
+2026-07-10 08:15:21,042 [INFO    ] AgentIA.20260710_075109 -   OK falabella       ->    0 items brutos
+2026-07-10 08:15:21,042 [INFO    ] AgentIA.20260710_075109 - [Ripley] Scrapeando MOTHERBOARD
+2026-07-10 08:15:23,699 [WARNING ] AgentIA.20260710_075109 - HTTP 403 en https://simple.ripley.com.pe/api/2.0/page/search. Intento 1/3
+2026-07-10 08:15:58,395 [WARNING ] AgentIA.20260710_075109 - HTTP 403 en https://simple.ripley.com.pe/api/2.0/page/search. Intento 2/3
+2026-07-10 08:17:03,163 [WARNING ] AgentIA.20260710_075109 - HTTP 403 en https://simple.ripley.com.pe/api/2.0/page/search. Intento 3/3
+2026-07-10 08:18:33,165 [INFO    ] AgentIA.20260710_075109 -   OK ripley          ->    0 items brutos
+2026-07-10 08:18:33,165 [INFO    ] AgentIA.20260710_075109 - [Hiraoka] Scrapeando MOTHERBOARD
+2026-07-10 08:18:42,223 [INFO    ] AgentIA.20260710_075109 - [Hiraoka] MOTHERBOARD pag 1: 0 total
+2026-07-10 08:18:55,986 [INFO    ] AgentIA.20260710_075109 - [Hiraoka] MOTHERBOARD pag 2: 0 total
+2026-07-10 08:19:05,762 [INFO    ] AgentIA.20260710_075109 - [Hiraoka] MOTHERBOARD pag 3: 0 total
+2026-07-10 08:19:17,549 [INFO    ] AgentIA.20260710_075109 -   OK hiraoka         ->    0 items brutos
+2026-07-10 08:19:17,549 [INFO    ] AgentIA.20260710_075109 - [MOTHERBOARD] Brutos: 0 -> Limpios: 0
+2026-07-10 08:19:40,115 [INFO    ] AgentIA.20260710_075109 - [ML] Scrapeando PSU - hasta 3 paginas
+2026-07-10 08:19:45,235 [INFO    ] AgentIA.20260710_075109 - [ML] Sin mas resultados en pagina 1
+2026-07-10 08:19:45,235 [INFO    ] AgentIA.20260710_075109 -   OK mercadolibre    ->    0 items brutos
+2026-07-10 08:19:45,236 [INFO    ] AgentIA.20260710_075109 - [Falabella] Scrapeando PSU
+2026-07-10 08:19:51,523 [INFO    ] AgentIA.20260710_075109 -   OK falabella       ->    0 items brutos
+2026-07-10 08:19:51,524 [INFO    ] AgentIA.20260710_075109 - [Ripley] Scrapeando PSU
+2026-07-10 08:19:56,490 [WARNING ] AgentIA.20260710_075109 - HTTP 403 en https://simple.ripley.com.pe/api/2.0/page/search. Intento 1/3
+2026-07-10 08:20:29,188 [WARNING ] AgentIA.20260710_075109 - HTTP 403 en https://simple.ripley.com.pe/api/2.0/page/search. Intento 2/3
+2026-07-10 08:21:34,143 [WARNING ] AgentIA.20260710_075109 - HTTP 403 en https://simple.ripley.com.pe/api/2.0/page/search. Intento 3/3
+2026-07-10 08:23:04,144 [INFO    ] AgentIA.20260710_075109 -   OK ripley          ->    0 items brutos
+2026-07-10 08:23:04,144 [INFO    ] AgentIA.20260710_075109 - [Hiraoka] Scrapeando PSU
+2026-07-10 08:23:11,488 [INFO    ] AgentIA.20260710_075109 - [Hiraoka] PSU pag 1: 0 total
+2026-07-10 08:23:21,890 [INFO    ] AgentIA.20260710_075109 - [Hiraoka] PSU pag 2: 0 total
+2026-07-10 08:23:33,703 [INFO    ] AgentIA.20260710_075109 - [Hiraoka] PSU pag 3: 0 total
+2026-07-10 08:23:40,764 [INFO    ] AgentIA.20260710_075109 -   OK hiraoka         ->    0 items brutos
+2026-07-10 08:23:40,764 [INFO    ] AgentIA.20260710_075109 - [PSU] Brutos: 0 -> Limpios: 0
+2026-07-10 08:23:56,641 [INFO    ] AgentIA.20260710_075109 - [ML] Scrapeando COOLER - hasta 3 paginas
+2026-07-10 08:24:02,294 [INFO    ] AgentIA.20260710_075109 - [ML] Sin mas resultados en pagina 1
+2026-07-10 08:24:02,294 [INFO    ] AgentIA.20260710_075109 -   OK mercadolibre    ->    0 items brutos
+2026-07-10 08:24:02,294 [INFO    ] AgentIA.20260710_075109 - [Falabella] Scrapeando COOLER
+2026-07-10 08:24:05,902 [INFO    ] AgentIA.20260710_075109 -   OK falabella       ->    0 items brutos
+2026-07-10 08:24:05,902 [INFO    ] AgentIA.20260710_075109 - [Ripley] Scrapeando COOLER
+2026-07-10 08:24:10,418 [WARNING ] AgentIA.20260710_075109 - HTTP 403 en https://simple.ripley.com.pe/api/2.0/page/search. Intento 1/3
+2026-07-10 08:24:42,879 [WARNING ] AgentIA.20260710_075109 - HTTP 403 en https://simple.ripley.com.pe/api/2.0/page/search. Intento 2/3
+2026-07-10 08:25:45,502 [WARNING ] AgentIA.20260710_075109 - HTTP 403 en https://simple.ripley.com.pe/api/2.0/page/search. Intento 3/3
+2026-07-10 08:27:15,504 [INFO    ] AgentIA.20260710_075109 -   OK ripley          ->    0 items brutos
+2026-07-10 08:27:15,504 [INFO    ] AgentIA.20260710_075109 - [Hiraoka] Scrapeando COOLER
+2026-07-10 08:27:24,661 [INFO    ] AgentIA.20260710_075109 - [Hiraoka] COOLER pag 1: 0 total
+2026-07-10 08:27:38,794 [INFO    ] AgentIA.20260710_075109 - [Hiraoka] COOLER pag 2: 0 total
+2026-07-10 08:27:54,561 [INFO    ] AgentIA.20260710_075109 - [Hiraoka] COOLER pag 3: 0 total
+2026-07-10 08:28:03,719 [INFO    ] AgentIA.20260710_075109 -   OK hiraoka         ->    0 items brutos
+2026-07-10 08:28:03,720 [INFO    ] AgentIA.20260710_075109 - [COOLER] Brutos: 0 -> Limpios: 0
+2026-07-10 08:28:27,417 [INFO    ] AgentIA.20260710_075109 - [ML] Scrapeando CASE - hasta 3 paginas
+2026-07-10 08:28:31,217 [INFO    ] AgentIA.20260710_075109 - [ML] Sin mas resultados en pagina 1
+2026-07-10 08:28:31,217 [INFO    ] AgentIA.20260710_075109 -   OK mercadolibre    ->    0 items brutos
+2026-07-10 08:28:31,217 [INFO    ] AgentIA.20260710_075109 - [Falabella] Scrapeando CASE
+2026-07-10 08:28:34,801 [INFO    ] AgentIA.20260710_075109 -   OK falabella       ->    0 items brutos
+2026-07-10 08:28:34,801 [INFO    ] AgentIA.20260710_075109 - [Ripley] Scrapeando CASE
+2026-07-10 08:28:39,505 [WARNING ] AgentIA.20260710_075109 - HTTP 403 en https://simple.ripley.com.pe/api/2.0/page/search. Intento 1/3
+2026-07-10 08:29:12,341 [WARNING ] AgentIA.20260710_075109 - HTTP 403 en https://simple.ripley.com.pe/api/2.0/page/search. Intento 2/3
+2026-07-10 08:30:15,568 [WARNING ] AgentIA.20260710_075109 - HTTP 403 en https://simple.ripley.com.pe/api/2.0/page/search. Intento 3/3
+2026-07-10 08:31:45,570 [INFO    ] AgentIA.20260710_075109 -   OK ripley          ->    0 items brutos
+2026-07-10 08:31:45,570 [INFO    ] AgentIA.20260710_075109 - [Hiraoka] Scrapeando CASE
+2026-07-10 08:31:51,659 [INFO    ] AgentIA.20260710_075109 - [Hiraoka] CASE pag 1: 0 total
+2026-07-10 08:32:06,880 [INFO    ] AgentIA.20260710_075109 - [Hiraoka] CASE pag 2: 0 total
+2026-07-10 08:32:21,676 [INFO    ] AgentIA.20260710_075109 - [Hiraoka] CASE pag 3: 0 total
+2026-07-10 08:32:29,550 [INFO    ] AgentIA.20260710_075109 -   OK hiraoka         ->    0 items brutos
+2026-07-10 08:32:29,550 [INFO    ] AgentIA.20260710_075109 - [CASE] Brutos: 0 -> Limpios: 0
+2026-07-10 08:32:59,002 [INFO    ] AgentIA.20260710_075109 - Batch guardado: /home/runner/work/tesis-hardware-peru/tesis-hardware-peru/data/raw/batch_20260710_075109.csv (0 items)
+2026-07-10 08:32:59,002 [INFO    ] AgentIA.20260710_075109 - Master actualizado: /home/runner/work/tesis-hardware-peru/tesis-hardware-peru/data/raw/MASTER_hardware_peru.csv
+2026-07-10 08:32:59,007 [INFO    ] AgentIA.20260710_075109 - ======================================================================
+2026-07-10 08:32:59,007 [INFO    ] AgentIA.20260710_075109 - BATCH 20260710_075109 COMPLETADO en 2509.2s
+2026-07-10 08:32:59,007 [INFO    ] AgentIA.20260710_075109 - Items este batch : 0
+2026-07-10 08:32:59,007 [INFO    ] AgentIA.20260710_075109 - Master total     : 0 registros
+2026-07-10 08:32:59,007 [INFO    ] AgentIA.20260710_075109 - Archivo batch    : /home/runner/work/tesis-hardware-peru/tesis-hardware-peru/data/raw/batch_20260710_075109.csv
+2026-07-10 08:32:59,007 [INFO    ] AgentIA.20260710_075109 - ======================================================================

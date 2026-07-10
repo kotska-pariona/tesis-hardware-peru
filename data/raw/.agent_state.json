@@ -1,0 +1,14 @@
+{
+  "last_batch": "20260710_075109",
+  "last_run": "2026-07-10T08:32:59.007383",
+  "last_items": 0,
+  "last_elapsed_s": 2509.2,
+  "master_stats": {
+    "total_records": 0,
+    "unique_items": 0,
+    "categories": {},
+    "sources": {},
+    "batches": 0,
+    "date_range": "nan - nan"
+  }
+}
