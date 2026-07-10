@@ -1,104 +1,231 @@
-name: Daily Hardware Scraper v4.0
+name: Hardware Peru — Data Agent v5.0
 
 on:
+  # ─── Ejecución automática cada 2 horas ───────────────────────────────────
   schedule:
-    - cron: '0 14 * * *'   # 9:00 AM Lima (UTC-5) todos los días
-  workflow_dispatch:        # ejecución manual desde GitHub
+    - cron: '0 */2 * * *'      # 00:00, 02:00, 04:00 ... 22:00 UTC
+                                # = 12 snapshots/día = batch 24h completo
 
-env:
-  OUTPUT_DIR:        data/raw          # ✅ FIX 1: ruta correcta
-  MAX_PAGES_IMPORT:  "5"
-  MAX_PAGES_COMP:    "30"
-  DELAY_REQ:         "2.5"
-  DELAY_CAT:         "5.0"
-  EBAY_APP_ID:       ${{ secrets.EBAY_APP_ID }}
+  # ─── Ejecución manual desde GitHub UI ────────────────────────────────────
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Modo de ejecución'
+        required: false
+        default: 'normal'
+        type: choice
+        options:
+          - normal          # Scraping estándar
+          - historical      # Solo fuentes históricas (eBay/Camel/PCPartPicker)
+          - local_only      # Solo fuentes locales PE (Falabella/Ripley/Hiraoka)
+          - kaggle_only     # Solo descarga de datasets Kaggle
+          - full            # Todo (puede tardar 30+ min)
+
+# ─── Permisos para hacer push de datos ───────────────────────────────────────
+permissions:
+  contents: write
 
 jobs:
-  scrape:
+  # ═══════════════════════════════════════════════════════════════════════════
+  # JOB PRINCIPAL: Recolección de datos
+  # ═══════════════════════════════════════════════════════════════════════════
+  collect-data:
+    name: "🤖 Recolección de Datos — ${{ github.event.inputs.mode || 'normal' }}"
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 55      # GitHub Actions tiene límite de 60 min
+
+    env:
+      # ── Credenciales (configurar en Settings > Secrets > Actions) ──────────
+      EBAY_APP_ID:        ${{ secrets.EBAY_APP_ID }}
+      KAGGLE_USERNAME:    ${{ secrets.KAGGLE_USERNAME }}
+      KAGGLE_KEY:         ${{ secrets.KAGGLE_KEY }}
+      AMAZON_ACCESS_KEY:  ${{ secrets.AMAZON_ACCESS_KEY }}
+      AMAZON_SECRET_KEY:  ${{ secrets.AMAZON_SECRET_KEY }}
+      AMAZON_PARTNER_TAG: ${{ secrets.AMAZON_PARTNER_TAG }}
+      # ── Variables de configuración ─────────────────────────────────────────
+      RUN_MODE:           ${{ github.event.inputs.mode || 'normal' }}
+      TZ:                 America/Lima
 
     steps:
-      # ── 1. Checkout ────────────────────────────────────────────────────
-      - name: Checkout repo
+      # ── 1. Checkout ──────────────────────────────────────────────────────────
+      - name: "📥 Checkout repositorio"
         uses: actions/checkout@v4
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0        # Historial completo para evitar conflictos de merge
 
-      # ── 2. Python ──────────────────────────────────────────────────────
-      - name: Setup Python 3.11
+      # ── 2. Python setup ──────────────────────────────────────────────────────
+      - name: "🐍 Setup Python 3.11"
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
-          cache: pip
+          python-version: '3.11'
+          cache: 'pip'
 
-      - name: Instalar dependencias
-        run: pip install -r requirements.txt
-
-      # ── 3. Crear carpeta data/raw ──────────────────────────────────────
-      - name: Preparar carpeta data/raw
-        run: mkdir -p data/raw            # ✅ FIX 3: carpeta correcta
-
-      # ── 4. Ejecutar pipeline completo ─────────────────────────────────
-      - name: Run pipeline completo
-        id: pipeline
+      # ── 3. Instalar dependencias ─────────────────────────────────────────────
+      - name: "📦 Instalar dependencias"
         run: |
-          python agent/main.py --only ambos 2>&1 | tee data/raw/pipeline.log   # ✅ FIX 2
-          BATCH_ID=$(grep "^BATCH_ID=" data/raw/pipeline.log | tail -1 | cut -d= -f2)
-          TOTAL_IMPORT=$(grep "^TOTAL_IMPORT=" data/raw/pipeline.log | tail -1 | cut -d= -f2)
-          TOTAL_COMP=$(grep "^TOTAL_COMP=" data/raw/pipeline.log | tail -1 | cut -d= -f2)
-          TC=$(grep "^TIPO_CAMBIO=" data/raw/pipeline.log | tail -1 | cut -d= -f2)
-          echo "batch_id=$BATCH_ID"         >> $GITHUB_OUTPUT
-          echo "total_import=$TOTAL_IMPORT" >> $GITHUB_OUTPUT
-          echo "total_comp=$TOTAL_COMP"     >> $GITHUB_OUTPUT
-          echo "tipo_cambio=$TC"            >> $GITHUB_OUTPUT
+          pip install --upgrade pip
+          pip install \
+            requests \
+            beautifulsoup4 \
+            lxml \
+            pandas \
+            kaggle \
+            python-dotenv \
+            tenacity \
+            tqdm
 
-      # ── 5. Estadísticas del MASTER CSV ────────────────────────────────
-      - name: Stats MASTER_hardware_peru.csv
+      # ── 4. Mostrar info del run ──────────────────────────────────────────────
+      - name: "ℹ️ Info del run"
         run: |
-          echo "=== MASTER CSV ==="
-          if [ -f data/raw/MASTER_hardware_peru.csv ]; then    # ✅ FIX 4
-            echo "Total filas: $(wc -l < data/raw/MASTER_hardware_peru.csv)"
-            echo "Items IMPORTAR_AHORA:"
-            grep -c "IMPORTAR_AHORA" data/raw/MASTER_hardware_peru.csv || echo "0"
-            echo "Top 5 ROI más alto:"
-            python3 -c "
-          import csv
-          rows = []
-          with open('data/raw/MASTER_hardware_peru.csv') as f:   # ✅ FIX 4
-              for r in csv.DictReader(f):
-                  try:
-                      rows.append((
-                          float(r.get('roi_pct', 0)),
-                          r.get('title', '')[:50],
-                          r.get('source', ''),
-                          r.get('category', '')
-                      ))
-                  except:
-                      pass
-          rows.sort(reverse=True)
-          for roi, title, src, cat in rows[:5]:
-              print(f'  ROI {roi:.1f}% | {cat} | {src} | {title}')
-          "
-          else
-            echo "MASTER CSV aún no existe — primer batch"
+          echo "════════════════════════════════════════"
+          echo "  Modo:       $RUN_MODE"
+          echo "  Timestamp:  $(date '+%Y-%m-%d %H:%M:%S %Z')"
+          echo "  Runner:     ${{ runner.os }}"
+          echo "  Trigger:    ${{ github.event_name }}"
+          echo "════════════════════════════════════════"
+          echo "BATCH_ID=batch_$(date '+%Y%m%d_%H%M%S')" >> $GITHUB_ENV
+
+      # ── 5. Ejecutar agente principal ─────────────────────────────────────────
+      - name: "🚀 Ejecutar agente de recolección"
+        run: |
+          cd agent
+          python main.py \
+            --mode "$RUN_MODE" \
+            --batch-id "$BATCH_ID"
+
+      # ── 6. Verificar datos generados ─────────────────────────────────────────
+      - name: "🔍 Verificar datos generados"
+        run: |
+          echo "── Archivos en data/raw/ ──"
+          ls -lh data/raw/ | tail -20
+
+          echo ""
+          echo "── Estadísticas del MASTER CSV ──"
+          if [ -f data/raw/MASTER_hardware_peru.csv ]; then
+            LINES=$(wc -l < data/raw/MASTER_hardware_peru.csv)
+            echo "  Registros totales: $((LINES - 1))"
+            echo "  Tamaño: $(du -sh data/raw/MASTER_hardware_peru.csv | cut -f1)"
           fi
 
-      # ── 6. Commit y push de datos ─────────────────────────────────────
-      - name: Commit data
+          echo ""
+          echo "── Batch actual ──"
+          BATCH_FILE="data/raw/${BATCH_ID}.csv"
+          if [ -f "$BATCH_FILE" ]; then
+            BATCH_LINES=$(wc -l < "$BATCH_FILE")
+            echo "  Registros en batch: $((BATCH_LINES - 1))"
+          fi
+
+      # ── 7. Generar batch de 24h (cada 12 runs = 1 día completo) ─────────────
+      - name: "📊 Generar análisis batch 24h"
+        run: |
+          python - <<'EOF'
+          import os, glob, pandas as pd
+          from datetime import datetime, timedelta, timezone
+
+          raw_dir = "data/raw"
+          now = datetime.now(timezone.utc)
+          cutoff = now - timedelta(hours=24)
+
+          # Recopilar todos los batches de las últimas 24h
+          batch_files = sorted(glob.glob(f"{raw_dir}/batch_*.csv"))
+          recent_files = []
+
+          for f in batch_files:
+              try:
+                  # Extraer timestamp del nombre: batch_YYYYMMDD_HHMMSS.csv
+                  ts_str = os.path.basename(f).replace("batch_", "").replace(".csv", "")
+                  ts = datetime.strptime(ts_str, "%Y%m%d_%H%M%S").replace(tzinfo=timezone.utc)
+                  if ts >= cutoff:
+                      recent_files.append(f)
+              except ValueError:
+                  continue
+
+          print(f"Batches en últimas 24h: {len(recent_files)}")
+
+          if recent_files:
+              dfs = []
+              for f in recent_files:
+                  try:
+                      df = pd.read_csv(f)
+                      dfs.append(df)
+                  except Exception as e:
+                      print(f"Error leyendo {f}: {e}")
+
+              if dfs:
+                  combined = pd.concat(dfs, ignore_index=True)
+                  out_path = f"{raw_dir}/batch_24h_{now.strftime('%Y%m%d')}.csv"
+                  combined.to_csv(out_path, index=False)
+                  print(f"✅ Batch 24h guardado: {out_path}")
+                  print(f"   Total registros: {len(combined)}")
+                  print(f"   Fuentes: {combined.get('source', pd.Series()).nunique() if 'source' in combined.columns else 'N/A'}")
+          else:
+              print("⚠️ No hay batches recientes para combinar")
+          EOF
+
+      # ── 8. Commit y push de datos ────────────────────────────────────────────
+      - name: "💾 Commit y push de datos"
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/
-          git diff --staged --quiet || git commit -m "📦 batch ${{ steps.pipeline.outputs.batch_id }} | import=${{ steps.pipeline.outputs.total_import }} comp=${{ steps.pipeline.outputs.total_comp }} TC=${{ steps.pipeline.outputs.tipo_cambio }}"
-          git push
 
-      # ── 7. Job Summary ────────────────────────────────────────────────
-      - name: Job Summary
+          git add data/raw/
+          git add -f data/raw/*.csv 2>/dev/null || true
+          git add -f data/raw/*.json 2>/dev/null || true
+
+          # Solo hacer commit si hay cambios
+          if git diff --staged --quiet; then
+            echo "ℹ️ Sin cambios nuevos para commitear"
+          else
+            RECORDS=$(wc -l < data/raw/MASTER_hardware_peru.csv 2>/dev/null || echo "?")
+            git commit -m "🤖 [${BATCH_ID}] Auto-data: ~${RECORDS} registros | mode=${RUN_MODE}"
+            git push origin main
+            echo "✅ Push exitoso"
+          fi
+
+      # ── 9. Resumen final ─────────────────────────────────────────────────────
+      - name: "📋 Resumen del run"
+        if: always()
         run: |
-          echo "## 📊 Batch ${{ steps.pipeline.outputs.batch_id }}" >> $GITHUB_STEP_SUMMARY
-          echo "| Métrica | Valor |" >> $GITHUB_STEP_SUMMARY
-          echo "|---|---|" >> $GITHUB_STEP_SUMMARY
-          echo "| Items importación | ${{ steps.pipeline.outputs.total_import }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Items competencia | ${{ steps.pipeline.outputs.total_comp }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Tipo de cambio | ${{ steps.pipeline.outputs.tipo_cambio }} |" >> $GITHUB_STEP_SUMMARY
+          echo "════════════════════════════════════════"
+          echo "  RESUMEN DEL RUN"
+          echo "════════════════════════════════════════"
+          echo "  Batch ID:   $BATCH_ID"
+          echo "  Modo:       $RUN_MODE"
+          echo "  Status:     ${{ job.status }}"
+          echo "  Duración:   ${{ job.duration || 'N/A' }}"
+          echo ""
+          if [ -f data/raw/MASTER_hardware_peru.csv ]; then
+            echo "  MASTER CSV: $(wc -l < data/raw/MASTER_hardware_peru.csv) líneas"
+          fi
+          echo "════════════════════════════════════════"
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # JOB SECUNDARIO: Análisis de predicción (solo si hay suficientes datos)
+  # ═══════════════════════════════════════════════════════════════════════════
+  predict:
+    name: "🔮 Predicción de precios"
+    runs-on: ubuntu-latest
+    needs: collect-data
+    if: |
+      github.event_name == 'schedule' &&
+      (github.run_number % 12 == 0)   # Solo 1 vez al día (cada 12 runs de 2h)
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main             # Tomar el commit más reciente con datos
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: "📦 Instalar dependencias ML"
+        run: |
+          pip install pandas scikit-learn xgboost numpy
+
+      - name: "🔮 Ejecutar predicciones"
+        run: |
+          cd agent
+          python predict.py --batch-24h || echo "⚠️ predict.py no encontrado aún"
