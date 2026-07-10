@@ -29,7 +29,6 @@ Fixes v2.0:
   - [FIX-8] shipping_origen_usd documentado como parte del FOB efectivo
 """
 """
-roi_calculator.py  v2.0
 ... (docstring existente sin cambios)
 """
 
@@ -130,6 +129,16 @@ CATEGORY_WEIGHTS = {
     "CASE":        8.0,
     "LAPTOP":      2.0,
     "MONITOR":     4.0,
+    # ── Agregados ──────────────────────
+    "TABLET":      0.6,
+    "PHONE":       0.3,
+    "TV":         12.0,   # ← sin esto, flete TV se calcula como 0.5 kg → ROI inflado
+    "AUDIO":       0.4,
+    "CAMERA":      0.5,
+    "GAMING":      0.4,
+    "PRINTER":     5.0,
+    "KEYBOARD":    0.8,
+    "MOUSE":       0.2,
 }
 
 
@@ -355,6 +364,7 @@ def analyze_dataframe(df_master: pd.DataFrame, save: bool = True) -> pd.DataFram
             log.debug(f"  {category}: sin datos locales o de importación")
             continue
 
+        local_df["price_pen"] = pd.to_numeric(local_df["price_pen"], errors="coerce")
         local_df = local_df[local_df["price_pen"].notna() & (local_df["price_pen"] > 0)]
         if local_df.empty:
             continue
