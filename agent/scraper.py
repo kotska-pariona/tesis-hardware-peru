@@ -1,33 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-╔══════════════════════════════════════════════════════════════════════════════╗
-║  AGENTE AUTÓNOMO DE SCRAPING — ML PERÚ HARDWARE                            ║
-║  Tesis: Sistema Híbrido DL + Computación Evolutiva                         ║
-║  Autor: Kotska Rony Pariona Martinez                                        ║
-║  Versión: C6 v2.0 — Agente IA + Batch 24h + Multi-fuente                  ║
-║                                                                              ║
-║  FUENTES:                                                                    ║
-║    1. MercadoLibre Perú  (HTML scraping — sin token)                        ║
-║    2. Falabella Perú     (JSON embed)                                        ║
-║    3. Ripley Perú        (API pública)                                       ║
-║    4. Hiraoka Perú       (ld+json)                                           ║
-║                                                                              ║
-║  ARQUITECTURA DEL AGENTE:                                                    ║
-║    ┌─────────────────────────────────────────────────────┐                  ║
-║    │  Scheduler (APScheduler / schedule)                 │                  ║
-║    │    └── cada 24h → BatchOrchestrator                 │                  ║
-║    │          ├── ScraperAgent (ML + Falabella + Ripley) │                  ║
-║    │          ├── DataCleaner                            │                  ║
-║    │          ├── MasterCSVWriter                        │                  ║
-║    │          └── ReportGenerator                        │                  ║
-║    └─────────────────────────────────────────────────────┘                  ║
-╚══════════════════════════════════════════════════════════════════════════════╝
+Agente Autonomo de Scraping - ML Peru Hardware
+Tesis: Sistema Hibrido DL + Computacion Evolutiva
+Autor: Kotska Rony Pariona Martinez - UNI 2026
+Version: v2.1 - Rutas alineadas + Logger sin basicConfig
 """
 
-# ══════════════════════════════════════════════════════════════════════════════
-# 0. IMPORTS
-# ══════════════════════════════════════════════════════════════════════════════
 import os, sys, re, json, csv, time, random, logging, hashlib, argparse
 from datetime import datetime, timezone
 from pathlib import Path
@@ -51,16 +30,16 @@ except ImportError:
     HAS_SCHEDULE = False
 
 # ══════════════════════════════════════════════════════════════════════════════
-# 1. CONFIGURACIÓN GLOBAL
+# 1. RUTAS — alineadas con main.py v2.1
 # ══════════════════════════════════════════════════════════════════════════════
-BASE_DIR    = Path(__file__).parent
-DATA_DIR    = BASE_DIR / "ml_data"
-LOG_DIR     = BASE_DIR / "ml_logs"
-MASTER_CSV  = DATA_DIR / "MASTER_hardware_peru.csv"
-STATE_FILE  = DATA_DIR / ".agent_state.json"
+BASE_DIR   = Path(__file__).parent.parent          # kotska1/
+DATA_DIR   = BASE_DIR / "data" / "raw"             # kotska1/data/raw/
+LOG_DIR    = BASE_DIR / "logs"                     # kotska1/logs/
+MASTER_CSV = DATA_DIR / "MASTER_hardware_peru.csv"
+STATE_FILE = DATA_DIR / ".agent_state.json"
 
-DATA_DIR.mkdir(exist_ok=True)
-LOG_DIR.mkdir(exist_ok=True)
+DATA_DIR.mkdir(parents=True, exist_ok=True)
+LOG_DIR.mkdir(parents=True, exist_ok=True)
 
 SCHEMA = [
     "batch_id", "scraped_at", "source",
@@ -72,7 +51,6 @@ SCHEMA = [
     "url", "fingerprint"
 ]
 
-# Categorías con URLs de todas las fuentes
 CATEGORIES = {
     "CPU": {
         "ml_url"      : "https://listado.mercadolibre.com.pe/procesadores",
@@ -132,29 +110,32 @@ CATEGORIES = {
     },
 }
 
-DELAY_REQ  = (2, 5)    # entre requests
-DELAY_PAGE = (5, 12)   # entre páginas
-DELAY_CAT  = (15, 30)  # entre categorías
-MAX_PAGES  = 20        # páginas por categoría por fuente
+DELAY_REQ  = (2, 5)
+DELAY_PAGE = (5, 12)
+DELAY_CAT  = (15, 30)
+MAX_PAGES  = 20
 MAX_RETRY  = 3
 
 # ══════════════════════════════════════════════════════════════════════════════
-# 2. LOGGER
+# 2. LOGGER — sin basicConfig (compatible con main.py)
 # ══════════════════════════════════════════════════════════════════════════════
 def setup_logger(batch_id: str) -> logging.Logger:
     log_file = LOG_DIR / f"batch_{batch_id}.log"
-    fmt = "%(asctime)s [%(levelname)-8s] %(name)s — %(message)s"
-    logging.basicConfig(
-        level=logging.INFO, format=fmt,
-        handlers=[
-            logging.FileHandler(log_file, encoding="utf-8"),
-            logging.StreamHandler(sys.stdout),
-        ],
-    )
-    return logging.getLogger("AgentIA")
+    fmt      = "%(asctime)s [%(levelname)-8s] %(name)s - %(message)s"
+    logger   = logging.getLogger(f"AgentIA.{batch_id}")
+    if not logger.handlers:
+        logger.setLevel(logging.INFO)
+        fh = logging.FileHandler(log_file, encoding="utf-8")
+        fh.setFormatter(logging.Formatter(fmt))
+        sh = logging.StreamHandler(sys.stdout)
+        sh.setFormatter(logging.Formatter(fmt))
+        logger.addHandler(fh)
+        logger.addHandler(sh)
+        logger.propagate = False
+    return logger
 
 # ══════════════════════════════════════════════════════════════════════════════
-# 3. DATACLASS — ITEM ESTÁNDAR
+# 3. DATACLASS
 # ══════════════════════════════════════════════════════════════════════════════
 @dataclass
 class HardwareItem:
@@ -185,7 +166,7 @@ class HardwareItem:
         return bool(self.title) and self.price_pen > 0
 
 # ══════════════════════════════════════════════════════════════════════════════
-# 4. HTTP CLIENT CON ANTI-BAN
+# 4. HTTP CLIENT
 # ══════════════════════════════════════════════════════════════════════════════
 class HttpClient:
     UA_FALLBACKS = [
@@ -236,7 +217,7 @@ class HttpClient:
                     return r
                 elif r.status_code == 429:
                     wait = 60 * attempt
-                    self.log.warning(f"Rate limit (429). Esperando {wait}s...")
+                    self.log.warning(f"Rate limit 429. Esperando {wait}s...")
                     time.sleep(wait)
                 elif r.status_code in (403, 503):
                     self.log.warning(f"HTTP {r.status_code} en {url[:60]}. Intento {attempt}/{MAX_RETRY}")
@@ -245,12 +226,12 @@ class HttpClient:
                     self.log.warning(f"HTTP {r.status_code} en {url[:60]}")
                     return None
             except requests.RequestException as e:
-                self.log.error(f"Error de conexión (intento {attempt}): {e}")
+                self.log.error(f"Error conexion (intento {attempt}): {e}")
                 time.sleep(15 * attempt)
         return None
 
 # ══════════════════════════════════════════════════════════════════════════════
-# 5. SCRAPER — MERCADOLIBRE (HTML)
+# 5. SCRAPER — MERCADOLIBRE
 # ══════════════════════════════════════════════════════════════════════════════
 class MLScraper:
     def __init__(self, http: HttpClient, logger):
@@ -270,49 +251,46 @@ class MLScraper:
         t = title.lower()
         if any(ex in t for ex in cat_cfg.get("exclude", [])):
             return False
-        return True  # ML ya filtra por categoría
+        return True
 
     def scrape_category(self, category: str, cat_cfg: dict,
-                        batch_id: str, max_pages: int = MAX_PAGES) -> list[HardwareItem]:
-        items   = []
+                        batch_id: str, max_pages: int = MAX_PAGES) -> list:
+        items    = []
         base_url = cat_cfg["ml_url"]
         seen_ids = set()
         now_str  = datetime.now(timezone.utc).isoformat()
 
-        self.log.info(f"[ML] Scrapeando {category} — hasta {max_pages} páginas")
+        self.log.info(f"[ML] Scrapeando {category} - hasta {max_pages} paginas")
 
         for page in range(max_pages):
             offset = page * 48
-            url = base_url if page == 0 else f"{base_url}_Desde_{offset + 1}"
+            url    = base_url if page == 0 else f"{base_url}_Desde_{offset + 1}"
 
             resp = self.http.get(url, referer="https://www.mercadolibre.com.pe/")
             if not resp:
-                self.log.warning(f"[ML] Sin respuesta en página {page+1} de {category}")
+                self.log.warning(f"[ML] Sin respuesta pagina {page+1} de {category}")
                 break
 
-            soup = BeautifulSoup(resp.text, "lxml")
+            soup  = BeautifulSoup(resp.text, "lxml")
             cards = soup.select("li.ui-search-layout__item")
 
             if not cards:
-                self.log.info(f"[ML] Sin más resultados en página {page+1}")
+                self.log.info(f"[ML] Sin mas resultados en pagina {page+1}")
                 break
 
             page_items = 0
             for card in cards:
                 try:
-                    # Título
                     title_el = (card.select_one(".poly-component__title") or
                                 card.select_one(".ui-search-item__title"))
                     if not title_el:
                         continue
                     title = title_el.get_text(strip=True)
-
                     if not self._is_relevant(title, cat_cfg):
                         continue
 
-                    # Link e ID
-                    link_el = (card.select_one("a.poly-component__title") or
-                               card.select_one("a.ui-search-item__title-label-grid"))
+                    link_el  = (card.select_one("a.poly-component__title") or
+                                card.select_one("a.ui-search-item__title-label-grid"))
                     url_item = link_el["href"] if link_el else ""
                     item_id  = re.search(r"MPE\d+", url_item)
                     item_id  = item_id.group(0) if item_id else f"ML_{hashlib.md5(title.encode()).hexdigest()[:8]}"
@@ -321,59 +299,42 @@ class MLScraper:
                         continue
                     seen_ids.add(item_id)
 
-                    # Precio actual
-                    price_el = card.select_one(".andes-money-amount__fraction")
-                    cents_el = card.select_one(".andes-money-amount__cents")
-                    price_str = (price_el.get_text(strip=True) if price_el else "0") +                                 ("." + cents_el.get_text(strip=True) if cents_el else "")
-                    price = self._parse_price(price_str)
+                    price_el  = card.select_one(".andes-money-amount__fraction")
+                    cents_el  = card.select_one(".andes-money-amount__cents")
+                    price_str = (price_el.get_text(strip=True) if price_el else "0") + \
+                                ("." + cents_el.get_text(strip=True) if cents_el else "")
+                    price     = self._parse_price(price_str)
 
-                    # Precio original
                     orig_el  = card.select_one(".andes-money-amount--previous .andes-money-amount__fraction")
                     orig_str = orig_el.get_text(strip=True) if orig_el else ""
                     original = self._parse_price(orig_str) if orig_str else price
                     discount = round((1 - price / original) * 100, 1) if original > price > 0 else 0.0
 
-                    # Vendedor
                     seller_el = card.select_one(".poly-component__seller")
                     seller    = seller_el.get_text(strip=True) if seller_el else ""
 
-                    # Rating
                     rating_el  = card.select_one(".poly-reviews__rating")
                     reviews_el = card.select_one(".poly-reviews__total")
                     rating     = float(rating_el.get_text(strip=True)) if rating_el else 0.0
                     reviews    = int(re.sub(r"\D", "", reviews_el.get_text()) or "0") if reviews_el else 0
 
-                    # Brand desde título
-                    brand = self._extract_brand(title)
-
                     item = HardwareItem(
-                        batch_id       = batch_id,
-                        scraped_at     = now_str,
-                        source         = "mercadolibre",
-                        item_id        = item_id,
-                        category       = category,
-                        title          = title,
-                        price_pen      = price,
-                        original_price = original,
-                        discount_pct   = discount,
-                        seller         = seller,
-                        brand          = brand,
-                        condition      = "new",
-                        rating         = rating,
-                        reviews_count  = reviews,
-                        url            = url_item,
+                        batch_id=batch_id, scraped_at=now_str, source="mercadolibre",
+                        item_id=item_id, category=category, title=title,
+                        price_pen=price, original_price=original, discount_pct=discount,
+                        seller=seller, brand=self._extract_brand(title),
+                        condition="new", rating=rating, reviews_count=reviews, url=url_item,
                     )
                     item.compute_fingerprint()
-
                     if item.is_valid():
                         items.append(item)
                         page_items += 1
 
                 except Exception as e:
-                    self.log.debug(f"[ML] Error parseando card: {e}")
+                    self.log.debug(f"[ML] Error card: {e}")
                     continue
 
-            self.log.info(f"[ML] {category} pág {page+1}: {page_items} items (total: {len(items)})")
+            self.log.info(f"[ML] {category} pag {page+1}: {page_items} items (total: {len(items)})")
             time.sleep(random.uniform(*DELAY_PAGE))
 
         return items
@@ -391,7 +352,7 @@ class MLScraper:
         return ""
 
 # ══════════════════════════════════════════════════════════════════════════════
-# 6. SCRAPER — FALABELLA (JSON embed)
+# 6. SCRAPER — FALABELLA
 # ══════════════════════════════════════════════════════════════════════════════
 class FalabellaScraper:
     BASE = "https://www.falabella.com.pe/falabella-pe/search"
@@ -401,7 +362,7 @@ class FalabellaScraper:
         self.log  = logger
 
     def scrape_category(self, category: str, cat_cfg: dict,
-                        batch_id: str, max_pages: int = 10) -> list[HardwareItem]:
+                        batch_id: str, max_pages: int = 10) -> list:
         items   = []
         query   = cat_cfg.get("falabella_q", category)
         now_str = datetime.now(timezone.utc).isoformat()
@@ -409,14 +370,12 @@ class FalabellaScraper:
         self.log.info(f"[Falabella] Scrapeando {category}")
 
         for page in range(1, max_pages + 1):
-            url    = f"{self.BASE}?Ntt={requests.utils.quote(query)}&page={page}"
-            resp   = self.http.get(url, referer="https://www.falabella.com.pe/")
+            url  = f"{self.BASE}?Ntt={requests.utils.quote(query)}&page={page}"
+            resp = self.http.get(url, referer="https://www.falabella.com.pe/")
             if not resp:
                 break
 
             soup = BeautifulSoup(resp.text, "lxml")
-
-            # Buscar JSON embed en __NEXT_DATA__ o script
             data = None
             for script in soup.find_all("script", {"id": "__NEXT_DATA__"}):
                 try:
@@ -426,7 +385,6 @@ class FalabellaScraper:
                     pass
 
             if not data:
-                # Fallback: parsear cards HTML
                 cards = soup.select("[class*='pod-subPod']")
                 if not cards:
                     break
@@ -436,9 +394,9 @@ class FalabellaScraper:
                         price_el = card.select_one("[class*='prices-0']")
                         if not title_el or not price_el:
                             continue
-                        title = title_el.get_text(strip=True)
+                        title     = title_el.get_text(strip=True)
                         price_str = re.sub(r"[^\d]", "", price_el.get_text())
-                        price = float(price_str) if price_str else 0.0
+                        price     = float(price_str) if price_str else 0.0
                         if not title or price <= 0:
                             continue
                         link_el  = card.select_one("a")
@@ -454,11 +412,10 @@ class FalabellaScraper:
                             items.append(item)
                     except Exception:
                         continue
-                self.log.info(f"[Falabella] {category} pág {page}: {len(items)} total")
+                self.log.info(f"[Falabella] {category} pag {page}: {len(items)} total")
                 time.sleep(random.uniform(*DELAY_PAGE))
                 continue
 
-            # Extraer desde JSON
             try:
                 results = (data.get("props", {})
                                .get("pageProps", {})
@@ -491,32 +448,50 @@ class FalabellaScraper:
             except Exception as e:
                 self.log.debug(f"[Falabella] Error JSON: {e}")
 
-            self.log.info(f"[Falabella] {category} pág {page}: {len(items)} total")
+            self.log.info(f"[Falabella] {category} pag {page}: {len(items)} total")
             time.sleep(random.uniform(*DELAY_PAGE))
 
         return items
 
 # ══════════════════════════════════════════════════════════════════════════════
-# 7. SCRAPER — RIPLEY (API pública)
+# 7. SCRAPER — RIPLEY
 # ══════════════════════════════════════════════════════════════════════════════
 class RipleyScraper:
-    API = "https://simple.ripley.com.pe/api/2.0/page/search"
+    ENDPOINTS = [
+        "https://simple.ripley.com.pe/api/2.0/page/search",
+        "https://www.ripley.com.pe/api/search",
+    ]
 
     def __init__(self, http: HttpClient, logger):
-        self.http = http
-        self.log  = logger
+        self.http     = http
+        self.log      = logger
+        self.api      = self.ENDPOINTS[0]
+
+    def _detect_endpoint(self, query: str) -> str:
+        for ep in self.ENDPOINTS:
+            resp = self.http.get(ep, params={"query": query, "page": 1, "perPage": 1})
+            if resp:
+                try:
+                    data = resp.json()
+                    if data.get("products"):
+                        self.log.info(f"[Ripley] Endpoint activo: {ep}")
+                        return ep
+                except Exception:
+                    pass
+        return self.ENDPOINTS[0]
 
     def scrape_category(self, category: str, cat_cfg: dict,
-                        batch_id: str, max_pages: int = 10) -> list[HardwareItem]:
+                        batch_id: str, max_pages: int = 10) -> list:
         items   = []
         query   = cat_cfg.get("ripley_q", category)
         now_str = datetime.now(timezone.utc).isoformat()
 
         self.log.info(f"[Ripley] Scrapeando {category}")
+        self.api = self._detect_endpoint(query)
 
         for page in range(1, max_pages + 1):
             params = {"query": query, "page": page, "perPage": 40}
-            resp   = self.http.get(self.API, params=params,
+            resp   = self.http.get(self.api, params=params,
                                    referer="https://simple.ripley.com.pe/")
             if not resp:
                 break
@@ -527,16 +502,16 @@ class RipleyScraper:
                     break
                 for prod in products:
                     try:
-                        title  = prod.get("name", "")
-                        price  = float(prod.get("offerPrice", 0) or 0)
-                        orig   = float(prod.get("normalPrice", price) or price)
-                        disc   = round((1 - price/orig)*100, 1) if orig > price > 0 else 0.0
-                        brand  = prod.get("brand", "")
-                        sku    = prod.get("partNumber", hashlib.md5(title.encode()).hexdigest()[:12])
-                        url_i  = "https://simple.ripley.com.pe" + prod.get("url", "")
-                        rating = float(prod.get("rating", 0) or 0)
-                        reviews= int(prod.get("reviewCount", 0) or 0)
-                        item   = HardwareItem(
+                        title   = prod.get("name", "")
+                        price   = float(prod.get("offerPrice", 0) or 0)
+                        orig    = float(prod.get("normalPrice", price) or price)
+                        disc    = round((1 - price/orig)*100, 1) if orig > price > 0 else 0.0
+                        brand   = prod.get("brand", "")
+                        sku     = prod.get("partNumber", hashlib.md5(title.encode()).hexdigest()[:12])
+                        url_i   = "https://simple.ripley.com.pe" + prod.get("url", "")
+                        rating  = float(prod.get("rating", 0) or 0)
+                        reviews = int(prod.get("reviewCount", 0) or 0)
+                        item    = HardwareItem(
                             batch_id=batch_id, scraped_at=now_str, source="ripley",
                             item_id=f"RIP_{sku}", category=category, title=title,
                             price_pen=price, original_price=orig, discount_pct=disc,
@@ -551,7 +526,7 @@ class RipleyScraper:
                 self.log.debug(f"[Ripley] Error JSON: {e}")
                 break
 
-            self.log.info(f"[Ripley] {category} pág {page}: {len(items)} total")
+            self.log.info(f"[Ripley] {category} pag {page}: {len(items)} total")
             time.sleep(random.uniform(*DELAY_PAGE))
 
         return items
@@ -571,23 +546,17 @@ class DataCleaner:
         "CASE"       : (80,    8_000),
     }
 
-    def clean(self, items: list[HardwareItem]) -> list[HardwareItem]:
+    def clean(self, items: list) -> list:
         seen_fps = set()
         clean    = []
         for item in items:
-            # Deduplicar por fingerprint
             if item.fingerprint in seen_fps:
                 continue
             seen_fps.add(item.fingerprint)
-
-            # Validar precio por categoría
             lo, hi = self.PRICE_LIMITS.get(item.category, (1, 999_999))
             if not (lo <= item.price_pen <= hi):
                 continue
-
-            # Limpiar título
             item.title = re.sub(r"\s+", " ", item.title).strip()
-
             clean.append(item)
         return clean
 
@@ -599,20 +568,19 @@ class MasterCSVWriter:
         self.path = master_path
         self.log  = logger
 
-    def write_batch(self, items: list[HardwareItem], batch_id: str) -> Path:
-        # Archivo del batch
+    def write_batch(self, items: list, batch_id: str) -> Path:
+        # Batch file en data/raw/ (mismo directorio que master)
         batch_path = DATA_DIR / f"batch_{batch_id}.csv"
         self._write_csv(batch_path, items, write_header=True)
         self.log.info(f"Batch guardado: {batch_path} ({len(items)} items)")
 
-        # Master acumulativo
         header_needed = not self.path.exists()
         self._write_csv(self.path, items, write_header=header_needed, mode="a")
         self.log.info(f"Master actualizado: {self.path}")
 
         return batch_path
 
-    def _write_csv(self, path: Path, items: list[HardwareItem],
+    def _write_csv(self, path: Path, items: list,
                    write_header: bool = True, mode: str = "w"):
         with open(path, mode, newline="", encoding="utf-8-sig") as f:
             writer = csv.DictWriter(f, fieldnames=SCHEMA)
@@ -633,13 +601,13 @@ class MasterCSVWriter:
                 "categories"    : df["category"].value_counts().to_dict(),
                 "sources"       : df["source"].value_counts().to_dict(),
                 "batches"       : df["batch_id"].nunique(),
-                "date_range"    : f"{df['scraped_at'].min()[:10]} → {df['scraped_at'].max()[:10]}",
+                "date_range"    : f"{df['scraped_at'].min()[:10]} - {df['scraped_at'].max()[:10]}",
             }
         except Exception:
             return {"error": "pandas no disponible"}
 
 # ══════════════════════════════════════════════════════════════════════════════
-# 10. BATCH ORCHESTRATOR — EL CEREBRO DEL AGENTE
+# 10. BATCH ORCHESTRATOR
 # ══════════════════════════════════════════════════════════════════════════════
 class BatchOrchestrator:
     def __init__(self):
@@ -648,7 +616,6 @@ class BatchOrchestrator:
         self.http     = HttpClient(self.log)
         self.cleaner  = DataCleaner()
         self.writer   = MasterCSVWriter(MASTER_CSV, self.log)
-
         self.scrapers = {
             "mercadolibre": MLScraper(self.http, self.log),
             "falabella"   : FalabellaScraper(self.http, self.log),
@@ -657,63 +624,55 @@ class BatchOrchestrator:
 
     def run_batch(self, categories: list = None, sources: list = None,
                   max_pages: int = MAX_PAGES) -> dict:
-        cats    = categories or list(CATEGORIES.keys())
-        srcs    = sources    or list(self.scrapers.keys())
+        cats      = categories or list(CATEGORIES.keys())
+        srcs      = sources    or list(self.scrapers.keys())
         all_items = []
 
         self.log.info("=" * 70)
         self.log.info(f"BATCH {self.batch_id} INICIADO")
-        self.log.info(f"Categorías : {cats}")
+        self.log.info(f"Categorias : {cats}")
         self.log.info(f"Fuentes    : {srcs}")
-        self.log.info(f"Max páginas: {max_pages}")
+        self.log.info(f"Max paginas: {max_pages}")
         self.log.info("=" * 70)
 
         t_start = time.time()
 
         for cat_name in cats:
-            cat_cfg = CATEGORIES[cat_name]
+            cat_cfg   = CATEGORIES[cat_name]
             cat_items = []
 
             for src_name in srcs:
                 scraper = self.scrapers[src_name]
                 try:
-                    raw = scraper.scrape_category(
-                        cat_name, cat_cfg, self.batch_id, max_pages
-                    )
+                    raw = scraper.scrape_category(cat_name, cat_cfg, self.batch_id, max_pages)
                     cat_items.extend(raw)
-                    self.log.info(f"  ✓ {src_name:15} → {len(raw):4d} items brutos")
+                    self.log.info(f"  OK {src_name:15} -> {len(raw):4d} items brutos")
                 except Exception as e:
-                    self.log.error(f"  ✗ {src_name}: {e}")
+                    self.log.error(f"  ERROR {src_name}: {e}")
 
-            # Limpiar y deduplicar por categoría
             clean = self.cleaner.clean(cat_items)
             all_items.extend(clean)
-            self.log.info(f"[{cat_name}] Brutos: {len(cat_items)} → Limpios: {len(clean)}")
-
+            self.log.info(f"[{cat_name}] Brutos: {len(cat_items)} -> Limpios: {len(clean)}")
             time.sleep(random.uniform(*DELAY_CAT))
 
-        # Guardar
         batch_path = self.writer.write_batch(all_items, self.batch_id)
         elapsed    = round(time.time() - t_start, 1)
+        stats      = self.writer.master_stats()
 
-        # Estadísticas
-        stats = self.writer.master_stats()
         self.log.info("=" * 70)
         self.log.info(f"BATCH {self.batch_id} COMPLETADO en {elapsed}s")
         self.log.info(f"Items este batch : {len(all_items)}")
         self.log.info(f"Master total     : {stats.get('total_records', '?')} registros")
-        self.log.info(f"Items únicos     : {stats.get('unique_items', '?')}")
         self.log.info(f"Archivo batch    : {batch_path}")
         self.log.info("=" * 70)
 
-        # Guardar estado del agente
         self._save_state(len(all_items), elapsed, stats)
 
         return {
-            "batch_id"   : self.batch_id,
-            "items"      : len(all_items),
-            "elapsed_s"  : elapsed,
-            "batch_file" : str(batch_path),
+            "batch_id"    : self.batch_id,
+            "items"       : len(all_items),
+            "elapsed_s"   : elapsed,
+            "batch_file"  : str(batch_path),
             "master_stats": stats,
         }
 
@@ -728,84 +687,23 @@ class BatchOrchestrator:
         STATE_FILE.write_text(json.dumps(state, indent=2, ensure_ascii=False))
 
 # ══════════════════════════════════════════════════════════════════════════════
-# 11. SCHEDULER — AGENTE AUTÓNOMO 24H
-# ══════════════════════════════════════════════════════════════════════════════
-def run_agent_loop(interval_hours: int = 24, max_pages: int = MAX_PAGES,
-                   categories: list = None, sources: list = None):
-    """Corre el agente indefinidamente, un batch cada interval_hours horas."""
-    print(f"""
-╔══════════════════════════════════════════════════════════╗
-║  AGENTE IA — ML PERÚ HARDWARE SCRAPER                   ║
-║  Intervalo : cada {interval_hours}h                                  ║
-║  Páginas   : {max_pages} por categoría/fuente                 ║
-║  Categorías: {len(categories or CATEGORIES)} activas                          ║
-║  Fuentes   : ML + Falabella + Ripley                     ║
-║  Ctrl+C para detener                                     ║
-╚══════════════════════════════════════════════════════════╝
-    """)
-
-    def job():
-        orch = BatchOrchestrator()
-        orch.run_batch(categories=categories, sources=sources, max_pages=max_pages)
-
-    # Ejecutar inmediatamente al inicio
-    job()
-
-    if HAS_SCHEDULE:
-        schedule.every(interval_hours).hours.do(job)
-        while True:
-            schedule.run_pending()
-            time.sleep(60)
-    else:
-        # Fallback manual
-        while True:
-            wait = interval_hours * 3600
-            print(f"Próximo batch en {interval_hours}h. Durmiendo...")
-            time.sleep(wait)
-            job()
-
-# ══════════════════════════════════════════════════════════════════════════════
-# 12. ENTRY POINT
+# 11. ENTRY POINT
 # ══════════════════════════════════════════════════════════════════════════════
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="Agente IA — Scraper autónomo ML Perú Hardware"
-    )
-    parser.add_argument("--once",       action="store_true",
-                        help="Ejecutar solo un batch y salir")
-    parser.add_argument("--interval",   type=int, default=24,
-                        help="Horas entre batches (default: 24)")
-    parser.add_argument("--pages",      type=int, default=MAX_PAGES,
-                        help="Páginas por categoría (default: 20)")
-    parser.add_argument("--categories", nargs="+", default=None,
-                        choices=list(CATEGORIES.keys()),
-                        help="Categorías a scrapear (default: todas)")
+    parser = argparse.ArgumentParser(description="Agente IA - Scraper ML Peru Hardware")
+    parser.add_argument("--once",       action="store_true",  help="Un batch y salir")
+    parser.add_argument("--pages",      type=int, default=MAX_PAGES)
+    parser.add_argument("--categories", nargs="+", default=None, choices=list(CATEGORIES.keys()))
     parser.add_argument("--sources",    nargs="+", default=None,
-                        choices=["mercadolibre","falabella","ripley"],
-                        help="Fuentes a usar (default: todas)")
-    parser.add_argument("--stats",      action="store_true",
-                        help="Mostrar estadísticas del Master CSV y salir")
-
+                        choices=["mercadolibre","falabella","ripley"])
+    parser.add_argument("--stats",      action="store_true",  help="Ver estadisticas")
     args = parser.parse_args()
 
     if args.stats:
         writer = MasterCSVWriter(MASTER_CSV, logging.getLogger())
-        stats  = writer.master_stats()
-        print(json.dumps(stats, indent=2, ensure_ascii=False))
+        print(json.dumps(writer.master_stats(), indent=2, ensure_ascii=False))
         sys.exit(0)
 
-    if args.once:
-        orch = BatchOrchestrator()
-        result = orch.run_batch(
-            categories=args.categories,
-            sources=args.sources,
-            max_pages=args.pages
-        )
-        print(json.dumps(result, indent=2, ensure_ascii=False))
-    else:
-        run_agent_loop(
-            interval_hours=args.interval,
-            max_pages=args.pages,
-            categories=args.categories,
-            sources=args.sources,
-        )
+    orch   = BatchOrchestrator()
+    result = orch.run_batch(categories=args.categories, sources=args.sources, max_pages=args.pages)
+    print(json.dumps(result, indent=2, ensure_ascii=False))
