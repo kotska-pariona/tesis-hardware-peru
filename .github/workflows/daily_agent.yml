@@ -35,8 +35,26 @@ jobs:
       - name: 3 Instalar dependencias
         run: pip install -r requirements.txt
 
+      # ← FIX #6: --test llama sys.exit(0) y mata el workflow.
+      #   Solución: verificar imports manualmente sin --test
       - name: 4 Verificar configuracion
-        run: python agent/main.py --test
+        run: |
+          python - <<'EOF'
+          import sys
+          sys.path.insert(0, "agent")
+          try:
+              from scraper import BatchOrchestrator, CATEGORIES
+              print(f"OK scraper importado | categorias: {list(CATEGORIES.keys())}")
+          except Exception as e:
+              print(f"ERROR: {e}")
+              sys.exit(1)
+          try:
+              import pandas as pd
+              print(f"OK pandas v{pd.__version__}")
+          except ImportError:
+              print("WARN pandas no instalado")
+          print("Verificacion completada")
+          EOF
 
       - name: 5 Ejecutar batch de scraping
         run: |
@@ -45,6 +63,8 @@ jobs:
           python agent/main.py --batch --pages $PAGES
         env:
           PYTHONUNBUFFERED: "1"
+          ML_APP_ID: ${{ secrets.ML_APP_ID }}
+          ML_SECRET: ${{ secrets.ML_SECRET }}
 
       - name: 6 Verificar CSV generado
         run: |
