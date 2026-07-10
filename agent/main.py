@@ -3,7 +3,7 @@
 """
 Orquestador Principal - Agente ROI Hardware Peru
 Autor: Kotska Rony Pariona Martinez - UNI 2026
-Version: v2.4 — bugfix: BatchOrchestrator(max_pages), NameError pandas, clean_price
+Version: v2.5 — fix: sources y categories se pasan al BatchOrchestrator
 """
 
 import argparse
@@ -15,11 +15,11 @@ from pathlib import Path
 
 try:
     import pandas as pd
-    HAS_PANDAS = True
+    HAS_PANDAS     = True
     PANDAS_VERSION = pd.__version__
 except ImportError:
-    HAS_PANDAS = False
-    PANDAS_VERSION = "no instalado"          # ← FIX #3: evita NameError
+    HAS_PANDAS     = False
+    PANDAS_VERSION = "no instalado"
 
 BASE_DIR   = Path(__file__).parent.parent
 DATA_DIR   = BASE_DIR / "data" / "raw"
@@ -50,12 +50,19 @@ def setup_logging() -> logging.Logger:
 # ─────────────────────────────────────────────
 # PIPELINE PRINCIPAL
 # ─────────────────────────────────────────────
-def run_pipeline(log: logging.Logger, max_pages: int = 3) -> dict:
+def run_pipeline(
+    log        : logging.Logger,
+    max_pages  : int        = 3,
+    sources    : list       = None,   # ← NUEVO
+    categories : list       = None,   # ← NUEVO
+) -> dict:
     log.info("=" * 60)
-    log.info("INICIANDO PIPELINE AGENTE ROI v2.4")
-    log.info(f"Fecha     : {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    log.info(f"DATA_DIR  : {DATA_DIR}")
-    log.info(f"Max pages : {max_pages}")
+    log.info("INICIANDO PIPELINE AGENTE ROI v2.5")
+    log.info(f"Fecha      : {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    log.info(f"DATA_DIR   : {DATA_DIR}")
+    log.info(f"Max pages  : {max_pages}")
+    log.info(f"Sources    : {sources or 'todas'}")
+    log.info(f"Categories : {categories or 'todas'}")
     log.info("=" * 60)
 
     results = {
@@ -71,8 +78,12 @@ def run_pipeline(log: logging.Logger, max_pages: int = 3) -> dict:
         sys.path.insert(0, str(Path(__file__).parent))
         from scraper import BatchOrchestrator
 
-        # ← FIX #1: max_pages va en el constructor, NO en run()
-        orch   = BatchOrchestrator(max_pages=max_pages)
+        # ← FIX CRÍTICO: pasar sources y categories al constructor
+        orch   = BatchOrchestrator(
+            max_pages  = max_pages,
+            sources    = sources,       # None → usa las 3 fuentes por defecto
+            categories = categories,    # None → usa todas las categorías
+        )
         result = orch.run()
 
         results["phases"]["scraping"] = {
@@ -103,7 +114,7 @@ def run_pipeline(log: logging.Logger, max_pages: int = 3) -> dict:
                     "status"        : "ok",
                     "total_records" : len(df),
                     "categories"    : df["category"].value_counts().to_dict() if "category" in df.columns else {},
-                    "sources"       : df["source"].value_counts().to_dict() if "source" in df.columns else {},
+                    "sources"       : df["source"].value_counts().to_dict()   if "source"   in df.columns else {},
                 }
                 log.info(f"  OK Master CSV: {len(df)} registros")
             else:
@@ -139,11 +150,11 @@ def run_pipeline(log: logging.Logger, max_pages: int = 3) -> dict:
     return results
 
 # ─────────────────────────────────────────────
-# MODO TEST  (sin sys.exit → no mata el workflow)
+# MODO TEST
 # ─────────────────────────────────────────────
 def run_test(log: logging.Logger, exit_on_result: bool = True):
     log.info("=" * 50)
-    log.info("MODO TEST - Verificando configuracion v2.4")
+    log.info("MODO TEST - Verificando configuracion v2.5")
     log.info("=" * 50)
     errors = []
 
@@ -164,7 +175,6 @@ def run_test(log: logging.Logger, exit_on_result: bool = True):
         log.error(f"scraper.py: ERROR - {e}")
         errors.append(str(e))
 
-    # ← FIX #3: usa PANDAS_VERSION (siempre definida)
     log.info(f"pandas    : {'OK v' + PANDAS_VERSION if HAS_PANDAS else 'NO instalado'}")
     log.info(f"Python    : {sys.version.split()[0]}")
     log.info("=" * 50)
@@ -188,19 +198,25 @@ def run_test(log: logging.Logger, exit_on_result: bool = True):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Agente ROI - Tesis Kotska Pariona UNI 2026")
-    parser.add_argument("--batch",  action="store_true", help="Ejecutar batch completo")
-    parser.add_argument("--test",   action="store_true", help="Verificar configuracion")
-    parser.add_argument("--pages",  type=int, default=3,  help="Paginas por categoria")  # ← FIX #2: default=3
-    parser.add_argument("--stats",  action="store_true", help="Ver estadisticas")
+    parser.add_argument("--batch",      action="store_true", help="Ejecutar batch completo")
+    parser.add_argument("--test",       action="store_true", help="Verificar configuracion")
+    parser.add_argument("--pages",      type=int,  default=3,   help="Paginas por categoria")
+    parser.add_argument("--stats",      action="store_true",    help="Ver estadisticas")
+    parser.add_argument("--sources",    nargs="+", default=None, help="Fuentes: mercadolibre falabella hiraoka")
+    parser.add_argument("--categories", nargs="+", default=None, help="Categorias: CPU GPU RAM ...")
     args = parser.parse_args()
 
     log = setup_logging()
 
     if args.test:
-        # exit_on_result=True: comportamiento normal en CLI
         run_test(log, exit_on_result=True)
     elif args.batch:
-        result = run_pipeline(log, max_pages=max(1, args.pages))
+        result = run_pipeline(
+            log,
+            max_pages  = max(1, args.pages),
+            sources    = args.sources,      # ← pasa al pipeline
+            categories = args.categories,   # ← pasa al pipeline
+        )
         print(json.dumps(result, indent=2, ensure_ascii=False))
     elif args.stats:
         if MASTER_CSV.exists() and HAS_PANDAS:
@@ -210,13 +226,17 @@ if __name__ == "__main__":
             stats    = {
                 "total_records" : len(df),
                 "categories"    : df["category"].value_counts().to_dict() if "category" in df.columns else {},
-                "sources"       : df["source"].value_counts().to_dict() if "source" in df.columns else {},
+                "sources"       : df["source"].value_counts().to_dict()   if "source"   in df.columns else {},
                 "date_range"    : f"{str(date_min)[:10]} -> {str(date_max)[:10]}",
             }
             print(json.dumps(stats, indent=2, ensure_ascii=False))
         else:
-            print(json.dumps(
-                {"status": "no_data", "path": str(MASTER_CSV)}, indent=2))
+            print(json.dumps({"status": "no_data", "path": str(MASTER_CSV)}, indent=2))
     else:
-        result = run_pipeline(log, max_pages=args.pages)
+        result = run_pipeline(
+            log,
+            max_pages  = args.pages,
+            sources    = args.sources,
+            categories = args.categories,
+        )
         print(json.dumps(result, indent=2, ensure_ascii=False))
