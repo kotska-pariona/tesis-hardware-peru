@@ -1,305 +1,269 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
-Orquestador Principal - Agente ROI Hardware Peru
-Autor: Kotska Rony Pariona Martinez - UNI 2026
-Version: v2.6
-  fix BUG-01/02 : batch_id sincronizado con BatchOrchestrator (ya no hay 2 IDs distintos)
-  fix BUG-03    : run_test() exit_on_result=False por defecto (no mata proceso al importar)
-  fix WARN-01   : log de sources muestra el valor real que usará el orquestador
-  fix WARN-02   : --stats con fallback csv.DictReader cuando pandas no está instalado
-  fix WARN-03   : sin argumentos → print_help() en lugar de ejecutar pipeline
-  fix WARN-04   : items_with_price incluido en el reporte JSON de scraping
+main.py  v4.0
+══════════════
+Orquestador principal del pipeline de scraping.
+Ejecuta scraper_importacion + scraper_competencia
+y consolida todo en master.csv con ROI calculado.
+
+Uso:
+  python main.py                        # ejecuta todo
+  python main.py --only importacion     # solo fuentes de importación
+  python main.py --only competencia     # solo fuentes de competencia
+  python main.py --categories CPU GPU   # solo esas categorías
 """
 
-import argparse
-import csv
-import logging
-import json
-import sys
-from collections import Counter
-from datetime import datetime
+import os, sys, csv, json, logging, argparse
+from datetime import datetime, timezone
 from pathlib import Path
 
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    datefmt="%H:%M:%S",
+)
+log = logging.getLogger("main")
+
+OUTPUT_DIR = Path(os.getenv("OUTPUT_DIR", "data"))
+OUTPUT_DIR.mkdir(exist_ok=True)
+
+# ── Importar scrapers ─────────────────────────────────────────────────────────
+sys.path.insert(0, str(Path(__file__).parent))
 try:
-    import pandas as pd
-    HAS_PANDAS     = True
-    PANDAS_VERSION = pd.__version__
+    from scrapers.scraper_importacion import run_importacion
+    from scrapers.scraper_competencia import run_competencia
 except ImportError:
-    HAS_PANDAS     = False
-    PANDAS_VERSION = "no instalado"
+    # Si están en la misma carpeta
+    from scraper_importacion import run_importacion
+    from scraper_competencia import run_competencia
 
-BASE_DIR   = Path(__file__).parent.parent
-DATA_DIR   = BASE_DIR / "data" / "raw"
-LOG_DIR    = BASE_DIR / "logs"
-MASTER_CSV = DATA_DIR / "MASTER_hardware_peru.csv"
-
-DATA_DIR.mkdir(parents=True, exist_ok=True)
-LOG_DIR.mkdir(parents=True, exist_ok=True)
-
-DEFAULT_SOURCES = ["mercadolibre", "falabella", "hiraoka"]
-
-# ─────────────────────────────────────────────
-# LOGGING
-# ─────────────────────────────────────────────
-def setup_logging() -> logging.Logger:
-    log_file = LOG_DIR / f"agent_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
-    fmt      = "%(asctime)s [%(levelname)s] %(message)s"
-    logger   = logging.getLogger("AgenteROI")
-    if not logger.handlers:
-        logger.setLevel(logging.INFO)
-        fh = logging.FileHandler(log_file, encoding="utf-8")
-        fh.setFormatter(logging.Formatter(fmt))
-        sh = logging.StreamHandler(sys.stdout)
-        sh.setFormatter(logging.Formatter(fmt))
-        logger.addHandler(fh)
-        logger.addHandler(sh)
-        logger.propagate = False
-    return logger
-
-# ─────────────────────────────────────────────
-# PIPELINE PRINCIPAL
-# ─────────────────────────────────────────────
-def run_pipeline(
-    log        : logging.Logger,
-    max_pages  : int  = 3,
-    sources    : list = None,
-    categories : list = None,
+# ── ROI Calculator inline ─────────────────────────────────────────────────────
+def calcular_roi(
+    price_usd: float,
+    shipping_usd: float,
+    tipo_cambio: float,
+    precio_techo_pen: float,
+    arancel_pct: float = 0.18,   # IGV 18%
+    ad_valorem_pct: float = 0.0, # 0% para hardware (partida 8471)
+    courier_pen: float = 50.0,   # costo courier estimado
+    margen_minimo_pct: float = 0.20,
 ) -> dict:
+    """
+    Calcula el ROI real de importar un producto y venderlo en Perú.
 
-    # Resolver sources reales para el log (igual que BatchOrchestrator)
-    effective_sources = sources or DEFAULT_SOURCES
+    Fórmula:
+      costo_importacion = (price_usd + shipping_usd) × TC × (1 + arancel + ad_valorem) + courier
+      precio_venta_sugerido = precio_techo_pen × 0.90  (10% más barato que competencia)
+      margen_neto = precio_venta_sugerido - costo_importacion
+      roi = margen_neto / costo_importacion × 100
+    """
+    if price_usd <= 0 or tipo_cambio <= 0:
+        return {"roi_pct": 0, "viable": False, "accion": "DATOS_INSUFICIENTES"}
 
-    log.info("=" * 60)
-    log.info("INICIANDO PIPELINE AGENTE ROI v2.6")
-    log.info(f"Fecha      : {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    log.info(f"DATA_DIR   : {DATA_DIR}")
-    log.info(f"Max pages  : {max_pages}")
-    log.info(f"Sources    : {effective_sources}")          # ← FIX WARN-01: valor real
-    log.info(f"Categories : {categories or 'todas'}")
-    log.info("=" * 60)
+    costo_fob_pen     = (price_usd + shipping_usd) * tipo_cambio
+    tributos_pen      = costo_fob_pen * (arancel_pct + ad_valorem_pct)
+    costo_total_pen   = costo_fob_pen + tributos_pen + courier_pen
+    precio_venta_pen  = precio_techo_pen * 0.90  # 10% bajo la competencia
+    margen_neto_pen   = precio_venta_pen - costo_total_pen
+    roi_pct           = (margen_neto_pen / costo_total_pen * 100) if costo_total_pen > 0 else 0
 
-    # batch_id provisional — se sobreescribirá con el ID real del scraper (FIX BUG-01)
-    results = {
-        "timestamp" : datetime.now().isoformat(),
-        "batch_id"  : datetime.now().strftime("%Y%m%d_%H%M%S"),  # provisional
-        "status"    : "running",
-        "phases"    : {},
+    # Decisión
+    if roi_pct >= 30:
+        accion = "IMPORTAR_AHORA"
+    elif roi_pct >= margen_minimo_pct * 100:
+        accion = "IMPORTAR_EVALUAR"
+    elif roi_pct >= 0:
+        accion = "MARGEN_BAJO"
+    else:
+        accion = "NO_RENTABLE"
+
+    return {
+        "costo_fob_pen":    round(costo_fob_pen, 2),
+        "tributos_pen":     round(tributos_pen, 2),
+        "costo_total_pen":  round(costo_total_pen, 2),
+        "precio_venta_pen": round(precio_venta_pen, 2),
+        "margen_neto_pen":  round(margen_neto_pen, 2),
+        "roi_pct":          round(roi_pct, 1),
+        "viable":           roi_pct >= margen_minimo_pct * 100,
+        "accion":           accion,
     }
 
-    # ── FASE 1: Scraping ──────────────────────────
-    log.info("FASE 1: Scraping de datos...")
-    try:
-        sys.path.insert(0, str(Path(__file__).parent))
-        from scraper import BatchOrchestrator
+# ── Consolidar master.csv ─────────────────────────────────────────────────────
+def consolidar_master(batch_id: str, tipo_cambio: float):
+    """
+    Lee importacion_*.csv y competencia_*.csv del batch actual,
+    cruza por categoría y calcula ROI para cada item de importación.
+    Escribe en data/master.csv
+    """
+    master_path = OUTPUT_DIR / "master.csv"
+    import_path = OUTPUT_DIR / f"importacion_{batch_id}.csv"
+    comp_path   = OUTPUT_DIR / f"competencia_{batch_id}.csv"
 
-        orch   = BatchOrchestrator(
-            max_pages  = max_pages,
-            sources    = sources,
-            categories = categories,
+    # Leer precios techo por categoría (máximo de competencia)
+    precios_techo = {}
+    if comp_path.exists():
+        with open(comp_path, newline="", encoding="utf-8") as f:
+            for row in csv.DictReader(f):
+                cat = row.get("category","")
+                try:
+                    p = float(row.get("price_pen", 0))
+                    if p > precios_techo.get(cat, 0):
+                        precios_techo[cat] = p
+                except:
+                    pass
+        log.info(f"Precios techo por categoría: {precios_techo}")
+
+    # Leer items de importación y calcular ROI
+    master_fields = [
+        "batch_id","timestamp","source","category","title",
+        "price_usd","shipping_usd","total_usd","asin_sku",
+        "tipo_cambio","costo_total_pen","precio_techo_pen",
+        "precio_venta_pen","margen_neto_pen","roi_pct","accion",
+        "url","rating","reviews",
+    ]
+
+    new_rows = []
+    if import_path.exists():
+        with open(import_path, newline="", encoding="utf-8") as f:
+            for row in csv.DictReader(f):
+                cat = row.get("category","")
+                precio_techo = precios_techo.get(cat, 0)
+                try:
+                    roi = calcular_roi(
+                        price_usd       = float(row.get("price_usd", 0)),
+                        shipping_usd    = float(row.get("shipping_usd", 0)),
+                        tipo_cambio     = tipo_cambio,
+                        precio_techo_pen= precio_techo,
+                    )
+                except:
+                    roi = {"costo_total_pen":0,"precio_venta_pen":0,
+                           "margen_neto_pen":0,"roi_pct":0,"accion":"ERROR"}
+
+                new_rows.append({
+                    "batch_id":         row.get("batch_id",""),
+                    "timestamp":        row.get("timestamp",""),
+                    "source":           row.get("source",""),
+                    "category":         cat,
+                    "title":            row.get("title",""),
+                    "price_usd":        row.get("price_usd",""),
+                    "shipping_usd":     row.get("shipping_usd",""),
+                    "total_usd":        row.get("total_usd",""),
+                    "asin_sku":         row.get("asin_sku",""),
+                    "tipo_cambio":      tipo_cambio,
+                    "costo_total_pen":  roi.get("costo_total_pen",""),
+                    "precio_techo_pen": precio_techo,
+                    "precio_venta_pen": roi.get("precio_venta_pen",""),
+                    "margen_neto_pen":  roi.get("margen_neto_pen",""),
+                    "roi_pct":          roi.get("roi_pct",""),
+                    "accion":           roi.get("accion",""),
+                    "url":              row.get("url",""),
+                    "rating":           row.get("rating",""),
+                    "reviews":          row.get("reviews",""),
+                })
+
+    # Escribir en master.csv (append)
+    write_header = not master_path.exists()
+    with open(master_path, "a", newline="", encoding="utf-8") as f:
+        w = csv.DictWriter(f, fieldnames=master_fields, extrasaction="ignore")
+        if write_header:
+            w.writeheader()
+        w.writerows(new_rows)
+
+    log.info(f"Master actualizado: +{len(new_rows)} filas → {master_path}")
+    return len(new_rows)
+
+# ── Reporte JSON ──────────────────────────────────────────────────────────────
+def generar_reporte(batch_id: str, stats: dict, tipo_cambio: float):
+    reporte = {
+        "batch_id":    batch_id,
+        "timestamp":   datetime.now(timezone.utc).isoformat(),
+        "tipo_cambio": tipo_cambio,
+        "stats":       stats,
+    }
+    path = OUTPUT_DIR / f"reporte_{batch_id}.json"
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(reporte, f, indent=2, ensure_ascii=False)
+    log.info(f"Reporte → {path}")
+    return reporte
+
+# ── Obtener tipo de cambio ────────────────────────────────────────────────────
+def get_tipo_cambio() -> float:
+    """Obtiene tipo de cambio USD/PEN en tiempo real."""
+    try:
+        resp = __import__("requests").get(
+            "https://api.exchangerate-api.com/v4/latest/USD",
+            timeout=10
         )
-        result = orch.run()
+        data = resp.json()
+        tc = float(data["rates"]["PEN"])
+        log.info(f"Tipo de cambio USD/PEN: {tc}")
+        return tc
+    except:
+        log.warning("No se pudo obtener tipo de cambio — usando 3.75")
+        return 3.75
 
-        # ← FIX BUG-01/02: sincronizar batch_id con el ID real del scraper
-        results["batch_id"]  = result["batch_id"]
-        results["timestamp"] = result.get("timestamp", results["timestamp"])
-
-        results["phases"]["scraping"] = {
-            "status"           : "ok",
-            "items_collected"  : result.get("items", 0),
-            "items_with_price" : result.get("items_with_price", 0),  # ← FIX WARN-04
-            "price_rate_pct"   : round(
-                result.get("items_with_price", 0) /
-                max(result.get("items", 1), 1) * 100, 1
-            ),
-            "elapsed_s"        : result.get("elapsed_s", 0),
-            "batch_file"       : result.get("batch_file", ""),
-        }
-        log.info(
-            "  OK %d items en %.1fs (%d con precio, %.1f%%)",
-            result.get("items", 0),
-            result.get("elapsed_s", 0),
-            result.get("items_with_price", 0),
-            results["phases"]["scraping"]["price_rate_pct"],
-        )
-
-    except ImportError as e:
-        log.error(f"  ERROR importando scraper: {e}")
-        results["phases"]["scraping"] = {"status": "import_error", "error": str(e)}
-    except AttributeError as e:
-        log.error(f"  ERROR metodo no encontrado: {e}")
-        results["phases"]["scraping"] = {"status": "method_error", "error": str(e)}
-    except Exception as e:
-        log.error(f"  ERROR en scraping: {e}")
-        results["phases"]["scraping"] = {"status": "error", "error": str(e)}
-
-    # ── FASE 2: Consolidación ─────────────────────
-    log.info("FASE 2: Leyendo Master CSV...")
-    try:
-        if MASTER_CSV.exists():
-            if HAS_PANDAS:
-                df = pd.read_csv(MASTER_CSV)
-                results["phases"]["consolidation"] = {
-                    "status"        : "ok",
-                    "total_records" : len(df),
-                    "categories"    : df["category"].value_counts().to_dict()
-                                      if "category" in df.columns else {},
-                    "sources"       : df["source"].value_counts().to_dict()
-                                      if "source"   in df.columns else {},
-                }
-                log.info(f"  OK Master CSV: {len(df)} registros")
-            else:
-                # ← FIX WARN-02: fallback sin pandas
-                with open(MASTER_CSV, encoding="utf-8") as f:
-                    reader     = csv.DictReader(f)
-                    rows       = list(reader)
-                    cat_count  = Counter(r.get("category", "") for r in rows)
-                    src_count  = Counter(r.get("source",   "") for r in rows)
-                results["phases"]["consolidation"] = {
-                    "status"        : "ok_no_pandas",
-                    "total_records" : len(rows),
-                    "categories"    : dict(cat_count),
-                    "sources"       : dict(src_count),
-                }
-                log.info(f"  OK Master CSV (sin pandas): {len(rows)} registros")
-        else:
-            log.warning(f"  AVISO: Master CSV no encontrado en {MASTER_CSV}")
-            results["phases"]["consolidation"] = {"status": "no_data"}
-    except Exception as e:
-        log.error(f"  ERROR consolidando: {e}")
-        results["phases"]["consolidation"] = {"status": "error", "error": str(e)}
-
-    # ── FASE 3: Reporte ───────────────────────────
-    log.info("FASE 3: Generando reporte...")
-    try:
-        results["status"]   = "completed"
-        results["end_time"] = datetime.now().isoformat()
-        # ← FIX BUG-01: report_XXXXXX.json ahora usa el batch_id real del scraper
-        report_path = DATA_DIR / f"report_{results['batch_id']}.json"
-        report_path.write_text(
-            json.dumps(results, ensure_ascii=False, indent=2), encoding="utf-8")
-        log.info(f"  OK Reporte: {report_path}")
-        results["phases"]["report"] = {"status": "ok", "path": str(report_path)}
-    except Exception as e:
-        log.error(f"  ERROR en reporte: {e}")
-        results["phases"]["report"] = {"status": "error", "error": str(e)}
-
-    log.info("=" * 60)
-    log.info("PIPELINE COMPLETADO")
-    for phase, info in results["phases"].items():
-        ok = info.get("status") in ("ok", "ok_no_pandas")
-        log.info(f"  [{'OK' if ok else 'WARN'}] {phase}: {info.get('status', 'unknown')}")
-    log.info("=" * 60)
-    return results
-
-# ─────────────────────────────────────────────
-# MODO TEST
-# ─────────────────────────────────────────────
-def run_test(log: logging.Logger, exit_on_result: bool = False):  # ← FIX BUG-03
-    log.info("=" * 50)
-    log.info("MODO TEST - Verificando configuracion v2.6")
-    log.info("=" * 50)
-    errors = []
-
-    log.info(f"BASE_DIR  : {BASE_DIR} ({'OK' if BASE_DIR.exists() else 'NO EXISTE'})")
-    log.info(f"DATA_DIR  : {DATA_DIR} ({'OK' if DATA_DIR.exists() else 'CREADO'})")
-    log.info(f"LOG_DIR   : {LOG_DIR}  ({'OK' if LOG_DIR.exists() else 'CREADO'})")
-
-    try:
-        sys.path.insert(0, str(Path(__file__).parent))
-        from scraper import BatchOrchestrator, CATEGORIES
-        orch    = BatchOrchestrator()
-        methods = [m for m in dir(orch) if not m.startswith("_") and callable(getattr(orch, m))]
-        log.info("scraper.py : OK - BatchOrchestrator importado")
-        log.info(f"Metodo run : {'OK' if hasattr(orch, 'run') else 'NO ENCONTRADO'}")
-        log.info(f"Metodos    : {methods}")
-        log.info(f"Categorias : {list(CATEGORIES.keys())}")
-    except ImportError as e:
-        log.error(f"scraper.py: ERROR - {e}")
-        errors.append(str(e))
-
-    log.info(f"pandas    : {'OK v' + PANDAS_VERSION if HAS_PANDAS else 'NO instalado'}")
-    log.info(f"Python    : {sys.version.split()[0]}")
-    log.info("=" * 50)
-
-    if errors:
-        log.error(f"TEST FALLIDO - {len(errors)} error(es)")
-        for e in errors:
-            log.error(f"  - {e}")
-        if exit_on_result:
-            sys.exit(1)
-        return False
-    else:
-        log.info("TEST OK - Sistema listo para produccion")
-        if exit_on_result:
-            sys.exit(0)
-        return True
-
-# ─────────────────────────────────────────────
-# STATS — con fallback sin pandas
-# ─────────────────────────────────────────────
-def run_stats() -> dict:
-    if not MASTER_CSV.exists():
-        return {"status": "no_data", "path": str(MASTER_CSV)}
-
-    if HAS_PANDAS:
-        df       = pd.read_csv(MASTER_CSV)
-        date_min = df["scraped_at"].dropna().min() if "scraped_at" in df.columns else "N/A"
-        date_max = df["scraped_at"].dropna().max() if "scraped_at" in df.columns else "N/A"
-        return {
-            "total_records" : len(df),
-            "categories"    : df["category"].value_counts().to_dict()
-                              if "category" in df.columns else {},
-            "sources"       : df["source"].value_counts().to_dict()
-                              if "source"   in df.columns else {},
-            "date_range"    : f"{str(date_min)[:10]} -> {str(date_max)[:10]}",
-        }
-    else:
-        # ← FIX WARN-02: fallback sin pandas para --stats
-        with open(MASTER_CSV, encoding="utf-8") as f:
-            rows      = list(csv.DictReader(f))
-            cat_count = Counter(r.get("category", "") for r in rows)
-            src_count = Counter(r.get("source",   "") for r in rows)
-            dates     = sorted(r.get("scraped_at", "") for r in rows if r.get("scraped_at"))
-        return {
-            "total_records" : len(rows),
-            "categories"    : dict(cat_count),
-            "sources"       : dict(src_count),
-            "date_range"    : f"{dates[0][:10]} -> {dates[-1][:10]}" if dates else "N/A",
-        }
-
-# ─────────────────────────────────────────────
-# ENTRY POINT
-# ─────────────────────────────────────────────
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="Agente ROI - Tesis Kotska Pariona UNI 2026")
-    parser.add_argument("--batch",      action="store_true", help="Ejecutar batch completo")
-    parser.add_argument("--test",       action="store_true", help="Verificar configuracion")
-    parser.add_argument("--pages",      type=int,  default=3,    help="Paginas por categoria")
-    parser.add_argument("--stats",      action="store_true",     help="Ver estadisticas")
-    parser.add_argument("--sources",    nargs="+", default=None, help="Fuentes: mercadolibre falabella hiraoka")
-    parser.add_argument("--categories", nargs="+", default=None, help="Categorias: CPU GPU RAM ...")
+# ── Main ──────────────────────────────────────────────────────────────────────
+def main():
+    parser = argparse.ArgumentParser(description="Pipeline scraping hardware PE")
+    parser.add_argument("--only",       choices=["importacion","competencia","ambos"], default="ambos")
+    parser.add_argument("--categories", nargs="+", default=None,
+                        help="Categorías a scrapear: CPU GPU RAM SSD MOTHERBOARD PSU COOLER CASE")
+    parser.add_argument("--max-pages",  type=int, default=None)
+    parser.add_argument("--tc",         type=float, default=None, help="Tipo de cambio manual USD/PEN")
     args = parser.parse_args()
 
-    log = setup_logging()
+    batch_id     = datetime.now().strftime("%Y%m%d_%H%M%S")
+    tipo_cambio  = args.tc or get_tipo_cambio()
+    stats        = {}
 
-    if args.test:
-        run_test(log, exit_on_result=True)
+    if args.max_pages:
+        os.environ["MAX_PAGES_IMPORT"] = str(args.max_pages)
+        os.environ["MAX_PAGES_COMP"]   = str(args.max_pages)
 
-    elif args.batch:
-        result = run_pipeline(
-            log,
-            max_pages  = max(1, args.pages),
-            sources    = args.sources,
+    log.info(f"{'='*60}")
+    log.info(f"BATCH: {batch_id}")
+    log.info(f"TC USD/PEN: {tipo_cambio}")
+    log.info(f"Modo: {args.only}")
+    log.info(f"{'='*60}")
+
+    # ── Scraping importación ──────────────────────────────────────────────────
+    if args.only in ("importacion", "ambos"):
+        log.info("\n🌎 SCRAPING IMPORTACIÓN (Amazon / AliExpress / eBay)")
+        _, total_import, stats_import = run_importacion(
+            batch_id   = batch_id,
             categories = args.categories,
         )
-        print(json.dumps(result, indent=2, ensure_ascii=False))
+        stats["importacion"] = {"total": total_import, **stats_import}
 
-    elif args.stats:
-        print(json.dumps(run_stats(), indent=2, ensure_ascii=False))
+    # ── Scraping competencia ──────────────────────────────────────────────────
+    if args.only in ("competencia", "ambos"):
+        log.info("\n🏪 SCRAPING COMPETENCIA (Falabella / Ripley / Hiraoka)")
+        _, total_comp, stats_comp = run_competencia(
+            batch_id   = batch_id,
+            categories = args.categories,
+        )
+        stats["competencia"] = {"total": total_comp, **stats_comp}
 
-    else:
-        # ← FIX WARN-03: sin argumentos → ayuda, no ejecutar pipeline
-        parser.print_help()
-        sys.exit(0)
+    # ── Consolidar master + ROI ───────────────────────────────────────────────
+    if args.only == "ambos":
+        log.info("\n📊 CONSOLIDANDO MASTER CSV + ROI")
+        total_master = consolidar_master(batch_id, tipo_cambio)
+        stats["master_nuevos"] = total_master
+
+    # ── Reporte ───────────────────────────────────────────────────────────────
+    reporte = generar_reporte(batch_id, stats, tipo_cambio)
+
+    log.info(f"\n{'='*60}")
+    log.info("RESUMEN FINAL")
+    log.info(f"{'='*60}")
+    for k, v in stats.items():
+        log.info(f"  {k}: {v}")
+    log.info(f"{'='*60}\n")
+
+    # Output para GitHub Actions
+    print(f"BATCH_ID={batch_id}")
+    print(f"TOTAL_IMPORT={stats.get('importacion',{}).get('total',0)}")
+    print(f"TOTAL_COMP={stats.get('competencia',{}).get('total',0)}")
+    print(f"TIPO_CAMBIO={tipo_cambio}")
+
+if __name__ == "__main__":
+    main()
