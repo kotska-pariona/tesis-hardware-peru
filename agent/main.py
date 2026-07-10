@@ -3,13 +3,21 @@
 """
 Orquestador Principal - Agente ROI Hardware Peru
 Autor: Kotska Rony Pariona Martinez - UNI 2026
-Version: v2.5 — fix: sources y categories se pasan al BatchOrchestrator
+Version: v2.6
+  fix BUG-01/02 : batch_id sincronizado con BatchOrchestrator (ya no hay 2 IDs distintos)
+  fix BUG-03    : run_test() exit_on_result=False por defecto (no mata proceso al importar)
+  fix WARN-01   : log de sources muestra el valor real que usará el orquestador
+  fix WARN-02   : --stats con fallback csv.DictReader cuando pandas no está instalado
+  fix WARN-03   : sin argumentos → print_help() en lugar de ejecutar pipeline
+  fix WARN-04   : items_with_price incluido en el reporte JSON de scraping
 """
 
 import argparse
+import csv
 import logging
 import json
 import sys
+from collections import Counter
 from datetime import datetime
 from pathlib import Path
 
@@ -28,6 +36,8 @@ MASTER_CSV = DATA_DIR / "MASTER_hardware_peru.csv"
 
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 LOG_DIR.mkdir(parents=True, exist_ok=True)
+
+DEFAULT_SOURCES = ["mercadolibre", "falabella", "hiraoka"]
 
 # ─────────────────────────────────────────────
 # LOGGING
@@ -52,22 +62,27 @@ def setup_logging() -> logging.Logger:
 # ─────────────────────────────────────────────
 def run_pipeline(
     log        : logging.Logger,
-    max_pages  : int        = 3,
-    sources    : list       = None,   # ← NUEVO
-    categories : list       = None,   # ← NUEVO
+    max_pages  : int  = 3,
+    sources    : list = None,
+    categories : list = None,
 ) -> dict:
+
+    # Resolver sources reales para el log (igual que BatchOrchestrator)
+    effective_sources = sources or DEFAULT_SOURCES
+
     log.info("=" * 60)
-    log.info("INICIANDO PIPELINE AGENTE ROI v2.5")
+    log.info("INICIANDO PIPELINE AGENTE ROI v2.6")
     log.info(f"Fecha      : {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     log.info(f"DATA_DIR   : {DATA_DIR}")
     log.info(f"Max pages  : {max_pages}")
-    log.info(f"Sources    : {sources or 'todas'}")
+    log.info(f"Sources    : {effective_sources}")          # ← FIX WARN-01: valor real
     log.info(f"Categories : {categories or 'todas'}")
     log.info("=" * 60)
 
+    # batch_id provisional — se sobreescribirá con el ID real del scraper (FIX BUG-01)
     results = {
         "timestamp" : datetime.now().isoformat(),
-        "batch_id"  : datetime.now().strftime("%Y%m%d_%H%M%S"),
+        "batch_id"  : datetime.now().strftime("%Y%m%d_%H%M%S"),  # provisional
         "status"    : "running",
         "phases"    : {},
     }
@@ -78,21 +93,35 @@ def run_pipeline(
         sys.path.insert(0, str(Path(__file__).parent))
         from scraper import BatchOrchestrator
 
-        # ← FIX CRÍTICO: pasar sources y categories al constructor
         orch   = BatchOrchestrator(
             max_pages  = max_pages,
-            sources    = sources,       # None → usa las 3 fuentes por defecto
-            categories = categories,    # None → usa todas las categorías
+            sources    = sources,
+            categories = categories,
         )
         result = orch.run()
 
+        # ← FIX BUG-01/02: sincronizar batch_id con el ID real del scraper
+        results["batch_id"]  = result["batch_id"]
+        results["timestamp"] = result.get("timestamp", results["timestamp"])
+
         results["phases"]["scraping"] = {
-            "status"          : "ok",
-            "items_collected" : result.get("items", 0),
-            "elapsed_s"       : result.get("elapsed_s", 0),
-            "batch_file"      : result.get("batch_file", ""),
+            "status"           : "ok",
+            "items_collected"  : result.get("items", 0),
+            "items_with_price" : result.get("items_with_price", 0),  # ← FIX WARN-04
+            "price_rate_pct"   : round(
+                result.get("items_with_price", 0) /
+                max(result.get("items", 1), 1) * 100, 1
+            ),
+            "elapsed_s"        : result.get("elapsed_s", 0),
+            "batch_file"       : result.get("batch_file", ""),
         }
-        log.info(f"  OK {result.get('items', 0)} items en {result.get('elapsed_s', 0):.1f}s")
+        log.info(
+            "  OK %d items en %.1fs (%d con precio, %.1f%%)",
+            result.get("items", 0),
+            result.get("elapsed_s", 0),
+            result.get("items_with_price", 0),
+            results["phases"]["scraping"]["price_rate_pct"],
+        )
 
     except ImportError as e:
         log.error(f"  ERROR importando scraper: {e}")
@@ -113,13 +142,26 @@ def run_pipeline(
                 results["phases"]["consolidation"] = {
                     "status"        : "ok",
                     "total_records" : len(df),
-                    "categories"    : df["category"].value_counts().to_dict() if "category" in df.columns else {},
-                    "sources"       : df["source"].value_counts().to_dict()   if "source"   in df.columns else {},
+                    "categories"    : df["category"].value_counts().to_dict()
+                                      if "category" in df.columns else {},
+                    "sources"       : df["source"].value_counts().to_dict()
+                                      if "source"   in df.columns else {},
                 }
                 log.info(f"  OK Master CSV: {len(df)} registros")
             else:
-                lines = sum(1 for _ in open(MASTER_CSV, encoding="utf-8")) - 1
-                results["phases"]["consolidation"] = {"status": "ok_no_pandas", "total_records": lines}
+                # ← FIX WARN-02: fallback sin pandas
+                with open(MASTER_CSV, encoding="utf-8") as f:
+                    reader     = csv.DictReader(f)
+                    rows       = list(reader)
+                    cat_count  = Counter(r.get("category", "") for r in rows)
+                    src_count  = Counter(r.get("source",   "") for r in rows)
+                results["phases"]["consolidation"] = {
+                    "status"        : "ok_no_pandas",
+                    "total_records" : len(rows),
+                    "categories"    : dict(cat_count),
+                    "sources"       : dict(src_count),
+                }
+                log.info(f"  OK Master CSV (sin pandas): {len(rows)} registros")
         else:
             log.warning(f"  AVISO: Master CSV no encontrado en {MASTER_CSV}")
             results["phases"]["consolidation"] = {"status": "no_data"}
@@ -132,6 +174,7 @@ def run_pipeline(
     try:
         results["status"]   = "completed"
         results["end_time"] = datetime.now().isoformat()
+        # ← FIX BUG-01: report_XXXXXX.json ahora usa el batch_id real del scraper
         report_path = DATA_DIR / f"report_{results['batch_id']}.json"
         report_path.write_text(
             json.dumps(results, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -152,9 +195,9 @@ def run_pipeline(
 # ─────────────────────────────────────────────
 # MODO TEST
 # ─────────────────────────────────────────────
-def run_test(log: logging.Logger, exit_on_result: bool = True):
+def run_test(log: logging.Logger, exit_on_result: bool = False):  # ← FIX BUG-03
     log.info("=" * 50)
-    log.info("MODO TEST - Verificando configuracion v2.5")
+    log.info("MODO TEST - Verificando configuracion v2.6")
     log.info("=" * 50)
     errors = []
 
@@ -167,7 +210,7 @@ def run_test(log: logging.Logger, exit_on_result: bool = True):
         from scraper import BatchOrchestrator, CATEGORIES
         orch    = BatchOrchestrator()
         methods = [m for m in dir(orch) if not m.startswith("_") and callable(getattr(orch, m))]
-        log.info(f"scraper.py : OK - BatchOrchestrator importado")
+        log.info("scraper.py : OK - BatchOrchestrator importado")
         log.info(f"Metodo run : {'OK' if hasattr(orch, 'run') else 'NO ENCONTRADO'}")
         log.info(f"Metodos    : {methods}")
         log.info(f"Categorias : {list(CATEGORIES.keys())}")
@@ -193,6 +236,39 @@ def run_test(log: logging.Logger, exit_on_result: bool = True):
         return True
 
 # ─────────────────────────────────────────────
+# STATS — con fallback sin pandas
+# ─────────────────────────────────────────────
+def run_stats() -> dict:
+    if not MASTER_CSV.exists():
+        return {"status": "no_data", "path": str(MASTER_CSV)}
+
+    if HAS_PANDAS:
+        df       = pd.read_csv(MASTER_CSV)
+        date_min = df["scraped_at"].dropna().min() if "scraped_at" in df.columns else "N/A"
+        date_max = df["scraped_at"].dropna().max() if "scraped_at" in df.columns else "N/A"
+        return {
+            "total_records" : len(df),
+            "categories"    : df["category"].value_counts().to_dict()
+                              if "category" in df.columns else {},
+            "sources"       : df["source"].value_counts().to_dict()
+                              if "source"   in df.columns else {},
+            "date_range"    : f"{str(date_min)[:10]} -> {str(date_max)[:10]}",
+        }
+    else:
+        # ← FIX WARN-02: fallback sin pandas para --stats
+        with open(MASTER_CSV, encoding="utf-8") as f:
+            rows      = list(csv.DictReader(f))
+            cat_count = Counter(r.get("category", "") for r in rows)
+            src_count = Counter(r.get("source",   "") for r in rows)
+            dates     = sorted(r.get("scraped_at", "") for r in rows if r.get("scraped_at"))
+        return {
+            "total_records" : len(rows),
+            "categories"    : dict(cat_count),
+            "sources"       : dict(src_count),
+            "date_range"    : f"{dates[0][:10]} -> {dates[-1][:10]}" if dates else "N/A",
+        }
+
+# ─────────────────────────────────────────────
 # ENTRY POINT
 # ─────────────────────────────────────────────
 if __name__ == "__main__":
@@ -200,8 +276,8 @@ if __name__ == "__main__":
         description="Agente ROI - Tesis Kotska Pariona UNI 2026")
     parser.add_argument("--batch",      action="store_true", help="Ejecutar batch completo")
     parser.add_argument("--test",       action="store_true", help="Verificar configuracion")
-    parser.add_argument("--pages",      type=int,  default=3,   help="Paginas por categoria")
-    parser.add_argument("--stats",      action="store_true",    help="Ver estadisticas")
+    parser.add_argument("--pages",      type=int,  default=3,    help="Paginas por categoria")
+    parser.add_argument("--stats",      action="store_true",     help="Ver estadisticas")
     parser.add_argument("--sources",    nargs="+", default=None, help="Fuentes: mercadolibre falabella hiraoka")
     parser.add_argument("--categories", nargs="+", default=None, help="Categorias: CPU GPU RAM ...")
     args = parser.parse_args()
@@ -210,33 +286,20 @@ if __name__ == "__main__":
 
     if args.test:
         run_test(log, exit_on_result=True)
+
     elif args.batch:
         result = run_pipeline(
             log,
             max_pages  = max(1, args.pages),
-            sources    = args.sources,      # ← pasa al pipeline
-            categories = args.categories,   # ← pasa al pipeline
-        )
-        print(json.dumps(result, indent=2, ensure_ascii=False))
-    elif args.stats:
-        if MASTER_CSV.exists() and HAS_PANDAS:
-            df       = pd.read_csv(MASTER_CSV)
-            date_min = df["scraped_at"].dropna().min() if "scraped_at" in df.columns else "N/A"
-            date_max = df["scraped_at"].dropna().max() if "scraped_at" in df.columns else "N/A"
-            stats    = {
-                "total_records" : len(df),
-                "categories"    : df["category"].value_counts().to_dict() if "category" in df.columns else {},
-                "sources"       : df["source"].value_counts().to_dict()   if "source"   in df.columns else {},
-                "date_range"    : f"{str(date_min)[:10]} -> {str(date_max)[:10]}",
-            }
-            print(json.dumps(stats, indent=2, ensure_ascii=False))
-        else:
-            print(json.dumps({"status": "no_data", "path": str(MASTER_CSV)}, indent=2))
-    else:
-        result = run_pipeline(
-            log,
-            max_pages  = args.pages,
             sources    = args.sources,
             categories = args.categories,
         )
         print(json.dumps(result, indent=2, ensure_ascii=False))
+
+    elif args.stats:
+        print(json.dumps(run_stats(), indent=2, ensure_ascii=False))
+
+    else:
+        # ← FIX WARN-03: sin argumentos → ayuda, no ejecutar pipeline
+        parser.print_help()
+        sys.exit(0)
