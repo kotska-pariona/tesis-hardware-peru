@@ -1,24 +1,23 @@
-════════════════════════════════════════════
-requirements.txt
-Pipeline ROI Importación PE
-════════════════════════════════════════════
-── Core ─────────────────────────────────────
+# ──────────────────────────────────────────────────────────
+# requirements.txt  — Pipeline de scraping (daily_agent.yml)
+# Instalar: pip install -r requirements.txt
+# ──────────────────────────────────────────────────────────
+
+# Core HTTP
 requests>=2.31.0
 urllib3>=2.0.0
+
+# HTML parsing
 beautifulsoup4>=4.12.0
 lxml>=5.0.0
+
+# Config
 python-dotenv>=1.0.0
 
-── Data ─────────────────────────────────────
+# Data
 pandas>=2.1.0
-numpy>=1.26.0
+# FIX: upper bound para compatibilidad con tensorflow en requirements-ml.txt
+numpy>=1.26.0,<2.0
 
-── ML (instalar cuando tengas datos suficientes) ──
-xgboost>=2.0.0
-scikit-learn>=1.4.0
-tensorflow>=2.15.0 # para LSTM
-torch>=2.2.0 # alternativa a TF
-── Visualización (opcional) ─────────────────
-matplotlib>=3.8.0
-seaborn>=0.13.0
-plotly>=5.18.0
+# FIX: kaggle faltaba — requerido por scraper_kaggle.py
+kaggle>=1.6.0
