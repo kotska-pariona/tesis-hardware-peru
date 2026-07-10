@@ -1,14 +1,9 @@
 name: Agente Tesis - Batch 24h
 
 on:
+  workflow_dispatch:
   schedule:
     - cron: '0 7 * * *'
-  workflow_dispatch:
-    inputs:
-      pages:
-        description: 'Paginas por categoria (default: 20)'
-        required: false
-        default: '20'
 
 permissions:
   contents: write
@@ -16,68 +11,6 @@ permissions:
 jobs:
   scraping_batch:
     runs-on: ubuntu-latest
-    timeout-minutes: 300
-
     steps:
-      - name: Descargar codigo
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Configurar Python 3.10
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
-          cache: 'pip'
-
-      - name: Instalar dependencias
-        run: |
-          pip install --upgrade pip
-          pip install -r requirements.txt
-
-      - name: Verificar configuracion
-        run: python agent/main.py --test
-
-      - name: Ejecutar batch completo
-        timeout-minutes: 240
-        run: |
-          PAGES="${{ github.event.inputs.pages }}"
-          PAGES="${PAGES:-20}"
-          echo "Ejecutando batch con $PAGES paginas..."
-          python agent/main.py --batch --pages "$PAGES"
-
-      - name: Mostrar estadisticas
-        if: always()
-        run: python agent/main.py --stats || echo "Sin datos aun"
-
-      - name: Resumen de archivos generados
-        if: always()
-        run: |
-          echo "=== ARCHIVOS GENERADOS ==="
-          echo "Run #${{ github.run_number }} - $(date +'%Y-%m-%d %H:%M') UTC"
-          ls -lh data/raw/ 2>/dev/null || echo "Sin archivos en data/raw/"
-          ls -lh logs/     2>/dev/null || echo "Sin logs"
-
-      - name: Guardar datos como artifact
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: datos-batch-${{ github.run_number }}-${{ github.run_id }}
-          path: |
-            data/raw/
-            logs/
-          retention-days: 90
-
-      - name: Commit y push de datos
-        if: always()
-        run: |
-          git config user.name "Agente ROI Bot"
-          git config user.email "actions@github.com"
-          git add data/raw/*.csv data/raw/*.json logs/*.log || true
-          if git diff --staged --quiet; then
-            echo "Sin cambios nuevos para commitear"
-          else
-            git commit -m "Batch #${{ github.run_number }} - $(date +'%Y-%m-%d %H:%M') UTC"
-            git push origin main
-            echo "Push exitoso"
-          fi
+      - name: Test
+        run: echo "Workflow funcionando"
