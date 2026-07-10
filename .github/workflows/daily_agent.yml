@@ -12,7 +12,7 @@ on:
         required: false
         default: 'falabella hiraoka'
   schedule:
-    - cron: '0 7 * * *'
+    - cron: '0 12 * * *'   # 7:00am Lima (UTC-5)
 
 permissions:
   contents: write
@@ -74,10 +74,12 @@ jobs:
 
       - name: 6 Ejecutar batch de scraping
         run: |
-          PAGES=${{ github.event.inputs.pages || '3' }}
+          PAGES="${{ github.event.inputs.pages || '3' }}"
           SOURCES="${{ steps.sources.outputs.sources }}"
           echo "Ejecutando scraping con PAGES=$PAGES SOURCES=$SOURCES"
-          python agent/main.py --batch --pages $PAGES --sources $SOURCES
+          # Convertir string a array para pasar correctamente a --sources
+          read -ra SOURCES_ARRAY <<< "$SOURCES"
+          python agent/main.py --batch --pages "$PAGES" --sources "${SOURCES_ARRAY[@]}"
         env:
           PYTHONUNBUFFERED: "1"
           ML_APP_ID: ${{ secrets.ML_APP_ID }}
