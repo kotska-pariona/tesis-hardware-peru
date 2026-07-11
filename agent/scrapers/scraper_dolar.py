@@ -1,5 +1,5 @@
 """
-scraper_dolar.py  v2.0
+scraper_dolar.py  v3.0
 Tipo de cambio USD/PEN en tiempo real — múltiples fuentes con fallback
 
 Fuentes (en orden de prioridad):
@@ -10,21 +10,21 @@ Fuentes (en orden de prioridad):
   5. dolarpe.com              → tipo de cambio paralelo Perú
   6. Valor hardcodeado        → último recurso
 
-Fixes v2.0:
-  - [FIX-1] timedelta movido al import del top
-  - [FIX-2] FALLBACK_RATE actualizado a 3.78 (Julio 2026)
-  - [FIX-3] extract_price: manejo correcto de punto de miles
-  - [FIX-4] SBS: selector CSS con fallback genérico
-  - [FIX-5] Caché opcional con TTL de 4h para reducir requests
-  - [FIX-6] Log específico para SUNAT en fines de semana
-  - [FIX-7] dolarpe.com: log de debug cuando tags son None
+Fixes v3.0 (sobre v2.0):
+  - [D1] CACHE_FILE movido a /tmp para no versionarse en git
+  - [D2] _load_cache(): aware/naive datetime corregido — cache ahora funciona
+  - [D3] _fetch_sbs(): eliminado 'if rows: break' prematuro
+  - [D4] get_exchange_rate(): source '_cached' no se acumula en múltiples calls
+  - [D5] scrape_dolar(): timestamp histórico usa fecha del punto, no now()
+  - [D6] __main__: datetime.now(timezone.utc) — naive datetime corregido
+  - [D7] FALLBACK_RATE actualizado a 3.40 (tipo real log: 3.3962)
 """
 
 import re
 import json
 import time
 import logging
-from datetime import datetime, timezone, date, timedelta   # FIX-1: timedelta al top
+from datetime import datetime, timezone, date, timedelta
 from pathlib import Path
 from typing import Optional
 
@@ -39,13 +39,13 @@ logger = logging.getLogger(__name__)
 TIMEOUT       = 15
 REQUEST_DELAY = 0.5
 
-# FIX-2: Actualizado Julio 2026 — revisar cada 3 meses
-FALLBACK_RATE            = 3.78
-FALLBACK_RATE_UPDATED    = "2026-07-10"   # Fecha de última actualización manual
+# [D7] Actualizado al tipo real del log (Mid=3.3962). Revisar mensualmente.
+FALLBACK_RATE         = 3.40
+FALLBACK_RATE_UPDATED = "2026-07-11"
 
-# FIX-5: Caché TTL (horas) — evita requests redundantes en runs de 2h
 CACHE_TTL_HOURS = 4
-CACHE_FILE      = Path(__file__).resolve().parent.parent.parent / "data" / "raw" / ".dolar_cache.json"
+# [D1] /tmp — no se versiona en git, persiste durante el run de GitHub Actions
+CACHE_FILE = Path("/tmp/.dolar_cache.json")
 
 HEADERS = {
     "User-Agent": (
@@ -58,9 +58,8 @@ HEADERS = {
 
 
 # ──────────────────────────────────────────────
-# FIX-5: Caché con TTL
+# Caché con TTL
 # ──────────────────────────────────────────────
-
 def _load_cache() -> Optional[dict]:
     """Carga el tipo de cambio cacheado si tiene menos de CACHE_TTL_HOURS."""
     try:
@@ -68,21 +67,36 @@ def _load_cache() -> Optional[dict]:
             return None
         with open(CACHE_FILE, encoding="utf-8") as f:
             cached = json.load(f)
-        cached_at = datetime.fromisoformat(cached.get("cached_at", "2000-01-01"))
+
+        raw_ts = cached.get("cached_at", "2000-01-01T00:00:00+00:00")
+        # [D2] Normalizar a aware datetime — fromisoformat puede retornar naive
+        cached_at = datetime.fromisoformat(raw_ts)
+        if cached_at.tzinfo is None:
+            cached_at = cached_at.replace(tzinfo=timezone.utc)
+
         age_hours = (datetime.now(timezone.utc) - cached_at).total_seconds() / 3600
         if age_hours < CACHE_TTL_HOURS:
-            logger.info(f"[Dolar] Cache hit — {age_hours:.1f}h de antigüedad (TTL={CACHE_TTL_HOURS}h)")
+            logger.info(
+                f"[Dolar] Cache hit — {age_hours:.1f}h de antigüedad "
+                f"(TTL={CACHE_TTL_HOURS}h)"
+            )
             return cached
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug(f"[Dolar] Error leyendo cache: {e}")
     return None
 
 
 def _save_cache(result: dict) -> None:
-    """Guarda el tipo de cambio en caché."""
+    """Guarda el tipo de cambio en caché (source limpio, sin '_cached')."""
     try:
         CACHE_FILE.parent.mkdir(parents=True, exist_ok=True)
-        data = {**result, "cached_at": datetime.now(timezone.utc).isoformat()}
+        # [D4] Guardar source limpio para evitar acumulación de '_cached'
+        clean_source = result.get("source", "").replace("_cached", "")
+        data = {
+            **result,
+            "source":    clean_source,
+            "cached_at": datetime.now(timezone.utc).isoformat(),
+        }
         with open(CACHE_FILE, "w", encoding="utf-8") as f:
             json.dump(data, f)
     except Exception as e:
@@ -90,42 +104,33 @@ def _save_cache(result: dict) -> None:
 
 
 # ──────────────────────────────────────────────
-# FIX-3: Función robusta para limpiar precios
+# Parser de precios robusto
 # ──────────────────────────────────────────────
-
 def _parse_price(text: str) -> Optional[float]:
     """
-    Convierte texto de precio a float manejando formatos:
+    Convierte texto de precio a float manejando formatos PE/internacionales.
       '3,72'      → 3.72   (formato SUNAT/SBS)
       '3.72'      → 3.72   (formato internacional)
       '3.720,50'  → 3720.5 → descartado por validación (>5.0) ✅
-      '3,720.50'  → 3720.5 → descartado por validación ✅
-      'S/ 3.72'   → 3.72
     """
     if not text:
         return None
-    # Eliminar todo excepto dígitos, coma y punto
     clean = re.sub(r"[^\d,.]", "", text.strip())
     if not clean:
         return None
     try:
-        # Detectar formato: si tiene coma Y punto, el último es decimal
         if "," in clean and "." in clean:
             last_comma = clean.rfind(",")
             last_dot   = clean.rfind(".")
             if last_comma > last_dot:
-                # Formato europeo: 3.720,50 → eliminar punto, reemplazar coma
                 clean = clean.replace(".", "").replace(",", ".")
             else:
-                # Formato anglosajón: 3,720.50 → eliminar coma
                 clean = clean.replace(",", "")
         elif "," in clean:
-            # Solo coma: puede ser decimal (3,72) o miles (3,720)
             parts = clean.split(",")
-            if len(parts) == 2 and len(parts[1]) <= 2:
-                clean = clean.replace(",", ".")   # Decimal: 3,72 → 3.72
-            else:
-                clean = clean.replace(",", "")    # Miles: 3,720 → 3720
+            clean = (clean.replace(",", ".")
+                     if len(parts) == 2 and len(parts[1]) <= 2
+                     else clean.replace(",", ""))
         return float(clean)
     except ValueError:
         return None
@@ -134,36 +139,29 @@ def _parse_price(text: str) -> Optional[float]:
 # ──────────────────────────────────────────────
 # FUENTE 1: SUNAT (oficial)
 # ──────────────────────────────────────────────
-
 def _fetch_sunat() -> Optional[dict]:
-    """
-    Tipo de cambio oficial SUNAT.
-    NOTA: No disponible sábado/domingo — retorna None correctamente.
-    """
-    # FIX-6: Log informativo en fines de semana
+    """Tipo de cambio oficial SUNAT. No disponible sábado/domingo."""
     weekday = date.today().weekday()
     if weekday >= 5:
         logger.info("[Dolar/SUNAT] Fin de semana — SUNAT no publica tipo de cambio")
         return None
 
-    url   = "https://e-consulta.sunat.gob.pe/cl-at-ittipcam/tcS01Alias"
-    today = date.today()
+    url    = "https://e-consulta.sunat.gob.pe/cl-at-ittipcam/tcS01Alias"
+    today  = date.today()
     params = {
         "accion": "buscar",
         "moneda": "02",
         "fecha":  today.strftime("%d/%m/%Y"),
     }
-
     try:
         resp = requests.get(url, params=params, headers=HEADERS, timeout=TIMEOUT)
         resp.raise_for_status()
         soup = BeautifulSoup(resp.text, "html.parser")
-
         for row in soup.select("table tr"):
             cells = row.select("td")
             if len(cells) >= 3:
-                compra = _parse_price(cells[1].get_text(strip=True))  # FIX-3
-                venta  = _parse_price(cells[2].get_text(strip=True))  # FIX-3
+                compra = _parse_price(cells[1].get_text(strip=True))
+                venta  = _parse_price(cells[2].get_text(strip=True))
                 if compra and venta and 3.0 < compra < 5.0 and 3.0 < venta < 5.0:
                     return {
                         "source":    "sunat",
@@ -173,33 +171,30 @@ def _fetch_sunat() -> Optional[dict]:
                         "date":      today.isoformat(),
                         "timestamp": datetime.now(timezone.utc).isoformat(),
                     }
-
     except requests.RequestException as e:
         logger.debug(f"[Dolar/SUNAT] Error: {e}")
-
     return None
 
 
 # ──────────────────────────────────────────────
 # FUENTE 2: SBS Perú
 # ──────────────────────────────────────────────
-
 def _fetch_sbs() -> Optional[dict]:
-    """Tipo de cambio SBS. FIX-4: selector con fallback genérico."""
+    """Tipo de cambio SBS. Selectores con fallback progresivo."""
     url = "https://www.sbs.gob.pe/app/pp/sistip_portal/paginas/publicacion/tipocambio.aspx"
-
     try:
         resp = requests.get(url, headers=HEADERS, timeout=TIMEOUT)
         resp.raise_for_status()
         soup = BeautifulSoup(resp.text, "html.parser")
 
-        # FIX-4: Selectores en orden de especificidad
         selectors = [
-            "table#ctl00_cphContent_rgTipoCambio_ctl00 tr",  # ID específico ASP.NET
-            "table.rgMasterTable tr",                         # Clase genérica RadGrid
-            "table tr",                                       # Fallback: cualquier tabla
+            "table#ctl00_cphContent_rgTipoCambio_ctl00 tr",
+            "table.rgMasterTable tr",
+            "table tr",
         ]
 
+        # [D3] Sin 'if rows: break' — todos los selectores se prueban
+        #      El return dentro del loop sale cuando encuentra USD
         for selector in selectors:
             rows = soup.select(selector)
             for row in rows:
@@ -207,8 +202,8 @@ def _fetch_sbs() -> Optional[dict]:
                 text  = row.get_text().lower()
                 if any(k in text for k in ["dólar", "dollar", "usd", "estados unidos"]):
                     if len(cells) >= 3:
-                        compra = _parse_price(cells[1].get_text(strip=True))  # FIX-3
-                        venta  = _parse_price(cells[2].get_text(strip=True))  # FIX-3
+                        compra = _parse_price(cells[1].get_text(strip=True))
+                        venta  = _parse_price(cells[2].get_text(strip=True))
                         if compra and venta and 3.0 < compra < 5.0:
                             return {
                                 "source":    "sbs_peru",
@@ -218,31 +213,24 @@ def _fetch_sbs() -> Optional[dict]:
                                 "date":      date.today().isoformat(),
                                 "timestamp": datetime.now(timezone.utc).isoformat(),
                             }
-            if rows:
-                break  # Si el selector encontró filas pero no USD, no probar el siguiente
-
     except requests.RequestException as e:
         logger.debug(f"[Dolar/SBS] Error: {e}")
-
     return None
 
 
 # ──────────────────────────────────────────────
-# FUENTE 3: ExchangeRate-API (gratuita)
+# FUENTE 3: ExchangeRate-API
 # ──────────────────────────────────────────────
-
 def _fetch_exchangerate_api() -> Optional[dict]:
     """
     API gratuita open.er-api.com.
-    Límite: 1,500 req/mes. Con 12 runs/día = ~360/mes — dentro del límite.
+    Límite: 1,500 req/mes. Con cache TTL=4h: ~93 req/mes.
     """
     url = "https://open.er-api.com/v6/latest/USD"
-
     try:
         resp = requests.get(url, headers=HEADERS, timeout=TIMEOUT)
         resp.raise_for_status()
         data = resp.json()
-
         if data.get("result") == "success":
             pen_rate = data.get("rates", {}).get("PEN")
             if pen_rate and 3.0 < pen_rate < 5.0:
@@ -254,33 +242,28 @@ def _fetch_exchangerate_api() -> Optional[dict]:
                     "date":      data.get("time_last_update_utc", "")[:10],
                     "timestamp": datetime.now(timezone.utc).isoformat(),
                 }
-
     except requests.RequestException as e:
         logger.debug(f"[Dolar/ExchangeRate-API] Error: {e}")
     except (ValueError, KeyError) as e:
         logger.debug(f"[Dolar/ExchangeRate-API] Error JSON: {e}")
-
     return None
 
 
 # ──────────────────────────────────────────────
 # FUENTE 4: Frankfurter (BCE, sin límites)
 # ──────────────────────────────────────────────
-
 def _fetch_frankfurter() -> Optional[dict]:
     """
-    API Frankfurter — datos del Banco Central Europeo.
+    API Frankfurter — datos del BCE.
     NOTA: USD→PEN es conversión triangular (USD→EUR→PEN).
     Diferencia vs tipo real: ~0.1-0.3% — aceptable para modelo ROI.
     """
     url = "https://api.frankfurter.app/latest?from=USD&to=PEN"
-
     try:
-        resp = requests.get(url, headers=HEADERS, timeout=TIMEOUT)
+        resp     = requests.get(url, headers=HEADERS, timeout=TIMEOUT)
         resp.raise_for_status()
         data     = resp.json()
         pen_rate = data.get("rates", {}).get("PEN")
-
         if pen_rate and 3.0 < pen_rate < 5.0:
             return {
                 "source":    "frankfurter_bce",
@@ -290,32 +273,31 @@ def _fetch_frankfurter() -> Optional[dict]:
                 "date":      data.get("date", date.today().isoformat()),
                 "timestamp": datetime.now(timezone.utc).isoformat(),
             }
-
     except requests.RequestException as e:
         logger.debug(f"[Dolar/Frankfurter] Error: {e}")
     except (ValueError, KeyError) as e:
         logger.debug(f"[Dolar/Frankfurter] Error JSON: {e}")
-
     return None
 
 
 # ──────────────────────────────────────────────
 # FUENTE 5: dolarpe.com
 # ──────────────────────────────────────────────
-
 def _fetch_dolarpe() -> Optional[dict]:
     """Scraping dolarpe.com — tipo de cambio paralelo Perú."""
     url = "https://dolarpe.com/"
-
     try:
         resp = requests.get(url, headers=HEADERS, timeout=TIMEOUT)
         resp.raise_for_status()
         soup = BeautifulSoup(resp.text, "html.parser")
 
-        compra_tag = soup.select_one(".compra .precio, #compra, .buy-price, [data-type='buy']")
-        venta_tag  = soup.select_one(".venta .precio, #venta, .sell-price, [data-type='sell']")
+        compra_tag = soup.select_one(
+            ".compra .precio, #compra, .buy-price, [data-type='buy']"
+        )
+        venta_tag = soup.select_one(
+            ".venta .precio, #venta, .sell-price, [data-type='sell']"
+        )
 
-        # FIX-7: Log cuando los tags no se encuentran
         if not compra_tag or not venta_tag:
             logger.debug(
                 f"[Dolar/dolarpe.com] Tags no encontrados — "
@@ -324,8 +306,8 @@ def _fetch_dolarpe() -> Optional[dict]:
             )
             return None
 
-        compra = _parse_price(compra_tag.get_text())   # FIX-3
-        venta  = _parse_price(venta_tag.get_text())    # FIX-3
+        compra = _parse_price(compra_tag.get_text())
+        venta  = _parse_price(venta_tag.get_text())
 
         if compra and venta and 3.0 < compra < 5.0:
             return {
@@ -336,17 +318,14 @@ def _fetch_dolarpe() -> Optional[dict]:
                 "date":      date.today().isoformat(),
                 "timestamp": datetime.now(timezone.utc).isoformat(),
             }
-
     except requests.RequestException as e:
         logger.debug(f"[Dolar/dolarpe.com] Error: {e}")
-
     return None
 
 
 # ──────────────────────────────────────────────
 # SCRAPER PRINCIPAL
 # ──────────────────────────────────────────────
-
 SOURCES = [
     ("SUNAT",            _fetch_sunat),
     ("SBS Perú",         _fetch_sbs),
@@ -359,14 +338,16 @@ SOURCES = [
 def get_exchange_rate(batch_id: str) -> dict:
     """
     Obtiene el tipo de cambio USD/PEN con fallback automático.
-    FIX-5: Usa caché si el dato tiene menos de CACHE_TTL_HOURS horas.
+    Usa caché si el dato tiene menos de CACHE_TTL_HOURS horas.
     Siempre retorna un dict válido — nunca falla.
     """
-    # FIX-5: Intentar caché primero
+    # Intentar caché primero
     cached = _load_cache()
     if cached:
         cached["batch_id"] = batch_id
-        cached["source"]  += "_cached"
+        # [D4] source limpio + '_cached' sin acumulación
+        base_source = cached.get("source", "").replace("_cached", "")
+        cached["source"] = base_source + "_cached"
         return cached
 
     for source_name, fetch_fn in SOURCES:
@@ -381,7 +362,7 @@ def get_exchange_rate(batch_id: str) -> dict:
                     f"Venta={result['sell']} | "
                     f"Mid={result['mid']}"
                 )
-                _save_cache(result)   # FIX-5: Guardar en caché
+                _save_cache(result)
                 return result
             else:
                 logger.debug(f"  ⚠️ {source_name}: sin datos válidos")
@@ -389,10 +370,11 @@ def get_exchange_rate(batch_id: str) -> dict:
             logger.warning(f"  ❌ {source_name}: error inesperado — {e}")
         time.sleep(REQUEST_DELAY)
 
-    # Fallback absoluto — FIX-2: valor actualizado
+    # [D7] Fallback absoluto — valor actualizado al tipo real
     logger.warning(
         f"[Dolar] Todas las fuentes fallaron. "
-        f"Usando hardcoded: {FALLBACK_RATE} (actualizado: {FALLBACK_RATE_UPDATED})"
+        f"Usando hardcoded: {FALLBACK_RATE} "
+        f"(actualizado: {FALLBACK_RATE_UPDATED})"
     )
     return {
         "batch_id":  batch_id,
@@ -409,7 +391,7 @@ def scrape_dolar(batch_id: str) -> list:
     """
     Retorna lista de registros USD/PEN:
       - [0]   : tipo de cambio actual
-      - [1..N]: historial 30 días (Frankfurter)
+      - [1..N]: historial 30 días (Frankfurter, ~22 puntos L-V)
     """
     records = []
 
@@ -420,7 +402,7 @@ def scrape_dolar(batch_id: str) -> list:
     # Historial 30 días desde Frankfurter
     try:
         end_date   = date.today()
-        start_date = end_date - timedelta(days=30)   # FIX-1: timedelta ya importado
+        start_date = end_date - timedelta(days=30)
         hist_url   = (
             f"https://api.frankfurter.app/"
             f"{start_date.isoformat()}..{end_date.isoformat()}"
@@ -430,17 +412,23 @@ def scrape_dolar(batch_id: str) -> list:
         resp.raise_for_status()
         hist_data = resp.json()
 
+        # Timestamp de recolección (igual para todos los puntos históricos)
+        collected_at = datetime.now(timezone.utc).isoformat()
+
         for date_str, rates in hist_data.get("rates", {}).items():
             pen = rates.get("PEN")
             if pen and 3.0 < pen < 5.0:
                 records.append({
-                    "batch_id":  batch_id,
-                    "source":    "frankfurter_history",
-                    "buy":       round(pen * 0.995, 4),
-                    "sell":      round(pen * 1.005, 4),
-                    "mid":       round(pen, 4),
-                    "date":      date_str,
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "batch_id":    batch_id,
+                    "source":      "frankfurter_history",
+                    "buy":         round(pen * 0.995, 4),
+                    "sell":        round(pen * 1.005, 4),
+                    "mid":         round(pen, 4),
+                    "date":        date_str,
+                    # [D5] timestamp = fecha del punto histórico a mediodía UTC
+                    #      collected_at = momento real de recolección
+                    "timestamp":   f"{date_str}T12:00:00+00:00",
+                    "collected_at": collected_at,
                 })
 
         logger.info(f"[Dolar] Historial 30d: {len(records) - 1} puntos adicionales")
@@ -457,7 +445,8 @@ def scrape_dolar(batch_id: str) -> list:
 # ──────────────────────────────────────────────
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-    test_batch = f"test_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+    # [D6] datetime con timezone explícita
+    test_batch = f"test_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}"
     results    = scrape_dolar(test_batch)
     print(f"\nTotal registros: {len(results)}")
     for r in results[:3]:
