@@ -1,9 +1,17 @@
+#!/usr/bin/env python3
 """
-main.py — Orquestador v5.2
+main.py — Orquestador v5.3
 ════════════════════════════════════════════════════════════════════
+Fixes v5.3:
+  - [FIX-9] Integración MercadoLibre PE (scraper_mercadolibre.py)
+            Carga dinámica con importlib — no crashea si no existe
+  - Paso [3/9] MeLi PE insertado entre Local PE y eBay
+  - FIELD_ORDER ampliado con campos MeLi (condition, sold_qty, etc.)
+  - Modos normal/local_only incluyen MeLi PE
+
 Fixes v5.2:
   - [FIX-8] importlib fuerza carga de agent/scrapers/ ignorando
-            el paquete 'scrapers' de kagglesdk en site-packages
+            el paquete scrapers de kagglesdk en site-packages
 """
 
 import sys
@@ -26,10 +34,6 @@ DATA_DIR.mkdir(parents=True, exist_ok=True)
 LOG_DIR.mkdir(parents=True, exist_ok=True)
 
 # ── FIX-8: Forzar carga de agent/scrapers/ ANTES de cualquier import ──────
-# kagglesdk instala su propio paquete 'scrapers' en site-packages.
-# importlib.util.spec_from_file_location bypasea sys.path completamente
-# y registra el módulo correcto en sys.modules antes de que Python
-# intente resolver 'scrapers' desde site-packages.
 _scrapers_path = AGENT_DIR / "scrapers" / "__init__.py"
 _spec = importlib.util.spec_from_file_location(
     "scrapers",
@@ -37,13 +41,32 @@ _spec = importlib.util.spec_from_file_location(
     submodule_search_locations=[str(AGENT_DIR / "scrapers")],
 )
 _mod = importlib.util.module_from_spec(_spec)
-sys.modules["scrapers"] = _mod          # registrar ANTES de exec_module
-_spec.loader.exec_module(_mod)          # ejecutar el __init__.py real
+sys.modules["scrapers"] = _mod
+_spec.loader.exec_module(_mod)
 
-# También registrar agent/ en sys.path para los sub-imports relativos
-# (ej: from .scraper_local import ...) dentro del __init__.py
 if str(AGENT_DIR) not in sys.path:
     sys.path.insert(0, str(AGENT_DIR))
+
+# ── FIX-9: Carga dinámica de MercadoLibre PE ──────────────────────────────
+# Si scraper_mercadolibre.py no existe, _HAS_MELI = False y se omite
+# el paso sin crashear el pipeline.
+_meli_path = AGENT_DIR / "scrapers" / "scraper_mercadolibre.py"
+_HAS_MELI  = False
+scrape_mercadolibre = None
+
+if _meli_path.exists():
+    try:
+        _meli_spec = importlib.util.spec_from_file_location(
+            "scrapers.scraper_mercadolibre",
+            str(_meli_path),
+        )
+        _meli_mod = importlib.util.module_from_spec(_meli_spec)
+        sys.modules["scrapers.scraper_mercadolibre"] = _meli_mod
+        _meli_spec.loader.exec_module(_meli_mod)
+        scrape_mercadolibre = _meli_mod.scrape_mercadolibre
+        _HAS_MELI = True
+    except Exception as _e:
+        pass  # se loguea más abajo cuando logging ya está activo
 
 # ── Logging ───────────────────────────────────────────────────────────────
 LOG_FILE = LOG_DIR / "agent.log"
@@ -57,6 +80,14 @@ logging.basicConfig(
     ],
 )
 log = logging.getLogger("main")
+
+if not _HAS_MELI:
+    log.warning(
+        "[FIX-9] scraper_mercadolibre.py no encontrado o con error — "
+        "paso MeLi PE será omitido"
+    )
+else:
+    log.info("[FIX-9] scraper_mercadolibre.py cargado ✅")
 
 # ── Imports desde scrapers (ya registrado en sys.modules) ─────────────────
 from scrapers import (
@@ -72,13 +103,15 @@ from scrapers import (
     _HAS_COMPETENCIA,
 )
 
-# ── FIX-5: Orden lógico de columnas en CSV ────────────────────────────────
+# ── FIX-5 + FIX-9: Orden lógico de columnas en CSV ───────────────────────
 FIELD_ORDER = [
     "batch_id", "timestamp", "source", "category",
     "sku", "brand", "title",
     "price_pen", "price_orig_pen", "price_usd", "price_date",
     "discount_pct", "price_currency",
     "rating", "reviews",
+    # Campos MeLi (vacíos en otras fuentes — no rompen nada)
+    "condition", "sold_qty", "available_qty", "free_shipping", "seller_type",
     "retailer", "part_id", "url",
 ]
 
@@ -92,7 +125,7 @@ def save_batch(records: list, batch_id: str, source_tag: str) -> Path:
         log.warning(f"  [save] Sin registros para {source_tag}")
         return None
 
-    out_path = DATA_DIR / f"batch_{batch_id}_{source_tag}.csv"
+    out_path  = DATA_DIR / f"batch_{batch_id}_{source_tag}.csv"
     all_keys  = set(k for r in records for k in r.keys())
     ordered   = [f for f in FIELD_ORDER if f in all_keys]
     remainder = sorted(all_keys - set(ordered))
@@ -214,11 +247,11 @@ def run(mode: str, batch_id: str):
     batches = []
 
     log.info("═" * 60)
-    log.info(f"  PIPELINE v5.2 — modo={mode} | batch={batch_id}")
+    log.info(f"  PIPELINE v5.3 — modo={mode} | batch={batch_id}")
     log.info("═" * 60)
 
     # ── 1. Tipo de cambio (siempre) ──────────────────────────────────
-    log.info("\n[1/8] 💱 Tipo de cambio USD/PEN")
+    log.info("\n[1/9] 💱 Tipo de cambio USD/PEN")
     try:
         dolar_records = scrape_dolar(batch_id)
         p = save_batch(dolar_records, batch_id, "dolar")
@@ -231,7 +264,7 @@ def run(mode: str, batch_id: str):
 
     # ── 2. Scrapers locales PE ───────────────────────────────────────
     if mode in ("normal", "local_only", "full"):
-        log.info("\n[2/8] 🇵🇪 Tiendas locales PE")
+        log.info("\n[2/9] 🇵🇪 Tiendas locales PE (Falabella + Hiraoka)")
         try:
             local_records = scrape_local(batch_id)
             p = save_batch(local_records, batch_id, "local")
@@ -244,9 +277,26 @@ def run(mode: str, batch_id: str):
     else:
         stats["local"] = 0
 
-    # ── 3. eBay ──────────────────────────────────────────────────────
+    # ── 3. MercadoLibre PE ───────────────────────────────────────────
+    if _HAS_MELI and mode in ("normal", "local_only", "full"):
+        log.info("\n[3/9] 🛍️ MercadoLibre PE")
+        try:
+            meli_records = scrape_mercadolibre(batch_id)
+            p = save_batch(meli_records, batch_id, "mercadolibre")
+            batches.append(p)
+            stats["mercadolibre_pe"] = len(meli_records)
+            log.info(f"  ✅ MeLi PE: {len(meli_records):,} registros")
+        except Exception as e:
+            log.error(f"  ❌ MeLi PE: {e}")
+            stats["mercadolibre_pe"] = 0
+    else:
+        if not _HAS_MELI:
+            log.warning("  ⚠️  [3/9] MeLi PE omitido — scraper no disponible")
+        stats["mercadolibre_pe"] = 0
+
+    # ── 4. eBay ──────────────────────────────────────────────────────
     if mode in ("normal", "historical", "full"):
-        log.info("\n[3/8] 🛒 eBay USA")
+        log.info("\n[4/9] 🛒 eBay USA")
         try:
             ebay_records = scrape_ebay(batch_id)
             p = save_batch(ebay_records, batch_id, "ebay")
@@ -259,9 +309,9 @@ def run(mode: str, batch_id: str):
     else:
         stats["ebay"] = 0
 
-    # ── 4. CamelCamelCamel ───────────────────────────────────────────
+    # ── 5. CamelCamelCamel ───────────────────────────────────────────
     if mode in ("historical", "full"):
-        log.info("\n[4/8] 🐪 CamelCamelCamel")
+        log.info("\n[5/9] 🐪 CamelCamelCamel")
         try:
             camel_records = scrape_camel(batch_id)
             p = save_batch(camel_records, batch_id, "camel")
@@ -274,9 +324,9 @@ def run(mode: str, batch_id: str):
     else:
         stats["camel"] = 0
 
-    # ── 5. PCPartPicker ──────────────────────────────────────────────
+    # ── 6. PCPartPicker ──────────────────────────────────────────────
     if mode in ("historical", "full"):
-        log.info("\n[5/8] 🖥️ PCPartPicker")
+        log.info("\n[6/9] 🖥️ PCPartPicker")
         try:
             pcp_records = scrape_pcpartpicker(batch_id)
             p = save_batch(pcp_records, batch_id, "pcpartpicker")
@@ -289,9 +339,9 @@ def run(mode: str, batch_id: str):
     else:
         stats["pcpartpicker"] = 0
 
-    # ── 6. Kaggle ────────────────────────────────────────────────────
+    # ── 7. Kaggle ────────────────────────────────────────────────────
     if mode in ("kaggle_only", "full"):
-        log.info("\n[6/8] 📦 Kaggle datasets")
+        log.info("\n[7/9] 📦 Kaggle datasets")
         try:
             kaggle_records = scrape_kaggle(batch_id)
             p = save_batch(kaggle_records, batch_id, "kaggle")
@@ -304,9 +354,9 @@ def run(mode: str, batch_id: str):
     else:
         stats["kaggle"] = 0
 
-    # ── 7. Importación ───────────────────────────────────────────────
+    # ── 8. Importación ───────────────────────────────────────────────
     if _HAS_IMPORTACION and mode in ("normal", "historical", "full"):
-        log.info("\n[7/8] 📦 Precios de importación")
+        log.info("\n[8/9] 📦 Precios de importación")
         try:
             imp_records = scrape_importacion(batch_id)
             p = save_batch(imp_records, batch_id, "importacion")
@@ -319,9 +369,9 @@ def run(mode: str, batch_id: str):
     else:
         stats["importacion"] = 0
 
-    # ── 8. Competencia ───────────────────────────────────────────────
+    # ── 9. Competencia ───────────────────────────────────────────────
     if _HAS_COMPETENCIA and mode in ("normal", "local_only", "full"):
-        log.info("\n[8/8] 🔍 Competencia local PE")
+        log.info("\n[9/9] 🔍 Competencia local PE")
         try:
             comp_records = scrape_competencia(batch_id)
             p = save_batch(comp_records, batch_id, "competencia")
@@ -369,7 +419,7 @@ def run(mode: str, batch_id: str):
 
 def _parse_args():
     parser = argparse.ArgumentParser(
-        description="Pipeline de recolección — tesis-hardware-peru v5.2",
+        description="Pipeline de recolección — tesis-hardware-peru v5.3",
         formatter_class=argparse.RawTextHelpFormatter,
     )
     parser.add_argument(
@@ -378,11 +428,11 @@ def _parse_args():
         choices=["normal", "local_only", "historical", "kaggle_only", "full"],
         help=(
             "Modo de ejecución:\n"
-            "  normal      → local PE + eBay + importacion (~25 min)\n"
-            "  local_only  → solo Falabella/Ripley/Hiraoka (~17 min)\n"
+            "  normal      → local PE + MeLi PE + eBay + importacion (~35 min)\n"
+            "  local_only  → Falabella/Hiraoka + MeLi PE (~22 min)\n"
             "  historical  → eBay + CamelCamelCamel + PCPartPicker (~39 min)\n"
             "  kaggle_only → solo descarga Kaggle (~30 min)\n"
-            "  full        → todo (~86 min) ⚠️ supera timeout de 55 min"
+            "  full        → todo (~95 min) ⚠️ supera timeout de 55 min"
         ),
     )
     parser.add_argument(
