@@ -1,23 +1,24 @@
 """
-scraper_competencia.py  v3.0
+scraper_competencia.py  v4.0
 ════════════════════════════
 Fuentes de PRECIO DE COMPETENCIA (referencia precio techo PE):
-  - Falabella PE  (API JSON interna + fallback HTML)
-  - Ripley PE     (PENDIENTE — 403 Cloudflare, requiere playwright)
-  - Hiraoka PE    (HTML Magento 2 — búsqueda por texto, con fallback categoría)
+  - Falabella PE   (API JSON v2 + fallback HTML)
+  - Hiraoka PE     (HTML Magento 2 — categoría directa + fallback búsqueda)
+  - Coolbox PE     (HTML — tienda especializada hardware/gaming)
+  - Compumundo PE  (HTML Magento 2 — hardware y componentes)
+  - Ripley PE      (PENDIENTE — 403 Cloudflare, requiere playwright)
 
-Fixes v3.0 (sobre v2.0):
-  - [SC1]  _headers()/_json_headers(): UA rotativo via fake_useragent
-  - [SC2]  FalabellaScraper._parse_api: intenta data['results'] antes de recursión
-  - [SC3]  RipleyScraper: movida a bloque comentado con nota de playwright
-  - [SC4]  HiraokaScraper.search(): fallback a _fetch_search() si _fetch_category()=0
-           → causa raíz del Hiraoka (competencia) = 0 registros
-  - [SC5]  HiraokaScraper: paginación documentada como limitada (Hiraoka ignora ?p>1)
-  - [SC6]  HiraokaScraper._parse_html: selectores unificados con scraper_local.py
-  - [SC7]  _dedup(): fingerprint usa title[:100] en lugar de title[:60]
-  - [SC8]  Warning de Ripley emitido UNA vez al inicio, no en cada iteración
-  - [SC9]  __main__: datetime.now(timezone.utc) — naive datetime corregido
-  - [SC10] COMP_FIELDS_PUBLIC aplicado en el retorno de scrape_competencia()
+Fixes v4.0 (sobre v3.0):
+  - [SC11] FalabellaScraper: API migrada a v2 + zona Lima (150101)
+  - [SC12] HiraokaScraper: CATEGORY_PATHS actualizados (/componentes/*)
+  - [SC13] _parse_price_str: limpieza explícita de "S/." antes del regex
+  - [SC14] _make_session(): sesión con retry automático (3 intentos, backoff)
+  - [SC15] MAX_QUERIES_PER_CAT: limita queries por categoría (default=2, env override)
+  - [SC16] price_pen validado con MIN/MAX (evita precios absurdos)
+  - [SC17] CoolboxScraper: nuevo scraper HTML para coolbox.pe
+  - [SC18] CompumundoScraper: nuevo scraper HTML Magento 2 para compumundo.com.pe
+  - [SC19] scrape_competencia(): sources default incluye coolbox + compumundo
+  - [SC20] DELAY_CAT aumentado a 6.0s para Hiraoka/Coolbox/Compumundo
 """
 
 import os
@@ -26,15 +27,16 @@ import time
 import json
 import hashlib
 import logging
-import csv
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 from bs4 import BeautifulSoup
 
-# [SC1] UA rotativo — consistente con scraper_camel v3.0
+# ── UA rotativo ────────────────────────────────────────────────────────────
 try:
     from fake_useragent import UserAgent as _UA
     _ua_gen = _UA()
@@ -49,13 +51,30 @@ _UA_FALLBACK = (
 
 log = logging.getLogger(__name__)
 
-OUTPUT_DIR = Path(os.getenv("OUTPUT_DIR", "data/raw"))
-MAX_PAGES  = int(os.getenv("MAX_PAGES_COMP", "5"))
-DELAY_REQ  = float(os.getenv("DELAY_REQ", "2.0"))
-DELAY_CAT  = float(os.getenv("DELAY_CAT", "4.0"))
+OUTPUT_DIR        = Path(os.getenv("OUTPUT_DIR", "data/raw"))
+MAX_PAGES         = int(os.getenv("MAX_PAGES_COMP", "5"))
+DELAY_REQ         = float(os.getenv("DELAY_REQ", "2.0"))
+DELAY_CAT         = float(os.getenv("DELAY_CAT", "6.0"))          # [SC20]
+MAX_QUERIES_PER_CAT = int(os.getenv("MAX_QUERIES_COMP", "2"))     # [SC15]
+PRICE_MIN         = float(os.getenv("PRICE_MIN_PEN", "10.0"))     # [SC16]
+PRICE_MAX         = float(os.getenv("PRICE_MAX_PEN", "50000.0"))  # [SC16]
 
 
-# ── [SC1] Helpers de headers con UA rotativo ──────────────────────────────
+# ── [SC14] Sesión con retry automático ────────────────────────────────────
+def _make_session() -> requests.Session:
+    """Sesión HTTP con reintentos automáticos en errores 429/5xx."""
+    s     = requests.Session()
+    retry = Retry(
+        total=3,
+        backoff_factor=1.5,
+        status_forcelist=[429, 500, 502, 503, 504],
+        allowed_methods=["GET"],
+    )
+    s.mount("https://", HTTPAdapter(max_retries=retry))
+    s.mount("http://",  HTTPAdapter(max_retries=retry))
+    return s
+
+
 def _get_ua() -> str:
     return _ua_gen.random if _ua_gen else _UA_FALLBACK
 
@@ -75,11 +94,13 @@ def _json_headers(referer="") -> dict:
     }
 
 
-# ── Parser de precios robusto ─────────────────────────────────────────────
+# ── [SC13] Parser de precios — limpieza explícita de S/. ─────────────────
 def _parse_price_str(text: str) -> Optional[float]:
     if not text:
         return None
-    clean = re.sub(r"[^\d,.]", "", str(text).strip())
+    # [SC13] Remover símbolo de moneda peruano antes del regex
+    clean = re.sub(r"[Ss]/\.?\s*", "", str(text).strip())
+    clean = re.sub(r"[^\d,.]", "", clean)
     if not clean:
         return None
     try:
@@ -97,6 +118,11 @@ def _parse_price_str(text: str) -> Optional[float]:
         return val if val > 0 else None
     except ValueError:
         return None
+
+
+# ── [SC16] Validador de precio dentro de rango razonable ─────────────────
+def _valid_price(price: float) -> bool:
+    return PRICE_MIN <= price <= PRICE_MAX
 
 
 # ── Queries por categoría ─────────────────────────────────────────────────
@@ -137,7 +163,6 @@ CATEGORY_QUERIES_PE = {
     ],
 }
 
-# [SC10] Esquema público — aplicado en el retorno de scrape_competencia()
 COMP_FIELDS_PUBLIC = [
     "batch_id", "source", "category", "title",
     "price_pen", "price_orig_pen",
@@ -150,7 +175,11 @@ COMP_FIELDS_PUBLIC = [
 # SCRAPER 1 — FALABELLA PE
 # ══════════════════════════════════════════════════════════════════════════
 class FalabellaScraper:
-    API_BASE = "https://www.falabella.com.pe/s/browse/v1/listing/pe"
+    # [SC11] Migrado a v2 + zona Lima Metropolitana
+    API_BASE = "https://www.falabella.com.pe/s/browse/v2/listing/pe"
+
+    def __init__(self):
+        self._session = _make_session()  # [SC14]
 
     def search(self, query: str, category: str, batch_id: str,
                max_pages: int = MAX_PAGES) -> list:
@@ -167,11 +196,17 @@ class FalabellaScraper:
 
     def _fetch_page(self, query, page, category, batch_id):
         try:
-            params = {"Ntt": query, "page": page, "imageSize": "zoom", "zones": "15"}
-            resp   = requests.get(
+            # [SC11] zones=150101 (Lima Metropolitana)
+            params = {
+                "Ntt":       query,
+                "page":      page,
+                "imageSize": "zoom",
+                "zones":     "150101",
+            }
+            resp = self._session.get(
                 self.API_BASE, params=params,
                 headers=_json_headers("https://www.falabella.com.pe/"),
-                timeout=20
+                timeout=20,
             )
             if resp.status_code == 200:
                 data  = resp.json()
@@ -186,7 +221,6 @@ class FalabellaScraper:
         items = []
         ts    = datetime.now(timezone.utc).isoformat()
 
-        # [SC2] Intentar claves directas antes de recursión
         products = (
             data.get("results") or
             data.get("products") or
@@ -195,7 +229,6 @@ class FalabellaScraper:
             []
         )
 
-        # Fallback recursivo solo si las claves directas no funcionan
         if not products:
             def extract_products(obj, depth=0):
                 if depth > 4:
@@ -265,6 +298,10 @@ class FalabellaScraper:
                                 price_pen = parsed
                                 break
 
+                # [SC16] Validar rango de precio
+                if not _valid_price(price_pen):
+                    continue
+
                 discount = 0.0
                 if price_orig > 0 and price_pen > 0 and price_orig > price_pen:
                     discount = round((price_orig - price_pen) / price_orig * 100, 1)
@@ -276,7 +313,7 @@ class FalabellaScraper:
                 rating    = float(p.get("rating") or p.get("averageRating") or 0)
                 available = bool(p.get("available") or p.get("isAvailable") or p.get("stock"))
 
-                if price_pen > 0 and title:
+                if title:
                     items.append({
                         "batch_id":       batch_id,
                         "source":         "falabella",
@@ -299,7 +336,7 @@ class FalabellaScraper:
         try:
             url  = (f"https://www.falabella.com.pe/falabella-pe/search"
                     f"?Ntt={requests.utils.quote(query)}&page={page}")
-            resp = requests.get(
+            resp = self._session.get(
                 url, headers=_headers("https://www.falabella.com.pe/"), timeout=20
             )
             if resp.status_code != 200:
@@ -336,7 +373,7 @@ class FalabellaScraper:
                         continue
                     title = title_el.get_text(strip=True)
                     price = _parse_price_str(price_el.get_text(strip=True)) or 0.0
-                    if price > 0 and title:
+                    if _valid_price(price) and title:  # [SC16]
                         items.append({
                             "batch_id": batch_id, "source": "falabella",
                             "category": category, "title": title[:200],
@@ -355,17 +392,11 @@ class FalabellaScraper:
 
 # ══════════════════════════════════════════════════════════════════════════
 # SCRAPER 2 — RIPLEY PE
-# [SC3] PENDIENTE: requiere playwright para bypass Cloudflare 403
-# Clase conservada para implementación futura — NO se instancia en producción
+# PENDIENTE: requiere playwright para bypass Cloudflare 403
 # ══════════════════════════════════════════════════════════════════════════
 # class RipleyScraper:
-#     """
 #     DESHABILITADO — Cloudflare JS Challenge bloquea requests estándar.
-#     Implementación futura: usar playwright con stealth plugin.
-#     Ver: https://playwright.dev/python/docs/intro
-#     """
-#     API_BASE = "https://simple.ripley.com.pe/api/search"
-#     ... (implementación completa en scraper_ripley.py cuando se habilite)
+#     Implementación futura: playwright + stealth plugin.
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -374,31 +405,27 @@ class FalabellaScraper:
 class HiraokaScraper:
     BASE = "https://www.hiraoka.com.pe"
 
-    # [SC4] Paths de categoría — pueden ser 404. search() tiene fallback a _fetch_search()
+    # [SC12] Paths actualizados a estructura /componentes/* (2026)
     CATEGORY_PATHS = {
-        "CPU":         "/procesadores-y-accesorios",
-        "GPU":         "/tarjetas-de-video",
-        "RAM":         "/memorias-ram",
-        "SSD":         "/discos-solidos-ssd",
-        "MOTHERBOARD": "/placas-madre",
-        "PSU":         "/fuentes-de-poder",
-        "COOLER":      "/coolers-cpu",
-        "CASE":        "/cases-gabinetes",
+        "CPU":         "/componentes/procesadores",
+        "GPU":         "/componentes/tarjetas-de-video",
+        "RAM":         "/componentes/memorias-ram",
+        "SSD":         "/componentes/discos-solidos",
+        "MOTHERBOARD": "/componentes/placas-madre",
+        "PSU":         "/componentes/fuentes-de-poder",
+        "COOLER":      "/componentes/refrigeracion",
+        "CASE":        "/componentes/cases-y-gabinetes",
     }
+
+    def __init__(self):
+        self._session = _make_session()  # [SC14]
 
     def search(self, query: str, category: str, batch_id: str,
                max_pages: int = MAX_PAGES) -> list:
-        """
-        [SC4] Estrategia de búsqueda con fallback:
-          1. Intenta URL de categoría directa (_fetch_category)
-          2. Si retorna 0, usa búsqueda por texto (_fetch_search) — igual que scraper_local
-        [SC5] Nota: Hiraoka ignora ?p>1 (paginación AJAX) → máximo ~20 items/cat
-        """
         items    = []
         cat_path = self.CATEGORY_PATHS.get(category)
 
         if cat_path:
-            # Intento 1: URL de categoría directa
             for page in range(1, max_pages + 1):
                 log.info(f"  [Hiraoka] {category} | categoría directa | pág {page}")
                 page_items = self._fetch_category(cat_path, page, category, batch_id)
@@ -408,9 +435,8 @@ class HiraokaScraper:
                     break
                 time.sleep(DELAY_REQ)
 
-            # [SC4] Fallback: si categoría directa no funcionó, usar búsqueda por texto
             if not items:
-                log.info(f"  [Hiraoka] {category} | categoría directa=0 → fallback búsqueda")
+                log.info(f"  [Hiraoka] {category} | cat=0 → fallback búsqueda")
                 for page in range(1, min(max_pages, 3) + 1):
                     log.info(f"  [Hiraoka] {category} | búsqueda '{query[:30]}' | pág {page}")
                     page_items = self._fetch_search(query, page, category, batch_id)
@@ -434,7 +460,7 @@ class HiraokaScraper:
     def _fetch_category(self, cat_path, page, category, batch_id):
         try:
             url  = f"{self.BASE}{cat_path}?p={page}"
-            resp = requests.get(
+            resp = self._session.get(
                 url, headers=_headers(self.BASE + "/"), timeout=25
             )
             if resp.status_code == 404:
@@ -452,7 +478,7 @@ class HiraokaScraper:
         try:
             url  = (f"{self.BASE}/catalogsearch/result/"
                     f"?q={requests.utils.quote(query)}&p={page}")
-            resp = requests.get(
+            resp = self._session.get(
                 url, headers=_headers(self.BASE + "/"), timeout=25
             )
             if resp.status_code != 200:
@@ -467,15 +493,12 @@ class HiraokaScraper:
         items = []
         ts    = datetime.now(timezone.utc).isoformat()
 
-        # [SC6] Selectores unificados con scraper_local.py
-        # Orden: más específico → más genérico
         cards = []
         for sel in [
             "li.product-item",
             "div.product-item-info",
             "li[class*='item product']",
             "div[class*='product-item']",
-            # Selectores adicionales del HTML actual de Hiraoka (Magento 2.4+)
             "div.product-item-details",
             "article[class*='product']",
             "div[data-product-id]",
@@ -495,7 +518,6 @@ class HiraokaScraper:
                     card.select_one("strong.product-item-name a") or
                     card.select_one("a[class*='product-item-link']") or
                     card.select_one("span[class*='product-name']") or
-                    # [SC6] Selectores adicionales para Magento 2.4+
                     card.select_one("a[class*='product-name']") or
                     card.select_one("h2.product-name a") or
                     card.select_one("h3[class*='product'] a")
@@ -513,7 +535,6 @@ class HiraokaScraper:
                     card.select_one("span[data-price-type='finalPrice'] span.price") or
                     card.select_one("span[class*='price-final'] span.price") or
                     card.select_one("span.special-price span.price") or
-                    # [SC6] Selectores adicionales
                     card.select_one("span[data-price-type='minPrice'] span.price") or
                     card.select_one("span.price")
                 )
@@ -528,7 +549,8 @@ class HiraokaScraper:
                 if orig_el:
                     price_orig = _parse_price_str(orig_el.get_text(strip=True)) or 0.0
 
-                if price_pen == 0:
+                # [SC16] Validar rango
+                if not _valid_price(price_pen):
                     continue
 
                 discount = 0.0
@@ -585,20 +607,391 @@ class HiraokaScraper:
 
 
 # ══════════════════════════════════════════════════════════════════════════
+# SCRAPER 4 — COOLBOX PE  [SC17]
+# Tienda especializada en hardware/gaming — HTML estático
+# ══════════════════════════════════════════════════════════════════════════
+class CoolboxScraper:
+    BASE = "https://www.coolbox.pe"
+
+    # Paths de categoría de Coolbox (estructura 2025-2026)
+    CATEGORY_PATHS = {
+        "CPU":         "/procesadores",
+        "GPU":         "/tarjetas-de-video",
+        "RAM":         "/memorias-ram",
+        "SSD":         "/almacenamiento/discos-solidos-ssd",
+        "MOTHERBOARD": "/placas-madre",
+        "PSU":         "/fuentes-de-poder",
+        "COOLER":      "/refrigeracion",
+        "CASE":        "/cases",
+    }
+
+    def __init__(self):
+        self._session = _make_session()
+
+    def search(self, query: str, category: str, batch_id: str,
+               max_pages: int = MAX_PAGES) -> list:
+        items    = []
+        cat_path = self.CATEGORY_PATHS.get(category)
+
+        # Intento 1: URL de categoría directa
+        if cat_path:
+            for page in range(1, max_pages + 1):
+                log.info(f"  [Coolbox] {category} | categoría directa | pág {page}")
+                page_items = self._fetch_category(cat_path, page, category, batch_id)
+                items.extend(page_items)
+                log.info(f"    → {len(page_items)} items (total: {len(items)})")
+                if not page_items:
+                    break
+                time.sleep(DELAY_REQ)
+
+        # Fallback: búsqueda por texto si categoría no dio resultados
+        if not items:
+            log.info(f"  [Coolbox] {category} | fallback búsqueda '{query[:30]}'")
+            for page in range(1, min(max_pages, 3) + 1):
+                page_items = self._fetch_search(query, page, category, batch_id)
+                items.extend(page_items)
+                log.info(f"    → {len(page_items)} items (total: {len(items)})")
+                if not page_items:
+                    break
+                time.sleep(DELAY_REQ)
+
+        return items
+
+    def _fetch_category(self, cat_path, page, category, batch_id):
+        try:
+            url  = f"{self.BASE}{cat_path}?page={page}"
+            resp = self._session.get(
+                url, headers=_headers(self.BASE + "/"), timeout=25
+            )
+            if resp.status_code == 404:
+                return []
+            if resp.status_code != 200:
+                log.warning(f"    Coolbox HTTP {resp.status_code}: {url}")
+                return []
+            return self._parse_html(resp.text, category, batch_id, base_url=url)
+        except Exception as e:
+            log.error(f"    Coolbox category error: {e}")
+            return []
+
+    def _fetch_search(self, query, page, category, batch_id):
+        try:
+            url  = f"{self.BASE}/search?q={requests.utils.quote(query)}&page={page}"
+            resp = self._session.get(
+                url, headers=_headers(self.BASE + "/"), timeout=25
+            )
+            if resp.status_code != 200:
+                return []
+            return self._parse_html(resp.text, category, batch_id, base_url=url)
+        except Exception as e:
+            log.error(f"    Coolbox search error: {e}")
+            return []
+
+    def _parse_html(self, html, category, batch_id, base_url=""):
+        soup  = BeautifulSoup(html, "html.parser")
+        items = []
+        ts    = datetime.now(timezone.utc).isoformat()
+
+        # Coolbox usa estructura tipo Shopify/WooCommerce
+        cards = []
+        for sel in [
+            "div.product-card",
+            "div[class*='product-card']",
+            "article.product-item",
+            "div[class*='ProductCard']",
+            "li.grid__item",
+            "div.grid-product",
+            "div[class*='product-grid-item']",
+            "div[data-product-id]",
+        ]:
+            cards = soup.select(sel)
+            if cards:
+                break
+
+        if not cards:
+            log.debug(f"    Coolbox: sin tarjetas en {base_url}")
+            return []
+
+        for card in cards:
+            try:
+                # Título
+                title_el = (
+                    card.select_one("h2.product-card__title") or
+                    card.select_one("h3.product-card__title") or
+                    card.select_one("a.product-card__title") or
+                    card.select_one("span[class*='product-title']") or
+                    card.select_one("h2[class*='title']") or
+                    card.select_one("h3[class*='title']") or
+                    card.select_one("a[class*='title']") or
+                    card.select_one("p.grid-product__title")
+                )
+                if not title_el:
+                    continue
+                title = title_el.get_text(strip=True)
+                if not title:
+                    continue
+
+                # Precio
+                price_pen  = 0.0
+                price_orig = 0.0
+
+                price_el = (
+                    card.select_one("span.product-card__price") or
+                    card.select_one("span[class*='price--sale']") or
+                    card.select_one("span[class*='price']") or
+                    card.select_one("div[class*='price']") or
+                    card.select_one("p.grid-product__price")
+                )
+                if price_el:
+                    price_pen = _parse_price_str(price_el.get_text(strip=True)) or 0.0
+
+                orig_el = (
+                    card.select_one("span[class*='price--compare']") or
+                    card.select_one("s[class*='price']") or
+                    card.select_one("span.compare-price")
+                )
+                if orig_el:
+                    price_orig = _parse_price_str(orig_el.get_text(strip=True)) or 0.0
+
+                # [SC16] Validar rango
+                if not _valid_price(price_pen):
+                    continue
+
+                discount = 0.0
+                if price_orig > price_pen > 0:
+                    discount = round((price_orig - price_pen) / price_orig * 100, 1)
+
+                # URL del producto
+                link_el  = card.select_one("a[href]")
+                item_url = link_el.get("href", "") if link_el else ""
+                if item_url and not item_url.startswith("http"):
+                    item_url = self.BASE + item_url
+
+                # Marca — extraída del título si no hay campo explícito
+                brand_el = card.select_one("span[class*='brand']") or card.select_one("div[class*='vendor']")
+                brand    = brand_el.get_text(strip=True) if brand_el else ""
+
+                # Stock
+                stock_el  = card.select_one("span[class*='stock']") or card.select_one("div[class*='badge']")
+                available = True
+                if stock_el:
+                    txt = stock_el.get_text(strip=True).lower()
+                    available = "agotado" not in txt and "sin stock" not in txt and "out of stock" not in txt
+
+                items.append({
+                    "batch_id":       batch_id,
+                    "source":         "coolbox",
+                    "category":       category,
+                    "title":          title[:200],
+                    "price_pen":      round(price_pen, 2),
+                    "price_orig_pen": round(price_orig, 2),
+                    "discount_pct":   discount,
+                    "url":            item_url[:300],
+                    "brand":          brand[:100],
+                    "available":      available,
+                    "rating":         0.0,
+                    "timestamp":      ts,
+                })
+            except Exception as e:
+                log.debug(f"    parse Coolbox card error: {e}")
+                continue
+
+        return items
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# SCRAPER 5 — COMPUMUNDO PE  [SC18]
+# Hardware y componentes — HTML Magento 2 (similar a Hiraoka)
+# ══════════════════════════════════════════════════════════════════════════
+class CompumundoScraper:
+    BASE = "https://www.compumundo.com.pe"
+
+    CATEGORY_PATHS = {
+        "CPU":         "/procesadores",
+        "GPU":         "/tarjetas-de-video",
+        "RAM":         "/memorias",
+        "SSD":         "/almacenamiento/ssd",
+        "MOTHERBOARD": "/placas-madre",
+        "PSU":         "/fuentes-de-poder",
+        "COOLER":      "/refrigeracion",
+        "CASE":        "/cases",
+    }
+
+    def __init__(self):
+        self._session = _make_session()
+
+    def search(self, query: str, category: str, batch_id: str,
+               max_pages: int = MAX_PAGES) -> list:
+        items    = []
+        cat_path = self.CATEGORY_PATHS.get(category)
+
+        if cat_path:
+            for page in range(1, max_pages + 1):
+                log.info(f"  [Compumundo] {category} | categoría directa | pág {page}")
+                page_items = self._fetch_category(cat_path, page, category, batch_id)
+                items.extend(page_items)
+                log.info(f"    → {len(page_items)} items (total: {len(items)})")
+                if not page_items:
+                    break
+                time.sleep(DELAY_REQ)
+
+        if not items:
+            log.info(f"  [Compumundo] {category} | fallback búsqueda '{query[:30]}'")
+            for page in range(1, min(max_pages, 3) + 1):
+                page_items = self._fetch_search(query, page, category, batch_id)
+                items.extend(page_items)
+                log.info(f"    → {len(page_items)} items (total: {len(items)})")
+                if not page_items:
+                    break
+                time.sleep(DELAY_REQ)
+
+        return items
+
+    def _fetch_category(self, cat_path, page, category, batch_id):
+        try:
+            url  = f"{self.BASE}{cat_path}?p={page}"
+            resp = self._session.get(
+                url, headers=_headers(self.BASE + "/"), timeout=25
+            )
+            if resp.status_code == 404:
+                return []
+            if resp.status_code != 200:
+                log.warning(f"    Compumundo HTTP {resp.status_code}: {url}")
+                return []
+            return self._parse_html(resp.text, category, batch_id, base_url=url)
+        except Exception as e:
+            log.error(f"    Compumundo category error: {e}")
+            return []
+
+    def _fetch_search(self, query, page, category, batch_id):
+        try:
+            url  = (f"{self.BASE}/catalogsearch/result/"
+                    f"?q={requests.utils.quote(query)}&p={page}")
+            resp = self._session.get(
+                url, headers=_headers(self.BASE + "/"), timeout=25
+            )
+            if resp.status_code != 200:
+                return []
+            return self._parse_html(resp.text, category, batch_id, base_url=url)
+        except Exception as e:
+            log.error(f"    Compumundo search error: {e}")
+            return []
+
+    def _parse_html(self, html, category, batch_id, base_url=""):
+        """Parser Magento 2 — reutiliza misma lógica que HiraokaScraper."""
+        soup  = BeautifulSoup(html, "html.parser")
+        items = []
+        ts    = datetime.now(timezone.utc).isoformat()
+
+        cards = []
+        for sel in [
+            "li.product-item",
+            "div.product-item-info",
+            "li[class*='item product']",
+            "div[class*='product-item']",
+            "article[class*='product']",
+            "div[data-product-id]",
+        ]:
+            cards = soup.select(sel)
+            if cards:
+                break
+
+        if not cards:
+            log.debug(f"    Compumundo: sin tarjetas en {base_url}")
+            return []
+
+        for card in cards:
+            try:
+                title_el = (
+                    card.select_one("a.product-item-link") or
+                    card.select_one("strong.product-item-name a") or
+                    card.select_one("a[class*='product-item-link']") or
+                    card.select_one("span[class*='product-name']") or
+                    card.select_one("h2.product-name a") or
+                    card.select_one("h3[class*='product'] a")
+                )
+                if not title_el:
+                    continue
+                title = title_el.get_text(strip=True)
+                if not title:
+                    continue
+
+                price_pen  = 0.0
+                price_orig = 0.0
+
+                final_el = (
+                    card.select_one("span[data-price-type='finalPrice'] span.price") or
+                    card.select_one("span.special-price span.price") or
+                    card.select_one("span[data-price-type='minPrice'] span.price") or
+                    card.select_one("span.price")
+                )
+                if final_el:
+                    price_pen = _parse_price_str(final_el.get_text(strip=True)) or 0.0
+
+                orig_el = (
+                    card.select_one("span[data-price-type='oldPrice'] span.price") or
+                    card.select_one("span.old-price span.price") or
+                    card.select_one("span[class*='regular-price'] span.price")
+                )
+                if orig_el:
+                    price_orig = _parse_price_str(orig_el.get_text(strip=True)) or 0.0
+
+                # [SC16] Validar rango
+                if not _valid_price(price_pen):
+                    continue
+
+                discount = 0.0
+                if price_orig > price_pen > 0:
+                    discount = round((price_orig - price_pen) / price_orig * 100, 1)
+
+                link_el  = (card.select_one("a.product-item-link") or
+                            card.select_one("a[href*='compumundo']"))
+                item_url = link_el.get("href", "") if link_el else ""
+                if item_url and not item_url.startswith("http"):
+                    item_url = self.BASE + item_url
+
+                brand_el = (
+                    card.select_one("div.product-item-brand") or
+                    card.select_one("span[class*='brand']") or
+                    card.select_one("div[class*='manufacturer']")
+                )
+                brand = brand_el.get_text(strip=True) if brand_el else ""
+
+                stock_el  = card.select_one("div.stock") or card.select_one("span[class*='stock']")
+                available = True
+                if stock_el:
+                    available = "unavailable" not in stock_el.get("class", [])
+
+                items.append({
+                    "batch_id":       batch_id,
+                    "source":         "compumundo",
+                    "category":       category,
+                    "title":          title[:200],
+                    "price_pen":      round(price_pen, 2),
+                    "price_orig_pen": round(price_orig, 2),
+                    "discount_pct":   discount,
+                    "url":            item_url[:300],
+                    "brand":          brand[:100],
+                    "available":      available,
+                    "rating":         0.0,
+                    "timestamp":      ts,
+                })
+            except Exception as e:
+                log.debug(f"    parse Compumundo card error: {e}")
+                continue
+
+        return items
+
+
+# ══════════════════════════════════════════════════════════════════════════
 # DEDUPLICACIÓN EN MEMORIA
 # ══════════════════════════════════════════════════════════════════════════
 def _dedup(records: list) -> list:
-    """
-    Elimina duplicados por fingerprint MD5 (source|title|price).
-    [SC7] Usa title[:100] en lugar de title[:60] para evitar falsos duplicados.
-    """
     seen = set()
     out  = []
     for r in records:
-        # [SC7] title[:100] — reduce falsos duplicados en títulos largos
         key = f"{r.get('source')}|{r.get('title','')[:100]}|{r.get('price_pen',0)}"
         fp  = hashlib.md5(key.encode()).hexdigest()[:12]
-        if fp not in seen and float(r.get("price_pen", 0)) > 0:
+        if fp not in seen and _valid_price(float(r.get("price_pen", 0))):
             seen.add(fp)
             out.append(r)
     return out
@@ -615,28 +1008,33 @@ def scrape_competencia(
     """
     Scraper de precios de competencia PE.
     Retorna list[dict] compatible con save_batch() de main.py.
+
+    sources disponibles: falabella, hiraoka, coolbox, compumundo
+    (ripley: PENDIENTE — requiere playwright)
     """
     if sources is None:
-        # [SC8] 'ripley' removido del default hasta que esté habilitado
-        sources = ["falabella", "hiraoka"]
+        # [SC19] Incluye coolbox + compumundo por defecto
+        sources = ["falabella", "hiraoka", "coolbox", "compumundo"]
     if categories is None:
         categories = list(CATEGORY_QUERIES_PE.keys())
 
     scrapers = {}
-    if "falabella" in sources:
-        scrapers["falabella"] = FalabellaScraper()
-    if "ripley" in sources:
-        # [SC8] Warning emitido UNA vez al inicio, no en cada iteración del loop
+    if "falabella"  in sources: scrapers["falabella"]  = FalabellaScraper()
+    if "hiraoka"    in sources: scrapers["hiraoka"]    = HiraokaScraper()
+    if "coolbox"    in sources: scrapers["coolbox"]    = CoolboxScraper()    # [SC17]
+    if "compumundo" in sources: scrapers["compumundo"] = CompumundoScraper() # [SC18]
+    if "ripley"     in sources:
         log.warning("[Ripley] DESHABILITADO — 403 Cloudflare. Requiere playwright. Omitido.")
-    if "hiraoka" in sources:
-        scrapers["hiraoka"] = HiraokaScraper()
 
     all_records = []
 
     for category in categories:
         queries = CATEGORY_QUERIES_PE.get(category, [category.lower()])
+        # [SC15] Limitar número de queries por categoría
+        queries = queries[:MAX_QUERIES_PER_CAT]
+
         log.info(f"\n{'='*60}")
-        log.info(f"CATEGORÍA: {category} ({len(queries)} queries)")
+        log.info(f"CATEGORÍA: {category} ({len(queries)} queries / {MAX_QUERIES_PER_CAT} max)")
         log.info(f"{'='*60}")
 
         for query in queries:
@@ -647,7 +1045,7 @@ def scrape_competencia(
                 except Exception as e:
                     log.error(f"  [{src_name}] error en '{query}': {e}")
                 time.sleep(DELAY_REQ)
-            time.sleep(DELAY_CAT)
+            time.sleep(DELAY_CAT)  # [SC20]
 
     unique_records = _dedup(all_records)
 
@@ -656,7 +1054,6 @@ def scrape_competencia(
         f"(de {len(all_records):,} brutos)"
     )
 
-    # [SC10] Aplicar esquema público — excluye campos internos si los hubiera
     return [
         {k: r[k] for k in COMP_FIELDS_PUBLIC if k in r}
         for r in unique_records
@@ -676,7 +1073,6 @@ if __name__ == "__main__":
         format="%(asctime)s [%(levelname)s] %(name)s — %(message)s",
         datefmt="%H:%M:%S",
     )
-    # [SC9] datetime con timezone explícita
     batch_id = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
     results  = scrape_competencia(batch_id)
     print(f"\nTotal: {len(results)} registros")
