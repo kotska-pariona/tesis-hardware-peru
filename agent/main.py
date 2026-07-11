@@ -1,32 +1,26 @@
 #!/usr/bin/env python3
 """
-main.py — Orquestador v5.4
+main.py — Orquestador v5.5
 ════════════════════════════════════════════════════════════════════
-Fixes v5.4:
-  - [FIX-10] Integración Newegg USA (scraper_newegg.py)
-             Carga dinámica con importlib — no crashea si no existe
-             Precios en USD (price_usd) — sin conversión a PEN
-  - Paso [4/9] renumerado: eBay → [5/9], resto +1
-  - Paso [4/9] Newegg USA insertado entre MeLi PE y eBay
-  - FIELD_ORDER ya incluía price_usd — compatible sin cambios
-  - Modos normal/historical/full incluyen Newegg
-
-Fixes v5.3:
-  - [FIX-9] Integración MercadoLibre PE (scraper_mercadolibre.py)
-            Carga dinámica con importlib — no crashea si no existe
-  - Paso [3/9] MeLi PE insertado entre Local PE y eBay
-  - FIELD_ORDER ampliado con campos MeLi (condition, sold_qty, etc.)
-  - Modos normal/local_only incluyen MeLi PE
-
-Fixes v5.2:
-  - [FIX-8] importlib fuerza carga de agent/scrapers/ ignorando
-            el paquete scrapers de kagglesdk en site-packages
+Fixes v5.5 (sobre v5.4):
+  - [O1] importlib de scrapers/__init__.py: try/except + sys.exit(1)
+         Crashea ANTES de que logging esté activo → error solo en stderr
+  - [O2] Carga dinámica MeLi/Newegg: error real en warning (era 'pass')
+  - [O3] merge_to_master: dedup con md5 fingerprint para sku vacío
+         'if not sku → agrega siempre' → duplicados acumulativos por run
+  - [O4] save_report: 'new_added' real desde merge_to_master (era suma bruta)
+  - [O5] run(): escritura atómica del MASTER (tmp → rename) — evita
+         corrupción si GitHub Actions cancela a mitad del merge
+  - [O6] FIELD_ORDER: campos MeLi actualizados (v1.0 → v2.0)
+         sold_qty/seller_type → is_official_store/is_best_seller/etc.
+  - [O7] __main__: datetime.now(timezone.utc)
 """
 
 import sys
 import os
 import csv
 import json
+import hashlib
 import logging
 import argparse
 import time
@@ -34,7 +28,7 @@ import importlib.util
 from pathlib import Path
 from datetime import datetime, timezone
 
-# ── Paths ─────────────────────────────────────────────────────────────────
+# ── Paths ──────────────────────────────────────────────────────────────
 AGENT_DIR = Path(__file__).resolve().parent
 ROOT_DIR  = AGENT_DIR.parent
 DATA_DIR  = ROOT_DIR / "data" / "raw"
@@ -42,7 +36,7 @@ LOG_DIR   = ROOT_DIR / "data" / "logs"
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 LOG_DIR.mkdir(parents=True, exist_ok=True)
 
-# ── FIX-8: Forzar carga de agent/scrapers/ ANTES de cualquier import ──────
+# ── FIX-8 + [O1]: Forzar carga de agent/scrapers/ con error explícito ──
 _scrapers_path = AGENT_DIR / "scrapers" / "__init__.py"
 _spec = importlib.util.spec_from_file_location(
     "scrapers",
@@ -51,21 +45,26 @@ _spec = importlib.util.spec_from_file_location(
 )
 _mod = importlib.util.module_from_spec(_spec)
 sys.modules["scrapers"] = _mod
-_spec.loader.exec_module(_mod)
+try:
+    _spec.loader.exec_module(_mod)
+except Exception as _e:
+    # [O1] Logging aún no está activo → print a stderr + exit
+    print(f"FATAL: scrapers/__init__.py falló al cargar: {_e}", file=sys.stderr)
+    sys.exit(1)
 
 if str(AGENT_DIR) not in sys.path:
     sys.path.insert(0, str(AGENT_DIR))
 
-# ── FIX-9: Carga dinámica de MercadoLibre PE ──────────────────────────────
-_meli_path = AGENT_DIR / "scrapers" / "scraper_mercadolibre.py"
-_HAS_MELI  = False
+# ── [O2] Carga dinámica de MercadoLibre PE — error real en warning ──────
+_meli_path        = AGENT_DIR / "scrapers" / "scraper_mercadolibre.py"
+_HAS_MELI         = False
+_meli_load_error  = None
 scrape_mercadolibre = None
 
 if _meli_path.exists():
     try:
         _meli_spec = importlib.util.spec_from_file_location(
-            "scrapers.scraper_mercadolibre",
-            str(_meli_path),
+            "scrapers.scraper_mercadolibre", str(_meli_path),
         )
         _meli_mod = importlib.util.module_from_spec(_meli_spec)
         sys.modules["scrapers.scraper_mercadolibre"] = _meli_mod
@@ -73,18 +72,18 @@ if _meli_path.exists():
         scrape_mercadolibre = _meli_mod.scrape_mercadolibre
         _HAS_MELI = True
     except Exception as _e:
-        pass  # se loguea más abajo cuando logging ya está activo
+        _meli_load_error = str(_e)   # [O2] guardar para el warning
 
-# ── FIX-10: Carga dinámica de Newegg USA ──────────────────────────────────
-_newegg_path = AGENT_DIR / "scrapers" / "scraper_newegg.py"
-_HAS_NEWEGG  = False
-scrape_newegg = None
+# ── [O2] Carga dinámica de Newegg USA — error real en warning ───────────
+_newegg_path        = AGENT_DIR / "scrapers" / "scraper_newegg.py"
+_HAS_NEWEGG         = False
+_newegg_load_error  = None
+scrape_newegg       = None
 
 if _newegg_path.exists():
     try:
         _newegg_spec = importlib.util.spec_from_file_location(
-            "scrapers.scraper_newegg",
-            str(_newegg_path),
+            "scrapers.scraper_newegg", str(_newegg_path),
         )
         _newegg_mod = importlib.util.module_from_spec(_newegg_spec)
         sys.modules["scrapers.scraper_newegg"] = _newegg_mod
@@ -92,9 +91,9 @@ if _newegg_path.exists():
         scrape_newegg = _newegg_mod.scrape_newegg
         _HAS_NEWEGG = True
     except Exception as _e:
-        pass  # se loguea más abajo cuando logging ya está activo
+        _newegg_load_error = str(_e)   # [O2] guardar para el warning
 
-# ── Logging ───────────────────────────────────────────────────────────────
+# ── Logging ────────────────────────────────────────────────────────────
 LOG_FILE = LOG_DIR / "agent.log"
 logging.basicConfig(
     level=logging.INFO,
@@ -107,24 +106,21 @@ logging.basicConfig(
 )
 log = logging.getLogger("main")
 
-# ── Status de carga de scrapers opcionales ────────────────────────────────
+# ── Status de carga de scrapers opcionales ─────────────────────────────
 if not _HAS_MELI:
-    log.warning(
-        "[FIX-9] scraper_mercadolibre.py no encontrado o con error — "
-        "paso MeLi PE será omitido"
-    )
+    # [O2] Mostrar el error real, no solo "no encontrado o con error"
+    _meli_reason = f"error: {_meli_load_error}" if _meli_load_error else "archivo no encontrado"
+    log.warning(f"[FIX-9] scraper_mercadolibre.py no disponible ({_meli_reason}) — paso MeLi PE omitido")
 else:
     log.info("[FIX-9] scraper_mercadolibre.py cargado ✅")
 
 if not _HAS_NEWEGG:
-    log.warning(
-        "[FIX-10] scraper_newegg.py no encontrado o con error — "
-        "paso Newegg USA será omitido"
-    )
+    _newegg_reason = f"error: {_newegg_load_error}" if _newegg_load_error else "archivo no encontrado"
+    log.warning(f"[FIX-10] scraper_newegg.py no disponible ({_newegg_reason}) — paso Newegg USA omitido")
 else:
     log.info("[FIX-10] scraper_newegg.py cargado ✅")
 
-# ── Imports desde scrapers (ya registrado en sys.modules) ─────────────────
+# ── Imports desde scrapers ─────────────────────────────────────────────
 from scrapers import (
     scrape_local,
     scrape_dolar,
@@ -138,22 +134,24 @@ from scrapers import (
     _HAS_COMPETENCIA,
 )
 
-# ── Orden lógico de columnas en CSV ───────────────────────────────────────
+# ── [O6] FIELD_ORDER — campos MeLi actualizados a v2.0 ─────────────────
 FIELD_ORDER = [
     "batch_id", "timestamp", "source", "category",
     "sku", "brand", "title",
     "price_pen", "price_orig_pen", "price_usd", "price_orig_usd", "price_date",
     "discount_pct", "price_currency",
     "rating", "reviews",
-    # Campos MeLi (vacíos en otras fuentes — no rompen nada)
-    "condition", "sold_qty", "available_qty", "free_shipping", "seller_type",
+    # Campos MeLi v2.0 (vacíos en otras fuentes — no rompen nada)
+    "condition", "available_qty", "free_shipping",
+    "is_official_store", "is_best_seller", "is_good_seller", "seller_nickname",
+    # Campos comunes
     "retailer", "part_id", "url",
 ]
 
 
-# ══════════════════════════════════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════════════════
 # GUARDAR REGISTROS EN CSV
-# ══════════════════════════════════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════════════════
 
 def save_batch(records: list, batch_id: str, source_tag: str) -> Path:
     if not records:
@@ -175,11 +173,33 @@ def save_batch(records: list, batch_id: str, source_tag: str) -> Path:
     return out_path
 
 
-# ══════════════════════════════════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════════════════
 # MERGE AL MASTER
-# ══════════════════════════════════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════════════════
 
-def merge_to_master(batch_files: list) -> int:
+def _make_dedup_key(row: dict) -> tuple:
+    """
+    [O3] Clave de deduplicación robusta para items con y sin SKU.
+    Sin SKU → fingerprint md5(title[:80]|price) — determinístico entre runs.
+    """
+    source     = row.get("source", "")
+    sku        = row.get("sku", "").strip()
+    price_date = row.get("price_date", "")
+
+    if not sku:
+        title = row.get("title", row.get("name", ""))[:80]
+        price = str(row.get("price_pen") or row.get("price_usd") or "")
+        fp    = hashlib.md5(f"{title}|{price}".encode()).hexdigest()[:12]
+        return (source, f"fp_{fp}", price_date)
+
+    return (source, sku, price_date)
+
+
+def merge_to_master(batch_files: list) -> tuple[int, int]:
+    """
+    Retorna (total_records, added_records).
+    [O5] Escritura atómica: tmp → rename — evita corrupción por cancelación.
+    """
     master_path = DATA_DIR / "MASTER_hardware_peru.csv"
     new_records = []
     all_fields  = set(FIELD_ORDER)
@@ -198,7 +218,7 @@ def merge_to_master(batch_files: list) -> int:
 
     if not new_records:
         log.warning("  [master] Sin registros nuevos para agregar")
-        return 0
+        return 0, 0
 
     existing_records = []
     existing_keys    = set()
@@ -210,26 +230,17 @@ def merge_to_master(batch_files: list) -> int:
                 for row in reader:
                     existing_records.append(row)
                     all_fields.update(row.keys())
-                    dedup_key = (
-                        row.get("source", ""),
-                        row.get("sku", ""),
-                        row.get("price_date", ""),
-                    )
-                    existing_keys.add(dedup_key)
+                    existing_keys.add(_make_dedup_key(row))
         except Exception as e:
             log.warning(f"  Error leyendo MASTER: {e}")
 
     added   = 0
     skipped = 0
     for row in new_records:
-        dedup_key = (
-            row.get("source", ""),
-            row.get("sku", ""),
-            row.get("price_date", ""),
-        )
-        if not row.get("sku") or dedup_key not in existing_keys:
+        key = _make_dedup_key(row)
+        if key not in existing_keys:
             existing_records.append(row)
-            existing_keys.add(dedup_key)
+            existing_keys.add(key)
             added += 1
         else:
             skipped += 1
@@ -241,28 +252,37 @@ def merge_to_master(batch_files: list) -> int:
     remainder  = sorted(all_fields - set(ordered))
     fieldnames = ordered + remainder
 
-    with open(master_path, "w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=fieldnames, extrasaction="ignore")
-        writer.writeheader()
-        writer.writerows(existing_records)
+    # [O5] Escritura atómica: escribir en .tmp → renombrar
+    tmp_path = master_path.with_suffix(".tmp")
+    try:
+        with open(tmp_path, "w", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames, extrasaction="ignore")
+            writer.writeheader()
+            writer.writerows(existing_records)
+        tmp_path.replace(master_path)   # atómico en mismo filesystem
+    except Exception as e:
+        log.error(f"  [master] Error escribiendo MASTER: {e}")
+        if tmp_path.exists():
+            tmp_path.unlink()
+        raise
 
     total = len(existing_records)
     log.info(f"  📊 MASTER actualizado: {total:,} registros totales (+{added:,} nuevos)")
-    return total
+    return total, added
 
 
-# ══════════════════════════════════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════════════════
 # REPORTE JSON
-# ══════════════════════════════════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════════════════
 
-def save_report(batch_id: str, stats: dict, elapsed: float):
-    scraper_keys = [k for k in stats if k != "master_total"]
+def save_report(batch_id: str, stats: dict, elapsed: float, new_added: int):
+    """[O4] new_added = registros realmente añadidos al MASTER (no suma bruta)."""
     report = {
         "batch_id":     batch_id,
         "timestamp":    datetime.now(timezone.utc).isoformat(),
         "elapsed_s":    round(elapsed, 1),
         "stats":        stats,
-        "total_new":    sum(stats[k] for k in scraper_keys if isinstance(stats[k], int)),
+        "new_added":    new_added,          # [O4] real, no suma bruta
         "master_total": stats.get("master_total", 0),
     }
     report_path = DATA_DIR / f"report_{batch_id}.json"
@@ -272,9 +292,9 @@ def save_report(batch_id: str, stats: dict, elapsed: float):
     return report
 
 
-# ══════════════════════════════════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════════════════
 # PIPELINE PRINCIPAL
-# ══════════════════════════════════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════════════════
 
 def run(mode: str, batch_id: str):
     start   = time.time()
@@ -282,10 +302,10 @@ def run(mode: str, batch_id: str):
     batches = []
 
     log.info("═" * 60)
-    log.info(f"  PIPELINE v5.4 — modo={mode} | batch={batch_id}")
+    log.info(f"  PIPELINE v5.5 — modo={mode} | batch={batch_id}")
     log.info("═" * 60)
 
-    # ── 1. Tipo de cambio (siempre) ──────────────────────────────────
+    # ── 1. Tipo de cambio (siempre) ────────────────────────────────
     log.info("\n[1/10] 💱 Tipo de cambio USD/PEN")
     try:
         dolar_records = scrape_dolar(batch_id)
@@ -297,7 +317,7 @@ def run(mode: str, batch_id: str):
         log.error(f"  ❌ Dolar: {e}")
         stats["dolar"] = 0
 
-    # ── 2. Scrapers locales PE ───────────────────────────────────────
+    # ── 2. Scrapers locales PE ─────────────────────────────────────
     if mode in ("normal", "local_only", "full"):
         log.info("\n[2/10] 🇵🇪 Tiendas locales PE (Falabella + Hiraoka)")
         try:
@@ -312,7 +332,7 @@ def run(mode: str, batch_id: str):
     else:
         stats["local"] = 0
 
-    # ── 3. MercadoLibre PE ───────────────────────────────────────────
+    # ── 3. MercadoLibre PE ─────────────────────────────────────────
     if _HAS_MELI and mode in ("normal", "local_only", "full"):
         log.info("\n[3/10] 🛍️ MercadoLibre PE")
         try:
@@ -329,7 +349,7 @@ def run(mode: str, batch_id: str):
             log.warning("  ⚠️  [3/10] MeLi PE omitido — scraper no disponible")
         stats["mercadolibre_pe"] = 0
 
-    # ── 4. Newegg USA ────────────────────────────────────────────────
+    # ── 4. Newegg USA ──────────────────────────────────────────────
     if _HAS_NEWEGG and mode in ("normal", "historical", "full"):
         log.info("\n[4/10] 🖥️ Newegg USA (precios USD)")
         try:
@@ -346,7 +366,7 @@ def run(mode: str, batch_id: str):
             log.warning("  ⚠️  [4/10] Newegg USA omitido — scraper no disponible")
         stats["newegg_usa"] = 0
 
-    # ── 5. eBay ──────────────────────────────────────────────────────
+    # ── 5. eBay ────────────────────────────────────────────────────
     if mode in ("normal", "historical", "full"):
         log.info("\n[5/10] 🛒 eBay USA")
         try:
@@ -361,7 +381,7 @@ def run(mode: str, batch_id: str):
     else:
         stats["ebay"] = 0
 
-    # ── 6. CamelCamelCamel ───────────────────────────────────────────
+    # ── 6. CamelCamelCamel ─────────────────────────────────────────
     if mode in ("historical", "full"):
         log.info("\n[6/10] 🐪 CamelCamelCamel")
         try:
@@ -376,7 +396,7 @@ def run(mode: str, batch_id: str):
     else:
         stats["camel"] = 0
 
-    # ── 7. PCPartPicker ──────────────────────────────────────────────
+    # ── 7. PCPartPicker ────────────────────────────────────────────
     if mode in ("historical", "full"):
         log.info("\n[7/10] 🖥️ PCPartPicker")
         try:
@@ -391,7 +411,7 @@ def run(mode: str, batch_id: str):
     else:
         stats["pcpartpicker"] = 0
 
-    # ── 8. Kaggle ────────────────────────────────────────────────────
+    # ── 8. Kaggle ──────────────────────────────────────────────────
     if mode in ("kaggle_only", "full"):
         log.info("\n[8/10] 📦 Kaggle datasets")
         try:
@@ -406,7 +426,7 @@ def run(mode: str, batch_id: str):
     else:
         stats["kaggle"] = 0
 
-    # ── 9. Importación ───────────────────────────────────────────────
+    # ── 9. Importación ─────────────────────────────────────────────
     if _HAS_IMPORTACION and mode in ("normal", "historical", "full"):
         log.info("\n[9/10] 📦 Precios de importación")
         try:
@@ -421,7 +441,7 @@ def run(mode: str, batch_id: str):
     else:
         stats["importacion"] = 0
 
-    # ── 10. Competencia ──────────────────────────────────────────────
+    # ── 10. Competencia ────────────────────────────────────────────
     if _HAS_COMPETENCIA and mode in ("normal", "local_only", "full"):
         log.info("\n[10/10] 🔍 Competencia local PE")
         try:
@@ -436,16 +456,18 @@ def run(mode: str, batch_id: str):
     else:
         stats["competencia"] = 0
 
-    # ── Merge al MASTER ──────────────────────────────────────────────
+    # ── Merge al MASTER ────────────────────────────────────────────
     log.info("\n[MERGE] Actualizando MASTER_hardware_peru.csv...")
-    master_total = merge_to_master([b for b in batches if b])
+    # [O4] merge_to_master retorna (total, added)
+    master_total, new_added = merge_to_master([b for b in batches if b])
     stats["master_total"] = master_total
 
-    # ── Reporte ──────────────────────────────────────────────────────
+    # ── Reporte ────────────────────────────────────────────────────
     elapsed = time.time() - start
-    report  = save_report(batch_id, stats, elapsed)
+    # [O4] Pasar new_added real al reporte
+    report  = save_report(batch_id, stats, elapsed, new_added)
 
-    # ── Resumen final ─────────────────────────────────────────────────
+    # ── Resumen final ──────────────────────────────────────────────
     log.info("\n" + "═" * 60)
     log.info("  RESUMEN FINAL")
     log.info("═" * 60)
@@ -458,20 +480,20 @@ def run(mode: str, batch_id: str):
         if src != "master_total":
             log.info(f"  {src:<18} {count:>10,}")
     log.info(f"  {'-'*30}")
-    log.info(f"  {'TOTAL NUEVOS':<18} {report['total_new']:>10,}")
+    log.info(f"  {'NUEVOS REALES':<18} {new_added:>10,}")   # [O4]
     log.info(f"  {'MASTER TOTAL':<18} {master_total:>10,}")
     log.info("═" * 60)
 
     return report
 
 
-# ══════════════════════════════════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════════════════
 # ARGPARSE
-# ══════════════════════════════════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════════════════
 
 def _parse_args():
     parser = argparse.ArgumentParser(
-        description="Pipeline de recolección — tesis-hardware-peru v5.4",
+        description="Pipeline de recolección — tesis-hardware-peru v5.5",
         formatter_class=argparse.RawTextHelpFormatter,
     )
     parser.add_argument(
@@ -495,11 +517,12 @@ def _parse_args():
     return parser.parse_args()
 
 
-# ══════════════════════════════════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════════════════
 # ENTRY POINT
-# ══════════════════════════════════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════════════════
 
 if __name__ == "__main__":
     args     = _parse_args()
-    batch_id = args.batch_id or datetime.now().strftime("%Y%m%d_%H%M%S")
+    # [O7] datetime con timezone explícita
+    batch_id = args.batch_id or datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
     run(mode=args.mode, batch_id=batch_id)
