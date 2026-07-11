@@ -1,4 +1,17 @@
-name: Hardware Peru — Data Agent v5.0
+# ════════════════════════════════════════════════════════════
+# Hardware Peru — Data Agent v6.0
+# CAMBIOS v6.0 (sobre v5.0):
+#   [W1] BATCH_ID: $(date) → TZ='America/Lima' date (timestamp PE)
+#   [W2] pip: agregado scrapy
+#   [W3] pip: agregado ebaysdk
+#   [W4] descriptions de modos actualizadas para reflejar main.py real
+#   [W5] description 'historical' aclarada (camel/pcpartpicker pendientes)
+#   [W6] Step commit: reordenado → pull PRIMERO, luego add+commit+push
+#   [W7] Batch 24h: fecha en zona PE (ZoneInfo America/Lima)
+#   [W8] Batch 24h: regex corregido → soporta prefijo 'batch_batch_'
+#   [W9] actions/checkout y setup-python: versiones con Node 24
+# ════════════════════════════════════════════════════════════
+name: Hardware Peru — Data Agent v6.0
 
 on:
   schedule:
@@ -12,9 +25,9 @@ on:
         default: 'normal'
         type: choice
         options:
-          - normal        # local PE + eBay
+          - normal        # [W4] local PE + MeLi + importación + competencia
           - local_only    # solo Falabella/Ripley/Hiraoka
-          - historical    # eBay + CamelCamelCamel + PCPartPicker
+          - historical    # eBay + CamelCamelCamel + PCPartPicker (scrapers pendientes)
           - kaggle_only   # solo Kaggle (ejecutar 1 vez manualmente)
           - full          # todo
 
@@ -40,22 +53,20 @@ jobs:
       TZ:              America/Lima
 
     steps:
-      # ── 1. Checkout ────────────────────────────────────────────────
+      # ── 1. Checkout ──────────────────────────────────────────────
       - name: "📥 Checkout"
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.2.2    # [W9] Node 24
         with:
           fetch-depth: 0
 
-      # ── 2. Python ──────────────────────────────────────────────────
+      # ── 2. Python ────────────────────────────────────────────────
       - name: "🐍 Setup Python 3.11"
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v5.4.0  # [W9] Node 24
         with:
           python-version: '3.11'
           cache: 'pip'
 
-      # ── 3. Dependencias ────────────────────────────────────────────
-      # FIX 🔴2: agregados fake-useragent, cloudscraper, pytz
-      # FIX ⚠️1: numpy fijado explícitamente
+      # ── 3. Dependencias ──────────────────────────────────────────
       - name: "📦 Instalar dependencias"
         run: |
           pip install --upgrade pip
@@ -64,6 +75,7 @@ jobs:
             "requests[security]" \
             beautifulsoup4 \
             lxml \
+            scrapy \
             pandas \
             "numpy>=1.26,<3" \
             kaggle \
@@ -72,30 +84,29 @@ jobs:
             tenacity \
             fake-useragent \
             cloudscraper \
-            pytz
+            pytz \
+            ebaysdk
 
-      # ── 4. Info del run ────────────────────────────────────────────
+      # ── 4. Info del run ──────────────────────────────────────────
       - name: "ℹ️ Info del run"
         run: |
           echo "════════════════════════════════"
           echo "  Modo     : $RUN_MODE"
-          echo "  Hora UTC : $(date '+%Y-%m-%d %H:%M:%S')"
+          echo "  Hora UTC : $(date -u '+%Y-%m-%d %H:%M:%S')"
           echo "  Hora PE  : $(TZ='America/Lima' date '+%Y-%m-%d %H:%M:%S')"
           echo "  Trigger  : ${{ github.event_name }}"
           echo "════════════════════════════════"
-          echo "BATCH_ID=batch_$(date '+%Y%m%d_%H%M%S')" >> $GITHUB_ENV
+          # [W1] BATCH_ID en hora PE para consistencia con los archivos CSV
+          echo "BATCH_ID=batch_$(TZ='America/Lima' date '+%Y%m%d_%H%M%S')" >> $GITHUB_ENV
 
-      # ── 5. Ejecutar pipeline ───────────────────────────────────────
-      # FIX 🔴1: PYTHONPATH=agent:configuracion
-      #   → agent/        para que 'import scrapers' resuelva agent/scrapers/
-      #   → configuracion/ para que 'import config'   resuelva configuracion/config.py
+      # ── 5. Ejecutar pipeline ─────────────────────────────────────
       - name: "🚀 Ejecutar recolección"
         run: |
           PYTHONPATH=agent:configuracion python agent/main.py \
             --mode "$RUN_MODE" \
             --batch-id "$BATCH_ID"
 
-      # ── 6. Verificar resultados ────────────────────────────────────
+      # ── 6. Verificar resultados ──────────────────────────────────
       - name: "🔍 Verificar datos"
         run: |
           echo "── Archivos generados ──"
@@ -118,18 +129,21 @@ jobs:
             cat "$REPORT"
           fi
 
-      # ── 7. Batch 24h ───────────────────────────────────────────────
+      # ── 7. Batch 24h ─────────────────────────────────────────────
       - name: "📊 Generar batch 24h"
         run: |
           python - <<'PYEOF'
           import os, glob, re, pandas as pd
           from datetime import datetime, timedelta, timezone
+          from zoneinfo import ZoneInfo  # [W7] zona PE
 
-          raw_dir = "data/raw"
-          now     = datetime.now(timezone.utc)
-          cutoff  = now - timedelta(hours=24)
+          raw_dir  = "data/raw"
+          tz_pe    = ZoneInfo("America/Lima")
+          now_utc  = datetime.now(timezone.utc)
+          now_pe   = datetime.now(tz_pe)          # [W7] fecha en hora PE
+          cutoff   = now_utc - timedelta(hours=24)
 
-          all_batch_files = glob.glob(f"{raw_dir}/batch_????????_??????_*.csv")
+          all_batch_files = glob.glob(f"{raw_dir}/batch_*_*.csv")
 
           recent = []
           for f in all_batch_files:
@@ -137,7 +151,8 @@ jobs:
               if basename.startswith("batch_24h_"):
                   continue
               try:
-                  m = re.match(r"batch_(\d{8})_(\d{6})_", basename)
+                  # [W8] regex soporta tanto 'batch_YYYYMMDD_' como 'batch_batch_YYYYMMDD_'
+                  m = re.match(r"batch_(?:batch_)?(\d{8})_(\d{6})_", basename)
                   if not m:
                       continue
                   ts_str = f"{m.group(1)}_{m.group(2)}"
@@ -149,7 +164,10 @@ jobs:
 
           tags = {}
           for f in recent:
-              tag = os.path.basename(f).split("_")[3].replace(".csv", "")
+              parts = os.path.basename(f).split("_")
+              # soporta prefijo simple y doble
+              tag_idx = 3 if parts[1] == "batch" else 2
+              tag = parts[tag_idx].replace(".csv", "") if tag_idx < len(parts) else "unknown"
               tags[tag] = tags.get(tag, 0) + 1
 
           print(f"Batches últimas 24h: {len(recent)}")
@@ -165,7 +183,8 @@ jobs:
 
               if dfs:
                   combined = pd.concat(dfs, ignore_index=True)
-                  out = f"{raw_dir}/batch_24h_{now.strftime('%Y%m%d')}.csv"
+                  # [W7] nombre del archivo con fecha PE
+                  out = f"{raw_dir}/batch_24h_{now_pe.strftime('%Y%m%d')}.csv"
                   combined.to_csv(out, index=False)
                   print(f"✅ Batch 24h guardado: {out}")
                   print(f"   Registros: {len(combined):,}")
@@ -175,19 +194,21 @@ jobs:
               print("⚠️ Sin batches recientes (primer run del día)")
           PYEOF
 
-      # ── 8. Commit ──────────────────────────────────────────────────
+      # ── 8. Commit ────────────────────────────────────────────────
+      # [W6] Orden corregido: pull PRIMERO → evita 'uncommitted changes'
       - name: "💾 Commit datos"
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # [W6] Pull ANTES de staging para evitar conflicto de rebase
+          git pull --rebase origin main || true
 
           git add data/raw/
 
           if git diff --staged --quiet; then
             echo "ℹ️ Sin cambios nuevos para commitear"
           else
-            git pull --rebase origin main || true
-
             MASTER_LINES=$(python -c "
           import csv, pathlib
           f = pathlib.Path('data/raw/MASTER_hardware_peru.csv')
@@ -199,7 +220,7 @@ jobs:
             echo "✅ Push exitoso — ${MASTER_LINES} registros en MASTER"
           fi
 
-      # ── 9. Resumen ─────────────────────────────────────────────────
+      # ── 9. Resumen ───────────────────────────────────────────────
       - name: "📋 Resumen"
         if: always()
         run: |
