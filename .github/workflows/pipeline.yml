@@ -1,3 +1,19 @@
+# ════════════════════════════════════════════════════════════
+# Pipeline ROI Importación PE — v2.0
+# CAMBIOS v2.0 (sobre v1.0):
+#   [P1] pip: agregado scrapy + ebaysdk
+#   [P2] pip: agregado fake-useragent + cloudscraper + pytz
+#             (consistencia con daily_agent v6.0)
+#   [P3] BATCH_ID: timestamp en hora PE (TZ='America/Lima')
+#   [P4] PYTHONPATH=agent:configuracion agregado al step 7
+#        (causa raíz de ImportError en import scrapers/config)
+#   [P5] Step 9 commit: pull PRIMERO → add → commit → push
+#   [P6] upload-artifact: ruta agent.log corregida a logs/
+#   [P7] actions/checkout@v4.2.2 + setup-python@v5.4.0 (Node 24)
+#   [P8] AMAZON_* keys: comentario aclaratorio agregado
+#   [P9] concurrency: grupo unificado con daily_agent
+#        → evita race condition en MASTER_hardware_peru.csv
+# ════════════════════════════════════════════════════════════
 name: Pipeline ROI Importación PE
 
 on:
@@ -7,7 +23,6 @@ on:
 
   workflow_dispatch:
     inputs:
-      # FIX ⚠️1: type: choice para validar valores
       only:
         description: "Step a ejecutar"
         required: false
@@ -29,35 +44,34 @@ on:
         required: false
         default: "amazon aliexpress ebay"
 
-# FIX 🔴2: concurrency — evita runs simultáneos
+# [P9] Grupo unificado con daily_agent → evita race condition en MASTER CSV
 concurrency:
-  group: pipeline-${{ github.ref }}
+  group: data-collection-${{ github.ref }}
   cancel-in-progress: false
 
-# FIX 🔴1: permissions para git push
 permissions:
   contents: write
 
 jobs:
   pipeline:
     runs-on: ubuntu-latest
-    timeout-minutes: 90   # FIX ⚠️2: 120 es el máximo absoluto, 90 más seguro
+    timeout-minutes: 90
 
     steps:
-      # ── 1. Checkout ──────────────────────────────────────────────────
+      # ── 1. Checkout ────────────────────────────────────────────────
       - name: "📥 Checkout repo"
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.2.2    # [P7] Node 24
         with:
-          fetch-depth: 0   # FIX ⚠️7: historial completo para evitar conflictos
+          fetch-depth: 0
 
-      # ── 2. Python ────────────────────────────────────────────────────
+      # ── 2. Python ──────────────────────────────────────────────────
       - name: "🐍 Setup Python 3.11"
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v5.4.0  # [P7] Node 24
         with:
           python-version: "3.11"
           cache: "pip"
 
-      # ── 3. Dependencias — FIX 🔴3: solo scraping, sin ML ────────────
+      # ── 3. Dependencias ────────────────────────────────────────────
       - name: "📦 Instalar dependencias (scraping)"
         run: |
           pip install --upgrade pip
@@ -66,37 +80,41 @@ jobs:
             "requests[security]" \
             beautifulsoup4 \
             lxml \
+            scrapy \
             pandas \
-            numpy \
+            "numpy>=1.26,<3" \
             kaggle \
             python-dotenv \
             urllib3 \
-            tenacity
+            tenacity \
+            fake-useragent \
+            cloudscraper \
+            pytz \
+            ebaysdk
 
-      # ── 4. FIX ⚠️3: eliminar cache de data/ (redundante + peligroso)
-      #    Los datos ya están en el repo vía git.
-      #    Solo cachear pip (ya configurado arriba).
-
-      # ── 5. Crear directorios ─────────────────────────────────────────
+      # ── 4. Crear directorios ───────────────────────────────────────
       - name: "📁 Crear directorios"
         run: mkdir -p data/raw data/kaggle logs
 
-      # ── 6. Info del run ──────────────────────────────────────────────
+      # ── 5. Info del run ────────────────────────────────────────────
       - name: "ℹ️ Info del run"
         run: |
           echo "════════════════════════════════════"
           echo "  Only      : '${{ github.event.inputs.only }}'"
           echo "  Categories: '${{ github.event.inputs.categories }}'"
           echo "  Sources   : '${{ github.event.inputs.sources_import }}'"
-          echo "  Hora UTC  : $(date '+%Y-%m-%d %H:%M:%S')"
+          echo "  Hora UTC  : $(date -u '+%Y-%m-%d %H:%M:%S')"
           echo "  Hora PE   : $(TZ='America/Lima' date '+%Y-%m-%d %H:%M:%S')"
           echo "════════════════════════════════════"
-          echo "BATCH_ID=batch_$(date '+%Y%m%d_%H%M%S')" >> $GITHUB_ENV
+          # [P3] BATCH_ID en hora PE
+          echo "BATCH_ID=batch_$(TZ='America/Lima' date '+%Y%m%d_%H%M%S')" >> $GITHUB_ENV
 
-      # ── 7. Ejecutar pipeline — FIX 🔴4: ruta correcta ───────────────
+      # ── 6. Ejecutar pipeline ───────────────────────────────────────
       - name: "🚀 Ejecutar pipeline"
         env:
-          # ── Costos de importación (para roi_calculator.py) ───────────
+          # [P4] PYTHONPATH para resolver 'import scrapers' y 'import config'
+          PYTHONPATH: "agent:configuracion"
+          # ── Costos de importación (roi_calculator.py) ──────────────
           IGV:                 "0.18"
           IPM:                 "0.02"
           ARANCEL_AD_VALOREM:  "0.00"
@@ -104,21 +122,22 @@ jobs:
           FLETE_POR_KG_USD:    "8.0"
           MARGEN_GANANCIA_MIN: "0.15"
           LIMITE_COURIER_USD:  "200.0"
-          # ── Scraping ─────────────────────────────────────────────────
+          # ── Scraping ───────────────────────────────────────────────
           DELAY_REQ:           "3.0"
           DELAY_CAT:           "6.0"
           MAX_PAGES:           "5"
           MAX_PAGES_IMPORT:    "5"
           OUTPUT_DIR:          "data/raw"
-          # ── APIs ─────────────────────────────────────────────────────
+          # ── APIs ───────────────────────────────────────────────────
           EBAY_APP_ID:         ${{ secrets.EBAY_APP_ID }}
+          # [P8] Amazon PA API — usado por scraper_importacion.py si está configurado;
+          #      el scraper también funciona con BeautifulSoup si las keys están vacías
           AMAZON_ACCESS_KEY:   ${{ secrets.AMAZON_ACCESS_KEY }}
           AMAZON_SECRET_KEY:   ${{ secrets.AMAZON_SECRET_KEY }}
           AMAZON_PARTNER_TAG:  ${{ secrets.AMAZON_PARTNER_TAG }}
           KAGGLE_USERNAME:     ${{ secrets.KAGGLE_USERNAME }}
           KAGGLE_KEY:          ${{ secrets.KAGGLE_KEY }}
         run: |
-          # FIX ⚠️6: construir args como array Python para evitar shell injection
           python - <<'PYEOF'
           import subprocess, sys, os
 
@@ -145,7 +164,7 @@ jobs:
           sys.exit(result.returncode)
           PYEOF
 
-      # ── 8. Verificar resultados ──────────────────────────────────────
+      # ── 7. Verificar resultados ────────────────────────────────────
       - name: "🔍 Verificar datos generados"
         run: |
           echo "── Archivos en data/raw/ ──"
@@ -166,11 +185,15 @@ jobs:
           REPORT="data/raw/report_${BATCH_ID}.json"
           [ -f "$REPORT" ] && cat "$REPORT" || echo "  Sin reporte"
 
-      # ── 9. FIX 🔴6: Commit y push de datos ──────────────────────────
+      # ── 8. Commit y push ───────────────────────────────────────────
+      # [P5] Pull PRIMERO → evita 'uncommitted changes' en rebase
       - name: "💾 Commit datos al repo"
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # [P5] Pull antes de staging
+          git pull --rebase origin main || true
 
           git add data/raw/
           # NO agregar data/kaggle/ — archivos >100MB rompen git push
@@ -178,8 +201,6 @@ jobs:
           if git diff --staged --quiet; then
             echo "ℹ️ Sin cambios nuevos"
           else
-            git pull --rebase origin main || true
-
             MASTER_LINES=$(python -c "
           import pathlib
           f = pathlib.Path('data/raw/MASTER_hardware_peru.csv')
@@ -191,7 +212,7 @@ jobs:
             echo "✅ Push exitoso"
           fi
 
-      # ── 10. FIX 🔴5: paths de artefactos corregidos ─────────────────
+      # ── 9. Subir artefactos ────────────────────────────────────────
       - name: "📤 Subir artefactos"
         uses: actions/upload-artifact@v4
         if: always()
@@ -201,21 +222,20 @@ jobs:
             data/raw/MASTER_hardware_peru.csv
             data/raw/report_*.json
             data/raw/batch_24h_*.csv
-            data/raw/agent.log
+            logs/agent.log
           retention-days: 30
 
-      # ── 11. Subir log completo si falla ──────────────────────────────
+      # ── 10. Subir logs en caso de falla ───────────────────────────
       - name: "🚨 Subir logs en caso de falla"
         uses: actions/upload-artifact@v4
         if: failure()
         with:
           name: logs-error-${{ github.run_number }}
           path: |
-            data/raw/agent.log
             logs/
           retention-days: 7
 
-      # ── 12. Resumen ──────────────────────────────────────────────────
+      # ── 11. Resumen ───────────────────────────────────────────────
       - name: "📋 Resumen"
         if: always()
         run: |
@@ -224,6 +244,7 @@ jobs:
           echo "  Status : ${{ job.status }}"
           echo "  Hora PE: $(TZ='America/Lima' date '+%H:%M:%S')"
           if [ -f data/raw/MASTER_hardware_peru.csv ]; then
-            echo "  Master : $(wc -l < data/raw/MASTER_hardware_peru.csv) líneas"
+            LINES=$(wc -l < data/raw/MASTER_hardware_peru.csv)
+            echo "  Master : $((LINES - 1)) registros"
           fi
           echo "════════════════════════════════════"
