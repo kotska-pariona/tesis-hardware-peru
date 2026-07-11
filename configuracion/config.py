@@ -1,5 +1,5 @@
 """
-config.py  v2.2
+config.py  v2.3
 ══════════════════
 Fuente única de verdad para todas las constantes del proyecto.
 Todos los demás módulos importan desde aquí.
@@ -19,26 +19,25 @@ Estructura de directorios unificada:
       ├── models/            ← modelos ML
       └── logs/              ← logs unificados
 
-Fixes v2.2 (sobre v2.1):
-  - [C1] Exportar DE_MINIMIS_USD=200 y LIMITE_SIMPLIFICADO_USD=2000
-         roi_calculator v3.0 los importa en lugar de hardcodearlos
-         LIMITE_COURIER_USD mantenido como alias de DE_MINIMIS_USD
-  - [C2] validate(): checks adicionales — ARANCEL_AD_VALOREM, SEGURO_PCT,
-         FLETE_POR_KG_USD, GASTO_DESPACHO_USD, ML_TEST_SIZE
-  - [C3] load_dotenv(ROOT_DIR / '.env') — path explícito, independiente del CWD
-  - [C4] SOURCES_LOCAL/IMPORT actualizados: +mercadolibre_pe, +newegg_usa,
-         +pcpartpicker_current/history; -ripley (403 Cloudflare)
-  - [C5] MAX_PAGES documentado como legacy (scrapers activos usan sus propios)
-  - [C6] CATEGORIES ampliada con todas las categorías de CATEGORY_MAP
-  - [C7] mkdir() con try/except PermissionError — no crashea en entornos ro
-  - [C8] _env_float() / _env_int(): helpers seguros para os.getenv numérico
-         float('') → ValueError → ImportError en cascada en todo el proyecto
+Fixes v2.3 (sobre v2.2):
+  - [C9]  SOURCES_LOCAL: +coolbox, +compumundo (scraper_competencia v4.0)
+  - [C10] SOURCES_IMPORT: "ebay" → "ebay_usa" (consistente con scraper_ebay v4.0)
+  - [C11] FLETE_BASE_USD: 25.0 → 35.0 (couriers PE 2026 reales)
+  - [C12] DE_MINIMIS_USD: 200.0 → 100.0 (SUNAT Resolución 000026-2024)
+  - [C13] validate(): check FLETE_POR_KG_USD vs FLETE_BASE_USD
+  - [C14] LSTM_LOOKBACK_DAYS: 30 → 60 (más robusto para series cortas)
+  - [C15] ML_MIN_RECORDS: 500 → 100 (realista para inicio del proyecto)
+  - [C16] validate() fatal en CI/CD (GITHUB_ACTIONS=true), warning en local
+  - [M15] VERSION = "2.3" para debugging en logs
 """
 
 import os
+import sys
 import warnings
 from pathlib import Path
 from dotenv import load_dotenv
+
+VERSION = "2.3"   # [M15]
 
 # ── Paths ──────────────────────────────────────────────────────────────
 CONFIG_DIR = Path(__file__).resolve().parent   # configuracion/
@@ -51,9 +50,6 @@ BASE_DIR = Path(os.getenv("BASE_DIR", str(ROOT_DIR)))
 
 
 # ── [C8] Helpers seguros para variables de entorno numéricas ───────────
-# float(os.getenv("IGV", "0.18")) → si IGV="" en .env → float("") → ValueError
-# → ImportError en cascada en TODOS los módulos que importan config
-
 def _env_float(key: str, default: float) -> float:
     """Lee una variable de entorno como float. Si está vacía o es inválida, usa default."""
     val = os.getenv(key, "").strip()
@@ -117,70 +113,74 @@ LOG_FILE  = LOGS_DIR / "agent.log"
 # ── Scraping — General ─────────────────────────────────────────────────
 DELAY_REQ        = _env_float("DELAY_REQ",       2.5)
 DELAY_CAT        = _env_float("DELAY_CAT",       5.0)
-# [C5] MAX_PAGES: legacy — scrapers activos (newegg, pcpartpicker, etc.)
-#      usan sus propios límites hardcodeados. Cambiar aquí no los afecta.
+# [C5] MAX_PAGES: legacy — scrapers activos usan sus propios límites
 MAX_PAGES        = _env_int("MAX_PAGES",          5)
 MAX_PAGES_IMPORT = _env_int("MAX_PAGES_IMPORT",   5)
 MAX_PAGES_COMP   = _env_int("MAX_PAGES_COMP",     5)
 MAX_RETRIES      = _env_int("MAX_RETRIES",        2)
 
-# [C4] SOURCES_LOCAL/IMPORT actualizados
-SOURCES_LOCAL  = [
-    "falabella", "hiraoka",          # tiendas activas
+# [C4] + [C9] SOURCES_LOCAL — incluye competencia v4.0
+SOURCES_LOCAL = [
+    "falabella", "hiraoka",          # tiendas activas (scraper_local)
+    "coolbox", "compumundo",         # [C9] scraper_competencia v4.0
     "mercadolibre_pe",               # [C4] scraper_mercadolibre v2.0
     # "ripley" — deshabilitado (403 Cloudflare)
 ]
+
+# [C4] + [C10] SOURCES_IMPORT — "ebay" → "ebay_usa"
 SOURCES_IMPORT = [
-    "amazon", "aliexpress", "ebay",
+    "amazon", "aliexpress",
+    "ebay_usa",                      # [C10] consistente con scraper_ebay v4.0
     "newegg_usa",                    # [C4] scraper_newegg v2.0
     "pcpartpicker_current",          # [C4] scraper_pcpartpicker v3.0
     "pcpartpicker_history",          # [C4] scraper_pcpartpicker v3.0
 ]
 
-# [C6] CATEGORIES: fuente única de verdad — alineada con CATEGORY_MAP de roi_calculator
+# [C6] CATEGORIES: fuente única de verdad — alineada con CATEGORY_MAP
 CATEGORIES = [
     # Hardware core
     "CPU", "GPU", "RAM", "SSD", "MOTHERBOARD", "PSU", "COOLER", "CASE",
     # Periféricos y dispositivos
     "LAPTOP", "MONITOR", "KEYBOARD", "MOUSE", "AUDIO",
     # Electrónica general
-    "TABLET", "PHONE", "TV", "CAMERA", "GAMING", "PRINTER",
+    "TABLET", "PHONE", "TV", "CAMERA", "GAMING",
+    # "PRINTER" removido — ningún scraper activo la cubre [M12]
 ]
 
-# ── ROI — Costos de importación (SUNAT 2024) ───────────────────────────
-ARANCEL_AD_VALOREM = _env_float("ARANCEL_AD_VALOREM", 0.00)  # 0% electrónica
-IGV                = _env_float("IGV",                 0.18)  # 18%
-IPM                = _env_float("IPM",                 0.02)  # 2%
-FLETE_BASE_USD     = _env_float("FLETE_BASE_USD",     25.0)   # courier base USA→PE
-FLETE_POR_KG_USD   = _env_float("FLETE_POR_KG_USD",   8.0)   # por kg adicional
-SEGURO_PCT         = _env_float("SEGURO_PCT",          0.005) # 0.5% del FOB
-GASTO_DESPACHO_USD = _env_float("GASTO_DESPACHO_USD", 15.0)  # despacho aduanero
-MARGEN_GANANCIA_MIN= _env_float("MARGEN_GANANCIA_MIN", 0.15) # 15% ROI mínimo
+# ── ROI — Costos de importación (SUNAT 2024-2026) ──────────────────────
+ARANCEL_AD_VALOREM  = _env_float("ARANCEL_AD_VALOREM",  0.00)   # 0% electrónica
+IGV                 = _env_float("IGV",                  0.18)   # 18%
+IPM                 = _env_float("IPM",                  0.02)   # 2%
+FLETE_BASE_USD      = _env_float("FLETE_BASE_USD",      35.0)    # [C11] courier 2026
+FLETE_POR_KG_USD    = _env_float("FLETE_POR_KG_USD",    8.0)    # por kg adicional
+SEGURO_PCT          = _env_float("SEGURO_PCT",           0.005)  # 0.5% del FOB
+GASTO_DESPACHO_USD  = _env_float("GASTO_DESPACHO_USD",  15.0)   # despacho aduanero
+MARGEN_GANANCIA_MIN = _env_float("MARGEN_GANANCIA_MIN",  0.15)  # 15% ROI mínimo
 
-# [C1] Tres umbrales SUNAT — exportados para roi_calculator v3.0
-DE_MINIMIS_USD         = _env_float("DE_MINIMIS_USD",         200.0)  # sin impuestos
-LIMITE_SIMPLIFICADO_USD= _env_float("LIMITE_SIMPLIFICADO_USD",2000.0) # IGV+IPM, sin Ad Valorem
-LIMITE_COURIER_USD     = DE_MINIMIS_USD   # alias legacy — compatibilidad v2.1
+# [C1] + [C12] Umbrales SUNAT — SUNAT Resolución 000026-2024
+DE_MINIMIS_USD          = _env_float("DE_MINIMIS_USD",          100.0)  # [C12] era 200
+LIMITE_SIMPLIFICADO_USD = _env_float("LIMITE_SIMPLIFICADO_USD", 2000.0) # IGV+IPM, sin Ad Valorem
+LIMITE_COURIER_USD      = DE_MINIMIS_USD   # alias legacy — compatibilidad v2.2
 
 # ── Tipo de cambio ─────────────────────────────────────────────────────
 USD_PEN_DEFAULT    = _env_float("USD_PEN_DEFAULT",    3.75)
 DOLAR_UPDATE_HOURS = _env_int("DOLAR_UPDATE_HOURS",   6)
 
 # ── APIs externas ──────────────────────────────────────────────────────
-EBAY_APP_ID       = os.getenv("EBAY_APP_ID",        "")
-EBAY_CLIENT_SECRET= os.getenv("EBAY_CLIENT_SECRET", "")
-AMAZON_ACCESS_KEY = os.getenv("AMAZON_ACCESS_KEY",  "")
-AMAZON_SECRET_KEY = os.getenv("AMAZON_SECRET_KEY",  "")
-AMAZON_PARTNER_TAG= os.getenv("AMAZON_PARTNER_TAG", "")
-KAGGLE_USERNAME   = os.getenv("KAGGLE_USERNAME",    "")
-KAGGLE_KEY        = os.getenv("KAGGLE_KEY",         "")
+EBAY_APP_ID        = os.getenv("EBAY_APP_ID",        "")
+EBAY_CLIENT_SECRET = os.getenv("EBAY_CLIENT_SECRET", "")
+AMAZON_ACCESS_KEY  = os.getenv("AMAZON_ACCESS_KEY",  "")
+AMAZON_SECRET_KEY  = os.getenv("AMAZON_SECRET_KEY",  "")
+AMAZON_PARTNER_TAG = os.getenv("AMAZON_PARTNER_TAG", "")
+KAGGLE_USERNAME    = os.getenv("KAGGLE_USERNAME",     "")
+KAGGLE_KEY         = os.getenv("KAGGLE_KEY",          "")
 
 # ── ML — Parámetros ────────────────────────────────────────────────────
-ML_TEST_SIZE      = _env_float("ML_TEST_SIZE",      0.2)
-ML_RANDOM_STATE   = _env_int("ML_RANDOM_STATE",     42)
-ML_MIN_RECORDS    = _env_int("ML_MIN_RECORDS",      500)
-LSTM_LOOKBACK_DAYS= _env_int("LSTM_LOOKBACK_DAYS",  30)
-LSTM_FORECAST_DAYS= _env_int("LSTM_FORECAST_DAYS",  7)
+ML_TEST_SIZE       = _env_float("ML_TEST_SIZE",       0.2)
+ML_RANDOM_STATE    = _env_int("ML_RANDOM_STATE",      42)
+ML_MIN_RECORDS     = _env_int("ML_MIN_RECORDS",       100)   # [C15] era 500
+LSTM_LOOKBACK_DAYS = _env_int("LSTM_LOOKBACK_DAYS",   60)    # [C14] era 30
+LSTM_FORECAST_DAYS = _env_int("LSTM_FORECAST_DAYS",   7)
 
 
 # ── Validación robusta ─────────────────────────────────────────────────
@@ -212,7 +212,14 @@ def validate() -> bool:
     if not (0 < ML_TEST_SIZE < 1):
         issues.append(f"ML_TEST_SIZE debe estar en (0, 1) (actual: {ML_TEST_SIZE})")
 
-    # [C1] Coherencia de umbrales SUNAT
+    # [C13] Coherencia flete
+    if FLETE_POR_KG_USD > FLETE_BASE_USD:
+        issues.append(
+            f"FLETE_POR_KG_USD ({FLETE_POR_KG_USD}) > FLETE_BASE_USD "
+            f"({FLETE_BASE_USD}) — revisar configuración de flete"
+        )
+
+    # [C1] + [C12] Coherencia umbrales SUNAT
     if DE_MINIMIS_USD <= 0:
         issues.append(f"DE_MINIMIS_USD debe ser > 0 (actual: {DE_MINIMIS_USD})")
     if LIMITE_SIMPLIFICADO_USD <= DE_MINIMIS_USD:
@@ -226,16 +233,20 @@ def validate() -> bool:
     return True
 
 
-# FIX-8: try/except fuera de validate() — ejecutado al importar
+# [C16] validate() al importar — fatal en CI/CD, warning en local
 try:
     validate()
 except ValueError as e:
-    warnings.warn(str(e), stacklevel=2)
+    if os.getenv("GITHUB_ACTIONS") or os.getenv("CI"):
+        print(f"FATAL config.py v{VERSION}: {e}", file=sys.stderr)
+        sys.exit(1)
+    else:
+        warnings.warn(str(e), stacklevel=2)
 
 
 if __name__ == "__main__":
     validate()
-    print("✅ config.py v2.2 OK")
+    print(f"✅ config.py v{VERSION} OK")
     print(f"\n  Directorios:")
     print(f"    ROOT_DIR               : {ROOT_DIR}")
     print(f"    DATA_RAW_DIR           : {DATA_RAW_DIR}")
@@ -247,16 +258,23 @@ if __name__ == "__main__":
     print(f"    OPORTUNIDADES_CSV      : {OPORTUNIDADES_CSV}")
     print(f"    DOLAR_CSV              : {DOLAR_CSV}")
     print(f"    LOG_FILE               : {LOG_FILE}")
-    print(f"\n  ROI (SUNAT 2024):")
+    print(f"\n  ROI (SUNAT 2024-2026):")
     print(f"    IGV                    : {IGV*100:.0f}%")
     print(f"    IPM                    : {IPM*100:.0f}%")
     print(f"    Ad Valorem             : {ARANCEL_AD_VALOREM*100:.0f}%")
-    print(f"    Flete base             : ${FLETE_BASE_USD}")
-    print(f"    De minimis             : ${DE_MINIMIS_USD}  (sin impuestos)")
+    print(f"    Flete base             : ${FLETE_BASE_USD}  ← actualizado 2026")
+    print(f"    Flete por kg           : ${FLETE_POR_KG_USD}/kg")
+    print(f"    De minimis             : ${DE_MINIMIS_USD}  (SUNAT 2024, sin impuestos)")
     print(f"    Límite simplificado    : ${LIMITE_SIMPLIFICADO_USD}  (IGV+IPM, sin Ad Valorem)")
     print(f"    Margen mínimo          : {MARGEN_GANANCIA_MIN*100:.0f}%")
     print(f"    USD/PEN default        : S/ {USD_PEN_DEFAULT}")
+    print(f"    Dolar update cada      : {DOLAR_UPDATE_HOURS}h")
     print(f"\n  Fuentes activas:")
     print(f"    Local PE               : {SOURCES_LOCAL}")
     print(f"    Importación            : {SOURCES_IMPORT}")
+    print(f"\n  ML:")
+    print(f"    Test size              : {ML_TEST_SIZE}")
+    print(f"    Min records            : {ML_MIN_RECORDS}")
+    print(f"    LSTM lookback          : {LSTM_LOOKBACK_DAYS} días")
+    print(f"    LSTM forecast          : {LSTM_FORECAST_DAYS} días")
     print(f"\n  Categorías ({len(CATEGORIES)}): {CATEGORIES}")
