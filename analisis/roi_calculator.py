@@ -1,5 +1,6 @@
+#!/usr/bin/env python3
 """
-roi_calculator.py  v2.0
+roi_calculator.py  v3.0
 ══════════════════════════
 Calcula el ROI real de importar un producto desde USA a Perú.
 
@@ -7,10 +8,22 @@ Fórmula de costo total de importación (Perú - SUNAT):
 ┌─────────────────────────────────────────────────────────┐
 │ FOB_efectivo = Precio_origen + Envío_doméstico_USA      │
 │ CIF = FOB_efectivo + Flete_internacional + Seguro       │
-│ Ad Valorem = CIF × 0%  (electrónica — SUNAT 2024)      │
-│ IGV = (CIF + Ad Valorem) × 18%                         │
-│ IPM = (CIF + Ad Valorem) × 2%                          │
-│ Costo_Total_USD = CIF + Ad Valorem + IGV + IPM          │
+│                                                         │
+│ Régimen de_minimis  (CIF ≤ $200):                       │
+│   Sin impuestos                                         │
+│                                                         │
+│ Régimen courier_simplificado ($200 < CIF ≤ $2000):      │
+│   Ad Valorem = 0%                                       │
+│   IGV = CIF × 18%                                       │
+│   IPM = CIF × 2%                                        │
+│                                                         │
+│ Régimen importacion_general (CIF > $2000):              │
+│   Ad Valorem = CIF × 0%  (electrónica — SUNAT 2024)    │
+│   IGV = (CIF + Ad Valorem) × 18%                       │
+│   IPM = (CIF + Ad Valorem) × 2%                        │
+│   Gasto despacho = fijo                                 │
+│                                                         │
+│ Costo_Total_USD = CIF + Impuestos                       │
 │ Costo_Total_PEN = Costo_Total_USD × TC_venta            │
 │                                                         │
 │ ROI = (Precio_Local_PEN - Costo_Total_PEN)              │
@@ -18,28 +31,29 @@ Fórmula de costo total de importación (Perú - SUNAT):
 │              Costo_Total_PEN                            │
 └─────────────────────────────────────────────────────────┘
 
-Fixes v2.0:
-  - [FIX-1] logging.basicConfig() eliminado del top-level
-  - [FIX-2] Import scraper_dolar corregido (ruta desde agent/)
-  - [FIX-3] get_usd_pen() llamado UNA SOLA VEZ — no en __post_init__
-  - [FIX-4] source_type derivado desde columna 'source' de los scrapers
-  - [FIX-5] Normalización de categorías (español ↔ inglés)
-  - [FIX-6] score sin cap — permite ranking entre ROI > 100%
-  - [FIX-7] conviene_importar sin == True (pandas warning)
-  - [FIX-8] shipping_origen_usd documentado como parte del FOB efectivo
-"""
-"""
-... (docstring existente sin cambios)
+Fixes v3.0 (sobre v2.0):
+  - [R1] Doble docstring eliminado (string literal flotante inútil)
+  - [R2] Tres regímenes SUNAT: de_minimis / courier_simplificado /
+         importacion_general — v2.0 exoneraba IGV+IPM en rango $200-$2000
+  - [R3] analyze_dataframe: .copy() en local_df e import_df —
+         SettingWithCopyWarning / CoW silencioso en pandas 2.0+
+         → precio_mediano_pen = NaN → todos los ROI = NaN
+  - [R4] LOCAL_SOURCES: agregado 'mercadolibre_pe' —
+         v2.0 ignoraba el 60%+ de los precios locales del MASTER
+         IMPORT_SOURCES: agregado 'newegg_usa', 'pcpartpicker_current',
+         'pcpartpicker_history'
+  - [R5] top_oportunidades: validación de columnas antes de operar
+  - [R6] CATEGORY_MAP: categorías Newegg v2.0 mapeadas
+         ('cpu_intel','gpu_nvidia','ram_ddr4','ssd_nvme', etc.)
+         → v2.0 calculaba flete con peso=0.5 kg para todos
 """
 
-# ── Path fix ─────────────────────────────────────────────────────────────
-# Permite encontrar config.py (en configuracion/) y scrapers/ (en agent/)
-# independientemente de desde dónde se ejecute el script.
+# ── Path fix ──────────────────────────────────────────────────────────────
 import sys
 from pathlib import Path
-_ROOT = Path(__file__).resolve().parent.parent   # sube de analisis/ → raíz del repo
-sys.path.insert(0, str(_ROOT / "configuracion")) # → encuentra config.py ✅
-sys.path.insert(0, str(_ROOT / "agent"))         # → encuentra scrapers/ ✅
+_ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(_ROOT / "configuracion"))
+sys.path.insert(0, str(_ROOT / "agent"))
 # ─────────────────────────────────────────────────────────────────────────
 
 import logging
@@ -54,26 +68,33 @@ from config import (
     GASTO_DESPACHO_USD, MARGEN_GANANCIA_MIN,
     LIMITE_COURIER_USD, OPORTUNIDADES_CSV,
 )
-# FIX-2: import correcto desde agent/
 from scrapers import get_exchange_rate
 
-# FIX-1: Sin basicConfig() — logging configurado solo en main.py / pipeline
 log = logging.getLogger(__name__)
+
+# [R2] Umbrales SUNAT diferenciados
+_DE_MINIMIS_USD        = 200    # CIF ≤ $200: sin impuestos
+_LIMITE_SIMPLIFICADO_USD = 2000 # $200 < CIF ≤ $2000: Ad Valorem 0%, IGV+IPM sí
 
 
 # ── Clasificación de fuentes ──────────────────────────────────────────────
-# FIX-4: Derivar source_type desde la columna 'source' generada por los scrapers
+# [R4] LOCAL_SOURCES: agregado 'mercadolibre_pe'
 LOCAL_SOURCES = {
     "falabella_pe", "ripley_pe", "hiraoka_pe",
     "falabella", "ripley", "hiraoka",
     "competencia",
+    "mercadolibre_pe",          # [R4] scraper_mercadolibre v2.0
 }
+# [R4] IMPORT_SOURCES: agregado newegg_usa, pcpartpicker_*
 IMPORT_SOURCES = {
     "amazon_usa", "aliexpress", "ebay_usa", "ebay",
     "ebay_browse", "camelcamelcamel",
+    "newegg_usa",               # [R4] scraper_newegg v2.0
+    "pcpartpicker_current",     # [R4] scraper_pcpartpicker v3.0
+    "pcpartpicker_history",     # [R4] scraper_pcpartpicker v3.0
 }
 
-# FIX-5: Mapeo de categorías español → inglés (scrapers locales → scrapers importación)
+# [R6] CATEGORY_MAP: categorías Newegg v2.0 + categorías existentes
 CATEGORY_MAP = {
     # Español (scrapers locales PE)
     "laptops":              "LAPTOP",
@@ -92,7 +113,7 @@ CATEGORY_MAP = {
     "camaras":              "CAMERA",
     "videojuegos":          "GAMING",
     "impresoras":           "PRINTER",
-    # Inglés (scrapers importación)
+    # Inglés genérico (PCPartPicker, importación)
     "cpu":                  "CPU",
     "gpu":                  "GPU",
     "ram":                  "RAM",
@@ -108,10 +129,25 @@ CATEGORY_MAP = {
     "internal-hard-drive":  "SSD",
     "power-supply":         "PSU",
     "cpu-cooler":           "COOLER",
+    # [R6] Newegg v2.0 — categorías compuestas
+    "cpu_intel":            "CPU",
+    "cpu_amd":              "CPU",
+    "gpu_nvidia":           "GPU",
+    "gpu_amd":              "GPU",
+    "ram_ddr4":             "RAM",
+    "ram_ddr5":             "RAM",
+    "ssd_nvme":             "SSD",
+    "ssd_sata":             "SSD",
+    "hdd_interno":          "SSD",
+    "mobo_intel":           "MOTHERBOARD",
+    "mobo_amd":             "MOTHERBOARD",
+    "cooler_aire":          "COOLER",
+    "cooler_liquido":       "COOLER",
+    "cases":                "CASE",
+    "tarjetas_red":         "OTHER",
 }
 
 def _normalize_category(cat: str) -> str:
-    """Normaliza categoría a vocabulario común (mayúsculas)."""
     if not cat:
         return "OTHER"
     return CATEGORY_MAP.get(str(cat).lower().strip(), str(cat).upper().strip())
@@ -129,10 +165,9 @@ CATEGORY_WEIGHTS = {
     "CASE":        8.0,
     "LAPTOP":      2.0,
     "MONITOR":     4.0,
-    # ── Agregados ──────────────────────
     "TABLET":      0.6,
     "PHONE":       0.3,
-    "TV":         12.0,   # ← sin esto, flete TV se calcula como 0.5 kg → ROI inflado
+    "TV":         12.0,
     "AUDIO":       0.4,
     "CAMERA":      0.5,
     "GAMING":      0.4,
@@ -150,17 +185,14 @@ CATEGORY_WEIGHTS = {
 class ImportCost:
     """
     Desglose completo del costo de importación.
-    FIX-3: usd_pen se pasa como parámetro — no se hace HTTP en __post_init__.
-    FIX-8: shipping_origen_usd es parte del FOB efectivo (envío doméstico USA).
+    flete_internacional_usd=0.0 → calcular automáticamente por peso.
     """
-    # Inputs
-    price_fob_usd:           float = 0.0   # Precio en origen (Amazon/eBay/Ali)
-    shipping_origen_usd:     float = 0.0   # Envío doméstico USA — parte del FOB efectivo
-    flete_internacional_usd: float = 0.0   # Courier USA → Perú
-    peso_kg:                 float = 0.5   # Peso estimado del producto
-    usd_pen_rate:            float = 0.0   # FIX-3: tipo de cambio pre-obtenido
+    price_fob_usd:           float = 0.0
+    shipping_origen_usd:     float = 0.0
+    flete_internacional_usd: float = 0.0
+    peso_kg:                 float = 0.5
+    usd_pen_rate:            float = 0.0
 
-    # Calculados
     seguro_usd:              float = field(default=0.0, init=False)
     cif_usd:                 float = field(default=0.0, init=False)
     ad_valorem_usd:          float = field(default=0.0, init=False)
@@ -173,40 +205,46 @@ class ImportCost:
     regimen:                 str   = field(default="", init=False)
 
     def __post_init__(self):
-        # FIX-3: Si no se pasó el tipo de cambio, obtenerlo UNA vez
-        # (en analyze_dataframe se pasa pre-obtenido para evitar 10k llamadas)
         if self.usd_pen_rate <= 0:
             rate = get_exchange_rate()
             self.usd_pen_rate = rate.get("usd_pen_venta", 3.75)
         self._calculate()
 
     def _calculate(self):
-        # Flete internacional (si no se especificó, calcular por peso)
         if self.flete_internacional_usd == 0:
             self.flete_internacional_usd = round(
                 FLETE_BASE_USD + max(0, self.peso_kg - 0.5) * FLETE_POR_KG_USD, 2
             )
 
-        # Seguro = SEGURO_PCT del FOB (0.5% por defecto)
         fob_efectivo    = self.price_fob_usd + self.shipping_origen_usd
         self.seguro_usd = round(fob_efectivo * SEGURO_PCT, 2)
-
-        # CIF = FOB_efectivo + Flete_internacional + Seguro
-        self.cif_usd = round(
-            fob_efectivo +
-            self.flete_internacional_usd +
-            self.seguro_usd, 2
+        self.cif_usd    = round(
+            fob_efectivo + self.flete_internacional_usd + self.seguro_usd, 2
         )
 
-        # Régimen aduanero
-        if self.cif_usd <= LIMITE_COURIER_USD:
-            self.regimen             = "courier_simplificado"
+        # [R2] Tres regímenes SUNAT diferenciados
+        if self.cif_usd <= _DE_MINIMIS_USD:
+            # De minimis: sin impuestos
+            self.regimen             = "de_minimis"
             self.ad_valorem_usd      = 0.0
             self.igv_usd             = 0.0
             self.ipm_usd             = 0.0
             self.gasto_despacho_usd  = 0.0
             self.total_impuestos_usd = 0.0
+
+        elif self.cif_usd <= _LIMITE_SIMPLIFICADO_USD:
+            # Courier simplificado: Ad Valorem 0%, IGV 18%, IPM 2%
+            self.regimen          = "courier_simplificado"
+            self.ad_valorem_usd   = 0.0
+            self.igv_usd          = round(self.cif_usd * IGV, 2)
+            self.ipm_usd          = round(self.cif_usd * IPM, 2)
+            self.gasto_despacho_usd = 0.0
+            self.total_impuestos_usd = round(
+                self.igv_usd + self.ipm_usd, 2
+            )
+
         else:
+            # Importación general: Ad Valorem + IGV + IPM + despacho
             self.regimen          = "importacion_general"
             self.ad_valorem_usd   = round(self.cif_usd * ARANCEL_AD_VALOREM, 2)
             base_igv              = self.cif_usd + self.ad_valorem_usd
@@ -224,7 +262,6 @@ class ImportCost:
 
 @dataclass
 class ROIResult:
-    """Resultado del análisis ROI para un producto."""
     title:             str   = ""
     category:          str   = ""
     source_import:     str   = ""
@@ -241,7 +278,7 @@ class ROIResult:
     regimen:           str   = ""
     conviene_importar: bool  = False
     razon:             str   = ""
-    score:             float = 0.0   # FIX-6: sin cap — permite ranking entre ROI > 100%
+    score:             float = 0.0
     url_import:        str   = ""
     url_local:         str   = ""
 
@@ -261,17 +298,13 @@ def calculate_roi(
     source_local:        str   = "",
     url_import:          str   = "",
     url_local:           str   = "",
-    usd_pen_rate:        float = 0.0,   # FIX-3: pasar pre-obtenido para batch
+    usd_pen_rate:        float = 0.0,
 ) -> ROIResult:
-    """
-    Calcula el ROI de importar un producto específico.
-    usd_pen_rate: si se pasa > 0, evita la llamada HTTP al tipo de cambio.
-    """
     cost = ImportCost(
         price_fob_usd=price_import_usd,
         shipping_origen_usd=shipping_origen_usd,
         peso_kg=peso_kg,
-        usd_pen_rate=usd_pen_rate,   # FIX-3
+        usd_pen_rate=usd_pen_rate,
     )
 
     ahorro   = price_local_pen - cost.costo_total_pen
@@ -291,7 +324,6 @@ def calculate_roi(
         else:
             razon = f"No conviene: importar cuesta S/ {-ahorro:.2f} MÁS que comprar local"
 
-    # FIX-6: score = roi sin cap — permite diferenciar ROI 150% vs 200%
     score = round(roi, 2) if conviene else 0.0
 
     return ROIResult(
@@ -325,29 +357,21 @@ def analyze_dataframe(df_master: pd.DataFrame, save: bool = True) -> pd.DataFram
     """
     Analiza el MASTER CSV y calcula ROI para cada par
     (producto_importación, precio_local_referencia).
-
-    FIX-3: Obtiene usd_pen UNA SOLA VEZ antes del loop.
-    FIX-4: Deriva source_type desde columna 'source'.
-    FIX-5: Normaliza categorías antes del merge.
     """
     if df_master.empty:
         log.warning("DataFrame vacío")
         return pd.DataFrame()
 
-    # FIX-3: Obtener tipo de cambio UNA SOLA VEZ
     rate_data = get_exchange_rate()
     usd_pen   = rate_data.get("usd_pen_venta", 3.75)
     log.info(f"  Tipo de cambio: S/ {usd_pen:.4f} por USD")
 
-    # FIX-4: Derivar source_type desde columna 'source'
     df = df_master.copy()
     df["source_type"] = df["source"].apply(
         lambda s: "local_pe"    if str(s).lower() in LOCAL_SOURCES
                   else "importacion" if str(s).lower() in IMPORT_SOURCES
                   else "other"
     )
-
-    # FIX-5: Normalizar categorías
     df["category_norm"] = df["category"].apply(_normalize_category)
 
     results = []
@@ -356,14 +380,17 @@ def analyze_dataframe(df_master: pd.DataFrame, save: bool = True) -> pd.DataFram
         if category == "OTHER":
             continue
 
-        cat_df    = df[df["category_norm"] == category]
-        local_df  = cat_df[cat_df["source_type"] == "local_pe"]
-        import_df = cat_df[cat_df["source_type"] == "importacion"]
+        cat_df = df[df["category_norm"] == category]
+
+        # [R3] .copy() — evita SettingWithCopyWarning y CoW silencioso en pandas 2.0+
+        local_df  = cat_df[cat_df["source_type"] == "local_pe"].copy()
+        import_df = cat_df[cat_df["source_type"] == "importacion"].copy()
 
         if local_df.empty or import_df.empty:
             log.debug(f"  {category}: sin datos locales o de importación")
             continue
 
+        # [R3] Ahora sí modifica local_df (es una copia, no una vista)
         local_df["price_pen"] = pd.to_numeric(local_df["price_pen"], errors="coerce")
         local_df = local_df[local_df["price_pen"].notna() & (local_df["price_pen"] > 0)]
         if local_df.empty:
@@ -394,7 +421,7 @@ def analyze_dataframe(df_master: pd.DataFrame, save: bool = True) -> pd.DataFram
                     source_import=str(row.get("source", "")),
                     source_local="mercado_local_pe",
                     url_import=str(row.get("url", "")),
-                    usd_pen_rate=usd_pen,   # FIX-3: reutilizar el mismo rate
+                    usd_pen_rate=usd_pen,
                 )
 
                 result_dict = asdict(roi_result)
@@ -412,9 +439,7 @@ def analyze_dataframe(df_master: pd.DataFrame, save: bool = True) -> pd.DataFram
         log.warning("No se generaron resultados ROI")
         return pd.DataFrame()
 
-    df_roi = pd.DataFrame(results).sort_values("roi_pct", ascending=False)
-
-    # FIX-7: sin == True (pandas warning)
+    df_roi   = pd.DataFrame(results).sort_values("roi_pct", ascending=False)
     conviene = df_roi[df_roi["conviene_importar"]]
 
     log.info(f"\n{'='*60}")
@@ -440,7 +465,16 @@ def top_oportunidades(n: int = 20, category: str = None) -> pd.DataFrame:
         return pd.DataFrame()
 
     df = pd.read_csv(OPORTUNIDADES_CSV)
-    # FIX-7: sin == True
+
+    # [R5] Validar columnas antes de operar — evita KeyError con CSV de versión anterior
+    _required = {"roi_pct", "conviene_importar", "category", "title",
+                 "price_import_usd", "costo_total_pen", "price_local_pen",
+                 "ahorro_pen", "regimen", "source_import", "url_import"}
+    _missing  = _required - set(df.columns)
+    if _missing:
+        log.warning(f"  [top_oportunidades] CSV desactualizado — columnas faltantes: {_missing}")
+        return pd.DataFrame()
+
     df = df[df["conviene_importar"]]
 
     if category:
@@ -462,7 +496,7 @@ if __name__ == "__main__":
         format="%(asctime)s [%(levelname)s] %(name)s — %(message)s",
     )
     print("\n" + "=" * 60)
-    print("TEST ROI CALCULATOR v2.0")
+    print("TEST ROI CALCULATOR v3.0")
     print("=" * 60)
 
     test_cases = [
@@ -470,6 +504,8 @@ if __name__ == "__main__":
         {"title": "NVIDIA RTX 4070",          "price_usd": 550.0, "price_pen": 2800.0, "category": "GPU"},
         {"title": "Samsung 990 Pro 1TB NVMe", "price_usd":  89.0, "price_pen":  420.0, "category": "SSD"},
         {"title": "Corsair RM850x PSU",       "price_usd": 120.0, "price_pen":  550.0, "category": "PSU"},
+        # [R2] Test de_minimis
+        {"title": "USB Hub 4 puertos",        "price_usd":  15.0, "price_pen":   85.0, "category": "OTHER"},
     ]
 
     for tc in test_cases:
