@@ -1,18 +1,23 @@
 #!/usr/bin/env python3
 """
-scraper_newegg.py  v2.0
+scraper_newegg.py  v2.1
 Scraper Newegg USA — catálogo completo de hardware
 Método: HTML scraping (requests + BeautifulSoup)
 Precios: USD (price_usd) — sin conversión a PEN
 
-Fixes v2.0 (sobre v1.0):
-  - [N1] _make_session: allowed_methods=['GET'] + raise_on_status=False
-  - [N2] _extract_brand: fallback '' + limpieza de prefijos Newegg
-         (Refurbished, Open Box, Combo)
-  - [N3] _parse_cell: SKU fallback usa hashlib.md5 (determinístico)
-         hash() de Python NO es determinístico entre runs → duplicados en MASTER
-  - [N4] scrape_newegg: seen_skus global (no local por categoría)
-  - [N5] __main__: datetime.now(timezone.utc)
+Fixes v2.1 (sobre v2.0):
+  - [N6]  NEWEGG_CATEGORIES: URLs actualizadas al sistema 2025-2026
+  - [N7]  USER_AGENTS: Chrome 125 → Chrome 136 (julio 2026)
+  - [N8]  _parse_cell precio: usa _parse_price(texto completo) — evita
+          error con <sup>.</sup><sup>99</sup> en HTML de Newegg
+  - [N9]  category: nombre interno → categoría normalizada via CAT_NORMALIZE
+          ("cpu_intel" → "CPU", "gpu_nvidia" → "GPU", etc.)
+  - [N10] timestamp: por record (no fijo al inicio del scrape)
+  - [N11] MAX_PAGES: 20 → 10 (Newegg máx 10-12 páginas reales)
+  - [N12] reviews: parser dedicado int (no _parse_price float)
+  - [N13] Log de tiempo total al finalizar
+  - [M20] EMPTY_PAGE_LIMIT: 2 → 3 (menos agresivo)
+  - [M22] _KNOWN_BRANDS: +DeepCool, +Thermalright, +Hyte, +Zephyrus
 """
 
 import re
@@ -35,51 +40,80 @@ logger = logging.getLogger(__name__)
 # ──────────────────────────────────────────────
 REQUEST_DELAY    = 2.5
 TIMEOUT          = 20
-MAX_PAGES        = 20
-EMPTY_PAGE_LIMIT = 2
+MAX_PAGES        = 10             # [N11] era 20
+EMPTY_PAGE_LIMIT = 3              # [M20] era 2
 MIN_ITEMS_PAGE   = 2
 
 BASE_URL = "https://www.newegg.com"
 
+# [N6] URLs actualizadas al sistema de filtros 2025-2026
 NEWEGG_CATEGORIES = {
-    "cpu_intel":      "/p/pl?N=100007671+4814",
-    "cpu_amd":        "/p/pl?N=100007671+4812",
-    "gpu_nvidia":     "/p/pl?N=100007709+4836",
-    "gpu_amd":        "/p/pl?N=100007709+4835",
-    "ram_ddr4":       "/p/pl?N=100007611+4702",
-    "ram_ddr5":       "/p/pl?N=100007611+601302378",
-    "ssd_nvme":       "/p/pl?N=100167523+601302827",
-    "ssd_sata":       "/p/pl?N=100167523+4706",
-    "hdd_interno":    "/p/pl?N=100167523+4705",
-    "mobo_intel":     "/p/pl?N=100007627+4739",
-    "mobo_amd":       "/p/pl?N=100007627+4741",
-    "psu":            "/p/pl?N=100007657+4751",
-    "cases":          "/p/pl?N=100007583+4747",
-    "cooler_aire":    "/p/pl?N=100007588+4748",
-    "cooler_liquido": "/p/pl?N=100007588+4749",
-    "laptops":        "/p/pl?N=100006740+4131",
-    "monitores":      "/p/pl?N=100007642+4734",
-    "teclados":       "/p/pl?N=100007643+4736",
-    "mouse":          "/p/pl?N=100007644+4737",
-    "auriculares":    "/p/pl?N=100007645+4738",
-    "tarjetas_red":   "/p/pl?N=100007650+4740",
+    "cpu_intel":      "/CPUs-Processors/Intel/_/N-8o6Z50g8r",
+    "cpu_amd":        "/CPUs-Processors/AMD/_/N-8o6Z4saZ50g8r",
+    "gpu_nvidia":     "/Video-Cards-Video-Devices/NVIDIA/_/N-8o6Z4k6Z50g8r",
+    "gpu_amd":        "/Video-Cards-Video-Devices/AMD/_/N-8o6Z4saZ4k6Z50g8r",
+    "ram_ddr4":       "/RAM-Memory/DDR4/_/N-8o6Z50g8rZ4702",
+    "ram_ddr5":       "/RAM-Memory/DDR5/_/N-8o6Z50g8rZ601302378",
+    "ssd_nvme":       "/Hard-Drives-Storage/SSD-Solid-State-Drives/NVMe/_/N-8o6Z50g8rZ601302827",
+    "ssd_sata":       "/Hard-Drives-Storage/SSD-Solid-State-Drives/SATA/_/N-8o6Z50g8rZ4706",
+    "hdd_interno":    "/Hard-Drives-Storage/Internal-Hard-Drives/_/N-8o6Z50g8rZ4705",
+    "mobo_intel":     "/Motherboards/Intel/_/N-8o6Z50g8rZ4739",
+    "mobo_amd":       "/Motherboards/AMD/_/N-8o6Z50g8rZ4741",
+    "psu":            "/Power-Supplies/_/N-8o6Z50g8rZ4751",
+    "cases":          "/Computer-Cases/_/N-8o6Z50g8rZ4747",
+    "cooler_aire":    "/Cooling-Systems/Air-Cooling/_/N-8o6Z50g8rZ4748",
+    "cooler_liquido": "/Cooling-Systems/Liquid-Cooling/_/N-8o6Z50g8rZ4749",
+    "laptops":        "/Laptops-Notebooks/_/N-8o6Z50g8rZ4131",
+    "monitores":      "/Monitors/_/N-8o6Z50g8rZ4734",
+    "teclados":       "/Keyboards/_/N-8o6Z50g8rZ4736",
+    "mouse":          "/Mouse/_/N-8o6Z50g8rZ4737",
+    "auriculares":    "/Headsets-Headphones/_/N-8o6Z50g8rZ4738",
+    "tarjetas_red":   "/Networking-Adapters/_/N-8o6Z50g8rZ4740",
+}
+
+# [N9] Mapeo a categorías normalizadas del pipeline
+CAT_NORMALIZE = {
+    "cpu_intel":      "CPU",
+    "cpu_amd":        "CPU",
+    "gpu_nvidia":     "GPU",
+    "gpu_amd":        "GPU",
+    "ram_ddr4":       "RAM",
+    "ram_ddr5":       "RAM",
+    "ssd_nvme":       "SSD",
+    "ssd_sata":       "SSD",
+    "hdd_interno":    "SSD",
+    "mobo_intel":     "MOTHERBOARD",
+    "mobo_amd":       "MOTHERBOARD",
+    "psu":            "PSU",
+    "cases":          "CASE",
+    "cooler_aire":    "COOLER",
+    "cooler_liquido": "COOLER",
+    "laptops":        "LAPTOP",
+    "monitores":      "MONITOR",
+    "teclados":       "KEYBOARD",
+    "mouse":          "MOUSE",
+    "auriculares":    "AUDIO",
+    "tarjetas_red":   "OTHER",
 }
 
 # ──────────────────────────────────────────────
 # HEADERS ROTATIVOS
 # ──────────────────────────────────────────────
+# [N7] Chrome 136 — julio 2026
 _USER_AGENTS = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-    "(KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
+    "(KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36",
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-    "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36 Edg/124.0.0.0",
+    "(KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36 Edg/136.0.0.0",
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
-    "(KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
+    "(KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36",
     "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
-    "(KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
+    "(KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:138.0) "
+    "Gecko/20100101 Firefox/138.0",
 ]
 
-# [N1] Retry con allowed_methods + raise_on_status — consistente con el proyecto
+# [N1] Retry con allowed_methods + raise_on_status
 def _make_session() -> requests.Session:
     session = requests.Session()
     retry   = Retry(
@@ -123,6 +157,7 @@ def _parse_price(text: str) -> Optional[float]:
 # ──────────────────────────────────────────────
 # EXTRACCIÓN DE MARCA
 # ──────────────────────────────────────────────
+# [M22] Marcas 2025-2026 agregadas
 _KNOWN_BRANDS = [
     "Intel", "AMD", "NVIDIA", "ASUS", "MSI", "Gigabyte", "ASRock",
     "Corsair", "G.Skill", "Kingston", "Crucial", "Samsung", "Western Digital",
@@ -132,9 +167,9 @@ _KNOWN_BRANDS = [
     "Dell", "HP", "Lenovo", "Acer", "Razer", "LG",
     "BenQ", "ViewSonic", "AOC", "Logitech", "SteelSeries", "HyperX",
     "SanDisk", "Patriot", "TeamGroup", "Micron", "Toshiba", "HGST",
+    "DeepCool", "Thermalright", "Hyte", "Montech",   # [M22] nuevas
 ]
 
-# [N2] Prefijos Newegg que NO son marcas
 _NEWEGG_TITLE_PREFIXES = re.compile(
     r"^(Refurbished|Open Box|Combo|Renewed|Used)[:\s]+",
     re.IGNORECASE,
@@ -143,13 +178,11 @@ _NEWEGG_TITLE_PREFIXES = re.compile(
 def _extract_brand(title: str) -> str:
     if not title:
         return ""
-    # [N2] Limpiar prefijos antes de buscar la marca
     clean_title = _NEWEGG_TITLE_PREFIXES.sub("", title).strip()
     title_lower = clean_title.lower()
     for brand in _KNOWN_BRANDS:
         if brand.lower() in title_lower:
             return brand
-    # [N2] Fallback '' — evita 'Refurbished', 'Open', 'Combo' como brand
     return ""
 
 
@@ -157,7 +190,7 @@ def _extract_brand(title: str) -> str:
 # FETCH DE UNA PÁGINA
 # ──────────────────────────────────────────────
 def _fetch_page(session: requests.Session, path: str, page: int) -> list:
-    url = f"{BASE_URL}{path}&PageSize=96&Page={page}"
+    url = f"{BASE_URL}{path}?PageSize=96&Page={page}"
     try:
         resp = session.get(url, headers=_get_headers(), timeout=TIMEOUT)
         if resp.status_code == 404:
@@ -216,14 +249,14 @@ def _parse_cell(cell) -> Optional[dict]:
     if item_num:
         sku = str(item_num)
     elif url:
-        m = re.search(r"/p/([A-Z0-9]+)", url)
+        m = re.search(r"/p/([A-Z0-9\-]+)", url)
         if m:
             sku = m.group(1)
     if not sku:
-        # [N3] hashlib.md5 — DETERMINÍSTICO entre runs (hash() no lo es)
+        # [N3] hashlib.md5 — determinístico entre runs
         sku = "newegg_" + hashlib.md5(title.encode()).hexdigest()[:12]
 
-    # ── Precio actual ──
+    # ── Precio actual [N8] — texto completo evita error con <sup>.</sup> ──
     price_el = (
         cell.select_one("li.price-current") or
         cell.select_one(".price-current") or
@@ -231,17 +264,8 @@ def _parse_cell(cell) -> Optional[dict]:
     )
     price_usd = None
     if price_el:
-        dollars = price_el.select_one("strong")
-        cents   = price_el.select_one("sup:last-child")
-        if dollars:
-            d_text = dollars.get_text(strip=True).replace(",", "").replace("$", "")
-            c_text = cents.get_text(strip=True).replace(".", "") if cents else "00"
-            try:
-                price_usd = float(f"{d_text}.{c_text}")
-            except ValueError:
-                price_usd = _parse_price(price_el.get_text(strip=True))
-        else:
-            price_usd = _parse_price(price_el.get_text(strip=True))
+        # [N8] _parse_price sobre texto completo — robusto ante variantes HTML
+        price_usd = _parse_price(price_el.get_text(strip=True))
 
     if not price_usd:
         return None
@@ -259,7 +283,7 @@ def _parse_cell(cell) -> Optional[dict]:
     if price_orig_usd and price_orig_usd > price_usd:
         discount_pct = round((1 - price_usd / price_orig_usd) * 100, 1)
 
-    # ── Rating (Newegg: clase CSS rating-50 → 5.0) ──
+    # ── Rating ──
     rating_el = cell.select_one(".item-rating i.rating")
     rating    = None
     if rating_el:
@@ -269,15 +293,15 @@ def _parse_cell(cell) -> Optional[dict]:
                 rating = int(m.group(1)) / 10
                 break
 
-    # ── Reviews ──
+    # ── Reviews [N12] — parser int dedicado ──
     reviews_el = (
         cell.select_one(".item-rating span") or
         cell.select_one("span.item-rating-num")
     )
     reviews = None
     if reviews_el:
-        rv      = _parse_price(reviews_el.get_text(strip=True))
-        reviews = int(rv) if rv else None
+        raw_rev = re.sub(r"[^\d]", "", reviews_el.get_text(strip=True))
+        reviews = int(raw_rev) if raw_rev else None
 
     # ── Marca ──
     brand = _extract_brand(title)
@@ -300,8 +324,8 @@ def _parse_cell(cell) -> Optional[dict]:
 # SCRAPER PRINCIPAL
 # ──────────────────────────────────────────────
 def scrape_newegg(batch_id: str) -> list:
+    t_start     = time.time()   # [N13]
     all_records = []
-    now_iso     = datetime.now(timezone.utc).isoformat()
     session     = _make_session()
     # [N4] seen_skus GLOBAL — evita duplicados entre categorías
     seen_skus_global = set()
@@ -311,9 +335,7 @@ def scrape_newegg(batch_id: str) -> list:
     for cat_name, path in NEWEGG_CATEGORIES.items():
         logger.info(f"[Newegg] '{cat_name}'")
         cat_records = []
-        # [N4] seen_skus local solo para early-stop dentro de la categoría
-        seen_skus_cat = set()
-        empty_pages   = 0
+        empty_pages = 0
 
         for page in range(1, MAX_PAGES + 1):
             time.sleep(REQUEST_DELAY + random.uniform(0, 0.8))
@@ -331,26 +353,27 @@ def scrape_newegg(batch_id: str) -> list:
 
             for item in raw_items:
                 sku = item.get("sku", "")
-                # [N4] Dedup global — evita mismo item en cpu_intel y cpu_amd
                 if sku in seen_skus_global:
                     continue
                 seen_skus_global.add(sku)
-                seen_skus_cat.add(sku)
                 new_in_page += 1
 
+                # [N9] categoría normalizada
+                cat_normalized = CAT_NORMALIZE.get(cat_name, cat_name.upper())
+
+                # [N10] timestamp por record — no fijo al inicio
                 record = {
                     "batch_id":       batch_id,
-                    "timestamp":      now_iso,
+                    "timestamp":      datetime.now(timezone.utc).isoformat(),
                     "source":         "newegg_usa",
-                    "category":       cat_name,
+                    "category":       cat_normalized,          # [N9]
+                    "category_raw":   cat_name,                # debug
                     "sku":            sku,
                     "brand":          item.get("brand", ""),
                     "title":          item.get("title", ""),
                     "price_usd":      item.get("price_usd"),
                     "price_orig_usd": item.get("price_orig_usd"),
-                    "price_pen":      None,
-                    "price_orig_pen": None,
-                    "price_date":     now_iso[:10],
+                    "price_date":     datetime.now(timezone.utc).strftime("%Y-%m-%d"),
                     "price_currency": "USD",
                     "discount_pct":   item.get("discount_pct"),
                     "rating":         item.get("rating"),
@@ -373,7 +396,12 @@ def scrape_newegg(batch_id: str) -> list:
         logger.info(f"  ✅ [{cat_name}]: {len(cat_records):,} registros")
         all_records.extend(cat_records)
 
-    logger.info(f"[Newegg] Total: {len(all_records):,} registros únicos")
+    # [N13] Log de tiempo total
+    elapsed = time.time() - t_start
+    logger.info(
+        f"[Newegg] Total: {len(all_records):,} registros únicos "
+        f"— ⏱ {elapsed/60:.1f} min"
+    )
     return all_records
 
 
