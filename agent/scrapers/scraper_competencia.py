@@ -689,8 +689,11 @@ def scrape_competencia(
 
     scrapers = {}
     if "falabella" in sources: scrapers["falabella"] = FalabellaScraper()
-    if "ripley"    in sources: scrapers["ripley"]    = RipleyScraper()
+    # [FIX-4] Ripley DESHABILITADO — 403 Cloudflare
+    # if "ripley" in sources: scrapers["ripley"] = RipleyScraper()
+    log.warning("[Ripley] DESHABILITADO — 403 Cloudflare, omitido del scraping")
     if "hiraoka"   in sources: scrapers["hiraoka"]   = HiraokaScraper()
+
 
     all_records = []
 
