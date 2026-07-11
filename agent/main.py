@@ -442,7 +442,7 @@ def run(mode: str, batch_id: str):
         stats["importacion"] = 0
 
     # ── 10. Competencia ────────────────────────────────────────────
-    if _HAS_COMPETENCIA and mode in ("normal", "local_only", "full"):
+    if _HAS_COMPETENCIA and mode in ("local_only", "full"):
         log.info("\n[10/10] 🔍 Competencia local PE")
         try:
             comp_records = scrape_competencia(batch_id)
