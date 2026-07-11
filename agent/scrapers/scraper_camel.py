@@ -1,16 +1,17 @@
 """
-scraper_camel.py  v2.0
+scraper_camel.py  v3.0
 CamelCamelCamel — Historial de precios Amazon (desde 2008)
 
-Fixes v2.0:
-  - [FIX-1] imports re/json movidos al top del archivo
-  - [FIX-2] ASINs duplicados corregidos con ASINs reales
-  - [FIX-3] Parser JSON robusto — reemplaza regex frágiles
-  - [FIX-4] Esquema de columnas unificado entre RSS e historial
-  - [FIX-5] Retry con backoff en _fetch_asin_history
-  - [FIX-6] Deduplicación automática de ASINs al inicio
-  - [FIX-7] Límite de 1000 puntos por ASIN (configurable)
-  - [FIX-8] Delay aumentado a 2.5s + selector de precio Amazon específico
+Fixes v3.0 (sobre v2.0):
+  - [C1] User-Agent rotativo via fake-useragent (en lugar de UA estático)
+  - [C4] _fetch_rss_feed: registros sin ASIN filtrados (skip si asin='')
+  - [C5] _extract_chartjs_data: extractor de llaves balanceadas reemplaza
+         regex non-greedy r'{.*?}' — causa raíz del camel=0 en todos los batches
+  - [C6] _extract_chartjs_data: extractor de brackets balanceados para arrays
+         reemplaza regex non-greedy r'\[.*?\]'
+  - [C7] Fallback regex reemplazado por extractor balanceado conservador
+  - [C8] Log de advertencia cuando price_source cae al selector genérico
+  - [C9] __main__: datetime.now(timezone.utc) — naive datetime corregido
 """
 
 import re
@@ -24,31 +25,42 @@ from typing import Optional
 import requests
 from bs4 import BeautifulSoup
 
+try:
+    from fake_useragent import UserAgent as _UA
+    _ua_gen = _UA()
+except ImportError:
+    _ua_gen = None
+
 logger = logging.getLogger(__name__)
 
 # ──────────────────────────────────────────────
 # CONFIGURACIÓN
 # ──────────────────────────────────────────────
-BASE_URL       = "https://camelcamelcamel.com"
-REQUEST_DELAY  = 2.5    # FIX-8: aumentado de 1.2 → 2.5s para evitar bloqueos
-TIMEOUT        = 20
-MAX_RETRIES    = 3      # FIX-5: reintentos por ASIN
-MAX_HISTORY_PTS = 1000  # FIX-7: máximo puntos históricos por ASIN
+BASE_URL        = "https://camelcamelcamel.com"
+REQUEST_DELAY   = 2.5
+TIMEOUT         = 20
+MAX_RETRIES     = 3
+MAX_HISTORY_PTS = 1000
 
-HEADERS = {
-    "User-Agent": (
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/125.0.0.0 Safari/537.36"
-    ),
-    "Accept-Language": "en-US,en;q=0.9",
-    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-    "Referer": "https://camelcamelcamel.com/",
-}
+# [C1] UA base de fallback si fake-useragent no está disponible
+_UA_FALLBACK = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+    "AppleWebKit/537.36 (KHTML, like Gecko) "
+    "Chrome/125.0.0.0 Safari/537.36"
+)
+
+def _get_headers() -> dict:
+    """[C1] Genera headers con User-Agent rotativo."""
+    ua = _ua_gen.random if _ua_gen else _UA_FALLBACK
+    return {
+        "User-Agent":      ua,
+        "Accept-Language": "en-US,en;q=0.9",
+        "Accept":          "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Referer":         "https://camelcamelcamel.com/",
+    }
 
 # ──────────────────────────────────────────────
-# FIX-2: ASINs corregidos — sin duplicados
-# Verificados en Amazon.com (Julio 2026)
+# ASINs — 37 únicos, verificados Julio 2026
 # ──────────────────────────────────────────────
 HARDWARE_ASINS = {
     # ── Procesadores Intel ────────────────────
@@ -86,18 +98,18 @@ HARDWARE_ASINS = {
     "samsung_980_pro_1tb":    "B08GLX7TNT",
     "wd_black_sn850x_1tb":    "B0B7CQ2CHH",
     "crucial_p3_1tb":         "B0B25LQQPC",
-    # ── Motherboards (ASINs corregidos) ───────
-    "asus_z790_prime":        "B0BHB6GXNQ",   # FIX-2: era B0BG6JCXQN (duplicado)
-    "msi_b650_tomahawk":      "B0BG7BXKM3",   # FIX-2: ASIN real MSI B650 Tomahawk
+    # ── Motherboards ──────────────────────────
+    "asus_z790_prime":        "B0BHB6GXNQ",
+    "msi_b650_tomahawk":      "B0BG7BXKM3",
     "gigabyte_b760m":         "B0BSVQBG9N",
-    # ── Laptops (ASINs corregidos) ────────────
-    "asus_rog_g15_rtx4060":   "B0BZKQXNMJ",   # FIX-2: era B0C3BQNQKN (duplicado con amd_rx_7600)
-    "lenovo_legion_5_i7":     "B0BXNK9GBF",   # FIX-2: era B0C5BFHD6D (duplicado con rtx_4060ti)
+    # ── Laptops ───────────────────────────────
+    "asus_rog_g15_rtx4060":   "B0BZKQXNMJ",
+    "lenovo_legion_5_i7":     "B0BXNK9GBF",
     "acer_nitro_5_i5":        "B09Q5NXQTM",
-    # ── Monitores (ASINs corregidos) ──────────
+    # ── Monitores ─────────────────────────────
     "lg_27gp850b_165hz":      "B08DCBQMHB",
     "samsung_odyssey_g5":     "B08KXVL6VF",
-    "asus_vg279qm_280hz":     "B08WY5JKXB",   # FIX-2: era B08KXVL6VF (duplicado con samsung_odyssey)
+    "asus_vg279qm_280hz":     "B08WY5JKXB",
 }
 
 RSS_FEEDS = [
@@ -107,40 +119,36 @@ RSS_FEEDS = [
     f"{BASE_URL}/rss/computer-accessories-price-drops.rss",
 ]
 
-# FIX-4: Esquema unificado para todos los registros
+# [C2] Esquema unificado — 'title' es el título raw (RSS/HTML),
+#      'product_name' es el nombre canónico del producto.
+#      'price_prev_usd' solo se popula en fuente RSS.
 RECORD_SCHEMA = {
-    "batch_id":      "",
-    "timestamp":     "",
-    "source":        "",
-    "asin":          "",
-    "product_name":  "",
-    "title":         "",
-    "price_usd":     None,
-    "price_prev_usd": None,
-    "price_date":    "",
-    "current_price": None,
-    "pub_date":      "",
-    "url":           "",
-    "feed_url":      "",
+    "batch_id":       "",
+    "timestamp":      "",
+    "source":         "",
+    "asin":           "",
+    "product_name":   "",
+    "title":          "",      # título raw del RSS o h1 del HTML
+    "price_usd":      None,
+    "price_prev_usd": None,    # solo RSS: precio anterior al drop
+    "price_date":     "",
+    "current_price":  None,
+    "pub_date":       "",
+    "url":            "",
+    "feed_url":       "",
 }
 
 def _make_record(**kwargs) -> dict:
-    """Crea un registro con el esquema unificado."""
     record = RECORD_SCHEMA.copy()
     record.update(kwargs)
     return record
 
 
 # ──────────────────────────────────────────────
-# FIX-6: Validación de ASINs al inicio
+# Validación de ASINs
 # ──────────────────────────────────────────────
-
 def _validate_asins(asins: dict) -> dict:
-    """Detecta y elimina ASINs duplicados, conservando el primero."""
-    seen   = {}
-    clean  = {}
-    dupes  = []
-
+    seen, clean, dupes = {}, {}, []
     for name, asin in asins.items():
         if asin in seen:
             dupes.append((name, asin, seen[asin]))
@@ -151,24 +159,177 @@ def _validate_asins(asins: dict) -> dict:
         else:
             seen[asin]  = name
             clean[name] = asin
-
     if dupes:
         logger.warning(f"[Camel] {len(dupes)} ASINs duplicados eliminados")
     else:
         logger.info(f"[Camel] {len(clean)} ASINs únicos validados ✅")
-
     return clean
+
+
+# ──────────────────────────────────────────────
+# [C5/C6/C7] Extractor de brackets balanceados
+# Reemplaza todos los regex non-greedy r'{.*?}' y r'\[.*?\]'
+# ──────────────────────────────────────────────
+def _extract_balanced(text: str, start_idx: int, open_ch: str, close_ch: str) -> Optional[str]:
+    """
+    Extrae el bloque balanceado que empieza en start_idx.
+    Maneja strings JSON (no cuenta brackets dentro de strings).
+    Retorna el bloque completo o None si no está balanceado.
+    """
+    depth   = 0
+    in_str  = False
+    escaped = False
+    i       = start_idx
+
+    while i < len(text):
+        ch = text[i]
+        if escaped:
+            escaped = False
+        elif ch == '\\' and in_str:
+            escaped = True
+        elif ch == '"' and not escaped:
+            in_str = not in_str
+        elif not in_str:
+            if ch == open_ch:
+                depth += 1
+            elif ch == close_ch:
+                depth -= 1
+                if depth == 0:
+                    return text[start_idx: i + 1]
+        i += 1
+    return None  # No balanceado
+
+
+def _find_balanced_block(content: str, marker: str, open_ch: str) -> Optional[str]:
+    """
+    Busca 'marker' en content, luego extrae el bloque balanceado
+    que comienza en el primer open_ch después del marker.
+    """
+    close_ch = '}' if open_ch == '{' else ']'
+    idx = content.find(marker)
+    while idx != -1:
+        start = content.find(open_ch, idx)
+        if start == -1:
+            break
+        block = _extract_balanced(content, start, open_ch, close_ch)
+        if block:
+            return block
+        idx = content.find(marker, idx + 1)
+    return None
+
+
+# ──────────────────────────────────────────────
+# FIX-3 (v3.0): Parser Chart.js con brackets balanceados
+# ──────────────────────────────────────────────
+def _extract_chartjs_data(scripts) -> list:
+    """
+    Extrae historial de precios del JSON de Chart.js.
+    [C5/C6] Usa extractor de brackets balanceados en lugar de regex non-greedy.
+    Solo captura datos del vendedor 'amazon' (no third_party ni used).
+    """
+    history = []
+
+    for script in scripts:
+        content = script.string or ""
+        if "amazon_price" not in content and "amazon" not in content.lower():
+            continue
+
+        # ── Estrategia 1: extraer objeto completo de new Chart(...) ──────
+        chart_block = _find_balanced_block(content, "new Chart", '{')
+        if chart_block:
+            try:
+                # Limpiar comentarios JS
+                clean = re.sub(r'//[^\n]*', '', chart_block)
+                clean = re.sub(r'/\*.*?\*/', '', clean, flags=re.DOTALL)
+                data  = json.loads(clean)
+
+                datasets = (
+                    data.get("datasets") or
+                    data.get("data", {}).get("datasets", [])
+                )
+                labels = (
+                    data.get("labels") or
+                    data.get("data", {}).get("labels", [])
+                )
+
+                if isinstance(datasets, list) and labels:
+                    for ds in datasets:
+                        ds_id = str(ds.get("id", ds.get("label", ""))).lower()
+                        if "amazon" not in ds_id:
+                            continue
+                        for date_str, price_val in zip(labels, ds.get("data", [])):
+                            try:
+                                if price_val is not None and float(price_val) > 0:
+                                    history.append({
+                                        "date":  str(date_str),
+                                        "price": float(price_val),
+                                    })
+                            except (ValueError, TypeError):
+                                continue
+                    if history:
+                        return history
+            except (json.JSONDecodeError, KeyError, TypeError):
+                pass
+
+        # ── Estrategia 2: extraer solo el array 'datasets' ───────────────
+        datasets_block = _find_balanced_block(content, '"datasets"', '[')
+        labels_block   = _find_balanced_block(content, '"labels"',   '[')
+        if datasets_block and labels_block:
+            try:
+                clean_ds = re.sub(r'//[^\n]*', '', datasets_block)
+                clean_lb = re.sub(r'//[^\n]*', '', labels_block)
+                datasets = json.loads(clean_ds)
+                labels   = json.loads(clean_lb)
+                for ds in datasets:
+                    ds_id = str(ds.get("id", ds.get("label", ""))).lower()
+                    if "amazon" not in ds_id:
+                        continue
+                    for date_str, price_val in zip(labels, ds.get("data", [])):
+                        try:
+                            if price_val is not None and float(price_val) > 0:
+                                history.append({
+                                    "date":  str(date_str),
+                                    "price": float(price_val),
+                                })
+                        except (ValueError, TypeError):
+                            continue
+                if history:
+                    return history
+            except (json.JSONDecodeError, KeyError, TypeError):
+                pass
+
+        # ── Estrategia 3 (fallback conservador): bloque amazon_price ─────
+        # [C7] Usa _find_balanced_block en lugar de regex [^}]* / [^\]]*
+        amazon_block = _find_balanced_block(content, '"amazon_price"', '{')
+        labels_block = _find_balanced_block(content, '"labels"', '[')
+        if amazon_block and labels_block:
+            try:
+                data_block = _find_balanced_block(amazon_block, '"data"', '[')
+                if data_block:
+                    prices_list = json.loads(data_block)
+                    labels_list = json.loads(labels_block)
+                    for date_str, price_val in zip(labels_list, prices_list):
+                        try:
+                            if price_val and float(price_val) > 0:
+                                history.append({
+                                    "date":  str(date_str),
+                                    "price": float(price_val),
+                                })
+                        except (ValueError, TypeError):
+                            continue
+            except (json.JSONDecodeError, ValueError, TypeError):
+                pass
+
+    return history
 
 
 # ──────────────────────────────────────────────
 # MÉTODO 1: RSS
 # ──────────────────────────────────────────────
-
 def _fetch_rss_feed(url: str, batch_id: str) -> list:
-    """Parsea un feed RSS de CamelCamelCamel."""
     records = []
     try:
-        resp = requests.get(url, headers=HEADERS, timeout=TIMEOUT)
+        resp = requests.get(url, headers=_get_headers(), timeout=TIMEOUT)  # [C1]
         resp.raise_for_status()
         root    = ET.fromstring(resp.content)
         channel = root.find("channel")
@@ -178,7 +339,6 @@ def _fetch_rss_feed(url: str, batch_id: str) -> list:
         items   = channel.findall("item")
         now_iso = datetime.now(timezone.utc).isoformat()
 
-        # FIX: warning si RSS vacío
         if not items:
             logger.warning(f"[Camel RSS] Feed vacío: {url.split('/')[-1]}")
             return records
@@ -193,6 +353,11 @@ def _fetch_rss_feed(url: str, batch_id: str) -> list:
                 asin = ""
                 if "/product/" in link:
                     asin = link.split("/product/")[1].split("/")[0].split("?")[0]
+
+                # [C4] Filtrar registros sin ASIN — inútiles para análisis ROI
+                if not asin:
+                    logger.debug(f"[Camel RSS] Item sin ASIN, omitido: {link}")
+                    continue
 
                 soup       = BeautifulSoup(desc, "html.parser")
                 price_tags = soup.find_all("span", class_="price")
@@ -210,18 +375,18 @@ def _fetch_rss_feed(url: str, batch_id: str) -> list:
 
                 if price_current and price_current > 0:
                     records.append(_make_record(
-                        batch_id      = batch_id,
-                        timestamp     = now_iso,
-                        source        = "camelcamelcamel_rss",
-                        asin          = asin,
-                        title         = title,
-                        product_name  = title,
-                        price_usd     = price_current,
-                        price_prev_usd= price_previous,
-                        price_date    = now_iso[:10],
-                        pub_date      = pub_date,
-                        url           = link,
-                        feed_url      = url,
+                        batch_id       = batch_id,
+                        timestamp      = now_iso,
+                        source         = "camelcamelcamel_rss",
+                        asin           = asin,
+                        title          = title,
+                        product_name   = title,
+                        price_usd      = price_current,
+                        price_prev_usd = price_previous,  # solo RSS
+                        price_date     = now_iso[:10],
+                        pub_date       = pub_date,
+                        url            = link,
+                        feed_url       = url,
                     ))
             except Exception as e:
                 logger.debug(f"Error parseando item RSS: {e}")
@@ -236,137 +401,19 @@ def _fetch_rss_feed(url: str, batch_id: str) -> list:
 
 
 # ──────────────────────────────────────────────
-# FIX-3: Parser JSON robusto para Chart.js
-# ──────────────────────────────────────────────
-
-def _extract_chartjs_data(scripts) -> list:
-    """
-    FIX-3: Extrae historial de precios del JSON de Chart.js
-    usando json.loads() en lugar de regex frágiles.
-    Solo captura datos del vendedor 'amazon' (no third_party ni used).
-    """
-    history = []
-
-    for script in scripts:
-        content = script.string or ""
-
-        # Buscar bloques que contengan datos de precio Amazon
-        if "amazon_price" not in content:
-            continue
-
-        # Intentar extraer el objeto JSON completo del script
-        # Chart.js en CamelCamelCamel usa: new Chart(ctx, { type: ..., data: {...} })
-        json_patterns = [
-            r'new\s+Chart\s*\([^,]+,\s*(\{.*?\})\s*\)',
-            r'var\s+chartData\s*=\s*(\{.*?\})\s*;',
-            r'chartData\s*=\s*(\{.*?\})\s*[;\n]',
-            r'"datasets"\s*:\s*(\[.*?\])\s*[,}]',
-        ]
-
-        for pattern in json_patterns:
-            try:
-                m = re.search(pattern, content, re.DOTALL)
-                if not m:
-                    continue
-
-                raw = m.group(1)
-                # Limpiar comentarios JS que rompen json.loads
-                raw = re.sub(r'//[^\n]*', '', raw)
-                raw = re.sub(r'/\*.*?\*/', '', raw, flags=re.DOTALL)
-
-                data = json.loads(raw)
-
-                # Navegar estructura Chart.js: data.datasets[]
-                datasets = (
-                    data.get("datasets") or
-                    data.get("data", {}).get("datasets", [])
-                )
-
-                if not isinstance(datasets, list):
-                    continue
-
-                # Buscar labels (fechas)
-                labels = (
-                    data.get("labels") or
-                    data.get("data", {}).get("labels", [])
-                )
-
-                # Buscar dataset específico de Amazon (no third_party)
-                for ds in datasets:
-                    ds_id = str(ds.get("id", ds.get("label", ""))).lower()
-                    if "amazon" not in ds_id and "amazon_price" not in ds_id:
-                        continue
-
-                    prices_raw = ds.get("data", [])
-                    if not prices_raw or not labels:
-                        continue
-
-                    for date_str, price_val in zip(labels, prices_raw):
-                        try:
-                            if price_val is not None and float(price_val) > 0:
-                                history.append({
-                                    "date":  str(date_str),
-                                    "price": float(price_val),
-                                })
-                        except (ValueError, TypeError):
-                            continue
-
-                if history:
-                    return history  # Éxito — salir del loop
-
-            except (json.JSONDecodeError, KeyError, TypeError):
-                continue
-
-        # Fallback: regex conservador si JSON no parsea
-        if not history:
-            try:
-                # Buscar solo el array de datos de amazon_price
-                # Patrón más específico: busca "amazon_price" y luego su "data"
-                block_match = re.search(
-                    r'"amazon_price"\s*:\s*\{[^}]*"data"\s*:\s*(\[[^\]]*\])',
-                    content
-                )
-                labels_match = re.search(
-                    r'"labels"\s*:\s*(\["[^"]*"(?:\s*,\s*"[^"]*")*\])',
-                    content
-                )
-                if block_match and labels_match:
-                    prices_list = json.loads(block_match.group(1))
-                    labels_list = json.loads(labels_match.group(1))
-                    for date_str, price_val in zip(labels_list, prices_list):
-                        if price_val and float(price_val) > 0:
-                            history.append({
-                                "date":  str(date_str),
-                                "price": float(price_val),
-                            })
-            except (json.JSONDecodeError, ValueError, TypeError):
-                pass
-
-    return history
-
-
-# ──────────────────────────────────────────────
 # MÉTODO 2: Historial por ASIN
 # ──────────────────────────────────────────────
-
 def _fetch_asin_history(asin: str, name: str, batch_id: str) -> list:
-    """
-    Obtiene historial de precios de un ASIN.
-    FIX-5: Retry con backoff exponencial.
-    FIX-7: Límite de MAX_HISTORY_PTS puntos.
-    FIX-8: Selector de precio Amazon específico.
-    """
     records = []
     url     = f"{BASE_URL}/product/{asin}"
     now_iso = datetime.now(timezone.utc).isoformat()
 
-    # FIX-5: Retry con backoff
     for attempt in range(MAX_RETRIES):
         try:
-            resp = requests.get(url, headers=HEADERS, timeout=TIMEOUT)
+            resp = requests.get(url, headers=_get_headers(), timeout=TIMEOUT)  # [C1]
 
             if resp.status_code == 403:
-                logger.warning(f"  [Camel] 403 en {asin} — Cloudflare block")
+                logger.warning(f"  [Camel] 403 en {asin} — posible bloqueo")
                 time.sleep(REQUEST_DELAY * (attempt + 2))
                 continue
             if resp.status_code == 429:
@@ -386,16 +433,21 @@ def _fetch_asin_history(asin: str, name: str, batch_id: str) -> list:
                     title = tag.get_text(strip=True)
                     break
 
-            # FIX-8: Precio Amazon específico (no third_party)
-            current_price = None
-            # Buscar sección de Amazon específicamente
+            # Precio Amazon específico
+            current_price  = None
             amazon_section = (
                 soup.find("div", id="amazon_price") or
                 soup.find("div", class_="amazon_price") or
                 soup.find("td", class_="camPrice")
             )
-            price_source = amazon_section if amazon_section else soup
-            price_tag    = price_source.find("span", class_="price")
+            # [C8] Log cuando cae al selector genérico
+            if amazon_section:
+                price_source = amazon_section
+            else:
+                price_source = soup
+                logger.debug(f"  [Camel] {asin}: selector específico no encontrado — usando genérico")
+
+            price_tag = price_source.find("span", class_="price")
             if price_tag:
                 try:
                     current_price = float(
@@ -404,15 +456,13 @@ def _fetch_asin_history(asin: str, name: str, batch_id: str) -> list:
                 except ValueError:
                     pass
 
-            # FIX-3: Parser JSON robusto
+            # [C5/C6/C7] Parser con brackets balanceados
             history_data = _extract_chartjs_data(soup.find_all("script"))
 
-            # FIX-7: Limitar puntos históricos (más recientes primero)
             if len(history_data) > MAX_HISTORY_PTS:
                 history_data = history_data[-MAX_HISTORY_PTS:]
                 logger.debug(f"  [Camel] {asin}: limitado a {MAX_HISTORY_PTS} puntos")
 
-            # FIX-4: Esquema unificado
             if history_data:
                 for point in history_data:
                     records.append(_make_record(
@@ -443,10 +493,10 @@ def _fetch_asin_history(asin: str, name: str, batch_id: str) -> list:
 
             logger.info(
                 f"  [Camel] {name} ({asin}): "
-                f"{len(history_data)} puntos | precio actual: "
-                f"${current_price or 'N/A'}"
+                f"{len(history_data)} puntos históricos | "
+                f"precio actual: ${current_price or 'N/A'}"
             )
-            break  # Éxito — salir del retry loop
+            break  # Éxito
 
         except requests.RequestException as e:
             logger.warning(f"  [Camel] Intento {attempt+1}/{MAX_RETRIES} fallido {asin}: {e}")
@@ -462,15 +512,12 @@ def _fetch_asin_history(asin: str, name: str, batch_id: str) -> list:
 # ──────────────────────────────────────────────
 # SCRAPER PRINCIPAL
 # ──────────────────────────────────────────────
-
 def scrape_camel(batch_id: str) -> list:
     """
     Scraper principal de CamelCamelCamel.
     Combina RSS + historial por ASIN con esquema unificado.
     """
     all_records = []
-
-    # FIX-6: Validar ASINs antes de empezar
     valid_asins = _validate_asins(HARDWARE_ASINS)
 
     # ── Paso 1: RSS feeds ──────────────────────────────────────────────
@@ -498,7 +545,8 @@ def scrape_camel(batch_id: str) -> list:
 # ──────────────────────────────────────────────
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-    test_batch = f"test_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+    # [C9] datetime con timezone explícita
+    test_batch = f"test_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}"
     results    = scrape_camel(test_batch)
     print(f"\nTotal registros: {len(results)}")
     if results:
