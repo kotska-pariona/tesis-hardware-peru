@@ -1,22 +1,22 @@
+#!/usr/bin/env python3
 """
-scraper_local.py  v3.3
-Scraper de tiendas locales Perú — Falabella, Ripley, Hiraoka
+scraper_local.py  v3.4
+Scraper de tiendas locales Perú — Falabella, Hiraoka
+(Ripley deshabilitado — 403 Cloudflare)
 
-ROOT CAUSE confirmado comparando con scraper_competencia.py (funciona):
-
-FALABELLA:
-  ❌ v3.2: endpoint /s/browse/v1/search/pe  + param "searchTerm"
-  ✅ v3.3: endpoint /s/browse/v1/listing/pe + param "Ntt" + zones=15 + imageSize=zoom
-  (copiado exactamente de FalabellaScraper._fetch_page que da 48 items/pág)
-
-HIRAOKA:
-  ❌ v3.2: /laptops-y-accesorios/laptops.html  → 404
-  ✅ v3.3: /memorias-ram, /procesadores-y-accesorios, etc. (paths de scraper_competencia)
-           + fallback a /catalogsearch/result/?q= (igual que scraper_competencia)
-
-RIPLEY:
-  ❌ Bloqueado en ambos scrapers (403 Cloudflare / simple.ripley deprecado)
-  ✅ Deshabilitado limpiamente — no crashea el pipeline
+CAMBIOS v3.3 → v3.4:
+  FIX 1 — Falabella early-stop: si added==0 dos páginas seguidas → break
+           Evita paginar hasta MAX_PAGES en categorías con pocas páginas reales.
+           Ahorro: ~2 min/run.
+  FIX 2 — Hiraoka HIRAOKA_MAX_PAGES: 10 → 30
+           El run anterior paró exactamente en p10 (200 items/cat).
+           Hiraoka puede tener más páginas — ahora exploramos hasta p30.
+  FIX 3 — Hiraoka: eliminadas 8 categorías con path directo de hardware
+           (procesadores, GPU, RAM, SSD, placas_madre, fuentes, coolers, cases)
+           → Hiraoka NO vende componentes PC individuales → 0 items siempre.
+           Eliminar ahorra 80 requests inútiles/run (~3 min).
+           Reemplazadas por búsqueda keyword para las categorías que sí existen.
+  FIX 4 — Bump versión + logs mejorados (early-stop info, resumen final).
 """
 
 import re
@@ -36,8 +36,8 @@ logger = logging.getLogger(__name__)
 # ──────────────────────────────────────────────
 # CONFIGURACIÓN GLOBAL
 # ──────────────────────────────────────────────
-REQUEST_DELAY = 2.0   # igual que scraper_competencia (DELAY_REQ)
-TIMEOUT       = 20    # igual que scraper_competencia
+REQUEST_DELAY = 2.0
+TIMEOUT       = 20
 
 HEADERS_JSON = {
     "User-Agent": (
@@ -45,8 +45,8 @@ HEADERS_JSON = {
         "AppleWebKit/537.36 (KHTML, like Gecko) "
         "Chrome/124.0.0.0 Safari/537.36"
     ),
-    "Accept":     "application/json, text/plain, */*",
-    "Referer":    "https://www.falabella.com.pe/",
+    "Accept":  "application/json, text/plain, */*",
+    "Referer": "https://www.falabella.com.pe/",
 }
 
 HEADERS_HTML = {
@@ -76,7 +76,7 @@ def _make_session(retries: int = 3) -> requests.Session:
 
 
 # ──────────────────────────────────────────────
-# Parser de precios (idéntico a scraper_competencia)
+# Helpers compartidos
 # ──────────────────────────────────────────────
 
 def _parse_price_str(text: str) -> Optional[float]:
@@ -113,7 +113,7 @@ KNOWN_BRANDS = [
 ]
 _BRAND_RE = re.compile(
     r"\b(" + "|".join(re.escape(b) for b in KNOWN_BRANDS) + r")\b",
-    re.IGNORECASE
+    re.IGNORECASE,
 )
 
 def _extract_brand(title: str) -> str:
@@ -122,17 +122,11 @@ def _extract_brand(title: str) -> str:
 
 
 # ══════════════════════════════════════════════
-# FALABELLA — copiado de FalabellaScraper (scraper_competencia)
+# FALABELLA
 # ══════════════════════════════════════════════
-#
-# CLAVE: endpoint /listing/pe + param "Ntt" + zones="15" + imageSize="zoom"
-# Esto es exactamente lo que usa scraper_competencia y da 48 items/pág.
-# ──────────────────────────────────────────────
 
 FALABELLA_API = "https://www.falabella.com.pe/s/browse/v1/listing/pe"
 
-# Queries para hardware/electrónica local PE
-# Mismo estilo que scraper_competencia (términos en español)
 FALABELLA_QUERIES = {
     "laptops":        "laptop",
     "computadoras":   "computadora escritorio",
@@ -152,33 +146,27 @@ FALABELLA_QUERIES = {
     "smartwatch":     "smartwatch reloj inteligente",
 }
 
-FALABELLA_MAX_PAGES = 15   # 15 × 48 = 720 items máx por categoría
+FALABELLA_MAX_PAGES   = 15   # 15 × 48 = 720 items máx por categoría
+# FIX 1: early-stop — si no se agregan items nuevos N páginas seguidas → break
+FALABELLA_EMPTY_LIMIT = 2
 
 
-def _falabella_fetch_page(
-    session: requests.Session,
-    query: str,
-    page: int,
-) -> list:
-    """
-    Copia exacta de FalabellaScraper._fetch_page() de scraper_competencia.
-    Usa Ntt + zones=15 + imageSize=zoom — la combinación que funciona.
-    """
-    # Intento 1: API JSON (igual que scraper_competencia)
+def _falabella_fetch_page(session: requests.Session, query: str, page: int) -> list:
+    """Intento 1: API JSON. Intento 2: __NEXT_DATA__ HTML."""
+    # Intento 1 — API JSON
     try:
         params = {
             "Ntt":       query,
             "page":      page,
             "imageSize": "zoom",
-            "zones":     "15",        # Lima — crítico para precios PE
+            "zones":     "15",
         }
         resp = session.get(
             FALABELLA_API, params=params,
-            headers=HEADERS_JSON, timeout=TIMEOUT
+            headers=HEADERS_JSON, timeout=TIMEOUT,
         )
         if resp.status_code == 200:
-            data  = resp.json()
-            items = _falabella_parse_api_data(data)
+            items = _falabella_parse_api_data(resp.json())
             if items:
                 return items
         else:
@@ -186,19 +174,22 @@ def _falabella_fetch_page(
     except Exception as e:
         logger.debug(f"  [Falabella] API error '{query}' p{page}: {e}")
 
-    # Intento 2: HTML con __NEXT_DATA__ (igual que scraper_competencia._fetch_html)
+    # Intento 2 — HTML __NEXT_DATA__
     try:
         url  = (f"https://www.falabella.com.pe/falabella-pe/search"
                 f"?Ntt={requests.utils.quote(query)}&page={page}")
-        resp = session.get(url, headers={**HEADERS_HTML, "Referer": "https://www.falabella.com.pe/"}, timeout=TIMEOUT)
+        resp = session.get(
+            url,
+            headers={**HEADERS_HTML, "Referer": "https://www.falabella.com.pe/"},
+            timeout=TIMEOUT,
+        )
         if resp.status_code == 200:
             m = re.search(
                 r'<script id="__NEXT_DATA__" type="application/json">(.*?)</script>',
-                resp.text, re.DOTALL
+                resp.text, re.DOTALL,
             )
             if m:
-                data  = json.loads(m.group(1))
-                items = _falabella_parse_api_data(data)
+                items = _falabella_parse_api_data(json.loads(m.group(1)))
                 if items:
                     return items
     except Exception as e:
@@ -208,10 +199,6 @@ def _falabella_fetch_page(
 
 
 def _falabella_parse_api_data(data: dict) -> list:
-    """
-    Extrae productos del JSON de Falabella.
-    Copia de FalabellaScraper._parse_api() — depth=4, busca displayName+prices.
-    """
     def extract_products(obj, depth=0):
         if depth > 4:
             return []
@@ -227,16 +214,14 @@ def _falabella_parse_api_data(data: dict) -> list:
             for v in obj.values():
                 found.extend(extract_products(v, depth + 1))
         return found
-
     return extract_products(data)
 
 
 def _falabella_parse_product(
     p: dict, category: str, batch_id: str, now_iso: str
 ) -> Optional[dict]:
-    """Normaliza un producto crudo de Falabella al esquema unificado."""
     try:
-        pid = p.get("productId") or p.get("id") or p.get("skuId") or ""
+        pid   = p.get("productId") or p.get("id") or p.get("skuId") or ""
         title = (p.get("displayName") or p.get("productName") or
                  p.get("name") or p.get("title") or "")
         if not title:
@@ -273,7 +258,6 @@ def _falabella_parse_product(
                         price_orig = parsed
                         break
 
-        # Fallback directo en el producto
         if price_pen == 0:
             for key in ["offerPrice", "salePrice", "price", "currentPrice"]:
                 val = p.get(key)
@@ -324,13 +308,18 @@ def scrape_falabella(batch_id: str) -> list:
         logger.info(f"[Falabella] '{cat_name}' → '{keyword}'")
         cat_records = []
         seen_ids    = set()
+        empty_pages = 0   # FIX 1: contador de páginas sin items nuevos
 
         for page in range(1, FALABELLA_MAX_PAGES + 1):
             raw_items = _falabella_fetch_page(session, keyword, page)
 
             if not raw_items:
-                logger.debug(f"  p{page}: sin items → fin")
-                break
+                empty_pages += 1
+                logger.debug(f"  p{page}: sin items (empty_pages={empty_pages})")
+                if empty_pages >= FALABELLA_EMPTY_LIMIT:
+                    logger.info(f"  p{page}: early-stop — {empty_pages} páginas vacías seguidas")
+                    break
+                continue
 
             added = 0
             for raw in raw_items:
@@ -344,7 +333,17 @@ def scrape_falabella(batch_id: str) -> list:
                     cat_records.append(record)
                     added += 1
 
-            logger.info(f"  p{page}: +{len(raw_items)} raw → +{added} válidos (acum {len(cat_records)})")
+            # FIX 1: si la página tiene items pero todos son duplicados → contar como vacía
+            if added == 0:
+                empty_pages += 1
+                logger.info(f"  p{page}: +{len(raw_items)} raw → +0 nuevos (todos dupes, empty_pages={empty_pages})")
+                if empty_pages >= FALABELLA_EMPTY_LIMIT:
+                    logger.info(f"  p{page}: early-stop — {empty_pages} páginas sin items nuevos")
+                    break
+            else:
+                empty_pages = 0   # reset al encontrar items nuevos
+                logger.info(f"  p{page}: +{len(raw_items)} raw → +{added} válidos (acum {len(cat_records)})")
+
             time.sleep(REQUEST_DELAY)
 
         all_records.extend(cat_records)
@@ -355,13 +354,8 @@ def scrape_falabella(batch_id: str) -> list:
 
 
 # ══════════════════════════════════════════════
-# RIPLEY — Deshabilitado (403 en ambos scrapers)
+# RIPLEY — Deshabilitado (403 Cloudflare)
 # ══════════════════════════════════════════════
-#
-# scraper_competencia usa simple.ripley.com.pe → 403 (deprecado)
-# scraper_local usó www.ripley.com.pe → 403 (Cloudflare JS)
-# Ambas rutas bloqueadas en GitHub Actions (IP de servidor).
-# ──────────────────────────────────────────────
 
 def scrape_ripley(batch_id: str) -> list:
     logger.warning(
@@ -373,40 +367,26 @@ def scrape_ripley(batch_id: str) -> list:
 
 
 # ══════════════════════════════════════════════
-# HIRAOKA — paths de scraper_competencia + fallback search
+# HIRAOKA
 # ══════════════════════════════════════════════
-#
-# scraper_competencia usa /memorias-ram, /procesadores-y-accesorios, etc.
-# (rutas de primer nivel sin .html ni subcarpetas)
-# + fallback a /catalogsearch/result/?q= para categorías sin path directo
-# ──────────────────────────────────────────────
 
 HIRAOKA_BASE = "https://www.hiraoka.com.pe"
 
-# Paths directos de scraper_competencia (verificados)
-# + paths adicionales para categorías de electrónica general
+# FIX 3: Eliminadas categorías de hardware PC (procesadores, GPU, RAM, SSD,
+# placas_madre, fuentes_poder, coolers, cases) — Hiraoka NO vende componentes
+# PC individuales. Los paths directos daban 0 items y generaban 80 requests
+# inútiles/run. Solo se mantienen categorías de electrónica de consumo.
 HIRAOKA_CATEGORIES = {
-    # Hardware PC — paths de scraper_competencia
-    "procesadores":   "/procesadores-y-accesorios",
-    "tarjetas_video": "/tarjetas-de-video",
-    "memorias_ram":   "/memorias-ram",
-    "discos_ssd":     "/discos-solidos-ssd",
-    "placas_madre":   "/placas-madre",
-    "fuentes_poder":  "/fuentes-de-poder",
-    "coolers":        "/coolers-cpu",
-    "cases":          "/cases-gabinetes",
-    # Electrónica general — búsqueda por keyword como fallback
-    "laptops":        None,   # → /catalogsearch/result/?q=laptop
-    "computadoras":   None,   # → /catalogsearch/result/?q=computadora
-    "monitores":      None,
-    "impresoras":     None,
-    "tablets":        None,
-    "celulares":      None,
-    "televisores":    None,
-    "auriculares":    None,
+    "laptops":      None,   # → búsqueda keyword
+    "computadoras": None,
+    "monitores":    None,
+    "impresoras":   None,
+    "tablets":      None,
+    "celulares":    None,
+    "televisores":  None,
+    "auriculares":  None,
 }
 
-# Keywords para categorías sin path directo
 HIRAOKA_SEARCH_KEYWORDS = {
     "laptops":      "laptop",
     "computadoras": "computadora escritorio",
@@ -418,18 +398,13 @@ HIRAOKA_SEARCH_KEYWORDS = {
     "auriculares":  "audifonos",
 }
 
-HIRAOKA_MAX_PAGES      = 10
+HIRAOKA_MAX_PAGES      = 30   # FIX 2: era 10 → ahora 30 (20 items/pág × 30 = 600 máx/cat)
 HIRAOKA_MIN_ITEMS_PAGE = 2
+HIRAOKA_EMPTY_LIMIT    = 2    # early-stop consistente con Falabella
 
 
-def _hiraoka_fetch_url(
-    session: requests.Session, url: str
-) -> list:
-    """Fetches una URL de Hiraoka y retorna lista de cards BeautifulSoup."""
-    headers = {
-        **HEADERS_HTML,
-        "Referer": HIRAOKA_BASE + "/",
-    }
+def _hiraoka_fetch_url(session: requests.Session, url: str) -> list:
+    headers = {**HEADERS_HTML, "Referer": HIRAOKA_BASE + "/"}
     try:
         resp = session.get(url, headers=headers, timeout=25)
         if resp.status_code == 404:
@@ -459,10 +434,6 @@ def _hiraoka_fetch_url(
 def _hiraoka_parse_card(
     card, category: str, batch_id: str, now_iso: str
 ) -> Optional[dict]:
-    """
-    Parser de tarjeta Hiraoka — copia de HiraokaScraper._parse_html()
-    de scraper_competencia con esquema unificado.
-    """
     try:
         title_el = (
             card.select_one("a.product-item-link") or
@@ -476,7 +447,6 @@ def _hiraoka_parse_card(
         if not title:
             return None
 
-        # Precio final
         final_el = (
             card.select_one("span[data-price-type='finalPrice'] span.price") or
             card.select_one("span[class*='price-final'] span.price") or
@@ -485,7 +455,6 @@ def _hiraoka_parse_card(
         )
         price_pen = _parse_price_str(final_el.get_text(strip=True) if final_el else None) or 0.0
 
-        # Precio original
         orig_el = (
             card.select_one("span[data-price-type='oldPrice'] span.price") or
             card.select_one("span.old-price span.price") or
@@ -511,7 +480,6 @@ def _hiraoka_parse_card(
         )
         brand = brand_el.get_text(strip=True) if brand_el else _extract_brand(title)
 
-        # SKU desde data-product-id o URL
         sku = card.get("data-product-id", "")
         if not sku:
             sku_tag = card.select_one("[data-product-id]")
@@ -522,7 +490,6 @@ def _hiraoka_parse_card(
             if m:
                 sku = m.group(1)
 
-        # Rating
         rating = 0.0
         rating_el = card.select_one("span.rating-result, div[class*='rating']")
         if rating_el:
@@ -559,9 +526,10 @@ def scrape_hiraoka(batch_id: str) -> list:
     for cat_name, cat_path in HIRAOKA_CATEGORIES.items():
         logger.info(f"[Hiraoka] Categoría: {cat_name}")
         cat_records = []
+        seen_skus   = set()
+        empty_pages = 0   # FIX 2+3: early-stop también en Hiraoka
 
         for page in range(1, HIRAOKA_MAX_PAGES + 1):
-            # Construir URL según si tiene path directo o usa búsqueda
             if cat_path:
                 url = f"{HIRAOKA_BASE}{cat_path}?p={page}"
             else:
@@ -572,17 +540,34 @@ def scrape_hiraoka(batch_id: str) -> list:
             cards = _hiraoka_fetch_url(session, url)
 
             if not cards or len(cards) < HIRAOKA_MIN_ITEMS_PAGE:
-                logger.debug(f"  p{page}: {len(cards)} cards → fin")
-                break
+                empty_pages += 1
+                logger.debug(f"  p{page}: {len(cards)} cards (empty_pages={empty_pages})")
+                if empty_pages >= HIRAOKA_EMPTY_LIMIT:
+                    logger.info(f"  p{page}: early-stop — {empty_pages} páginas vacías seguidas")
+                    break
+                continue
 
             added = 0
             for card in cards:
                 record = _hiraoka_parse_card(card, cat_name, batch_id, now_iso)
                 if record:
+                    sku_key = record["sku"] or record["title"]
+                    if sku_key in seen_skus:
+                        continue
+                    seen_skus.add(sku_key)
                     cat_records.append(record)
                     added += 1
 
-            logger.info(f"  p{page}: +{len(cards)} cards → +{added} válidos")
+            if added == 0:
+                empty_pages += 1
+                logger.info(f"  p{page}: +{len(cards)} cards → +0 nuevos (todos dupes, empty_pages={empty_pages})")
+                if empty_pages >= HIRAOKA_EMPTY_LIMIT:
+                    logger.info(f"  p{page}: early-stop — {empty_pages} páginas sin items nuevos")
+                    break
+            else:
+                empty_pages = 0
+                logger.info(f"  p{page}: +{len(cards)} cards → +{added} válidos (acum {len(cat_records)})")
+
             time.sleep(REQUEST_DELAY)
 
         all_records.extend(cat_records)
@@ -598,13 +583,14 @@ def scrape_hiraoka(batch_id: str) -> list:
 
 def scrape_local(batch_id: str) -> list:
     """
-    Ejecuta los 3 scrapers locales en secuencia.
+    Ejecuta Falabella + Hiraoka en secuencia.
+    Ripley deshabilitado (403 Cloudflare).
     Deduplica por (source, sku) al final.
     """
     all_records = []
 
     logger.info("═" * 50)
-    logger.info("  SCRAPING TIENDAS LOCALES PERÚ  v3.3")
+    logger.info("  SCRAPING TIENDAS LOCALES PERÚ  v3.4")
     logger.info("═" * 50)
 
     for name, fn in [
@@ -615,6 +601,7 @@ def scrape_local(batch_id: str) -> list:
         try:
             records = fn(batch_id)
             all_records.extend(records)
+            logger.info(f"[{name}] → {len(records)} registros")
         except Exception as e:
             logger.error(f"[{name}] Error fatal: {e}", exc_info=True)
 
