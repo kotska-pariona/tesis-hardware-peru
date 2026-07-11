@@ -1,21 +1,22 @@
 # ════════════════════════════════════════════════════════════
-# Hardware Peru — Data Agent v6.0
-# CAMBIOS v6.0 (sobre v5.0):
-#   [W1] BATCH_ID: $(date) → TZ='America/Lima' date (timestamp PE)
-#   [W2] pip: agregado scrapy
-#   [W3] pip: agregado ebaysdk
-#   [W4] descriptions de modos actualizadas para reflejar main.py real
-#   [W5] description 'historical' aclarada (camel/pcpartpicker pendientes)
-#   [W6] Step commit: reordenado → pull PRIMERO, luego add+commit+push
-#   [W7] Batch 24h: fecha en zona PE (ZoneInfo America/Lima)
-#   [W8] Batch 24h: regex corregido → soporta prefijo 'batch_batch_'
-#   [W9] actions/checkout y setup-python: versiones con Node 24
+# Hardware Peru — Data Agent v6.1
+# CAMBIOS v6.1 (sobre v6.0):
+#   [W10] EBAY_CLIENT_SECRET agregado a env (faltaba — fix E1)
+#   [W11] timeout-minutes: expresión ternaria → valor fijo 90
+#   [W12] local_only description actualizada (Coolbox/Compumundo v4.0)
+#   [W13] PYTHONPATH: agregado agent/scrapers
+#   [W14] tzdata agregado a pip install (ZoneInfo en ubuntu-latest)
+#   [W15] git pull --rebase: falla explícita en lugar de || true silencioso
+#   [W16] cron: */2 → */3 (8 snapshots/día, margen 2h+ entre runs)
+#   [W17] --max-elapsed pasado a main.py según modo
+#   [W18] tag parsing en Batch 24h usa regex directo
+#   [M9]  requirements.txt generado dinámicamente para cache efectivo
 # ════════════════════════════════════════════════════════════
-name: Hardware Peru — Data Agent v6.0
+name: Hardware Peru — Data Agent v6.1
 
 on:
   schedule:
-    - cron: '0 */2 * * *'   # Cada 2 horas = 12 snapshots/día
+    - cron: '0 */3 * * *'   # [W16] cada 3h = 8 snapshots/día, margen 2h+
 
   workflow_dispatch:
     inputs:
@@ -25,11 +26,11 @@ on:
         default: 'normal'
         type: choice
         options:
-          - normal        # [W4] local PE + MeLi + importación + competencia
-          - local_only    # solo Falabella/Ripley/Hiraoka
-          - historical    # eBay + CamelCamelCamel + PCPartPicker (scrapers pendientes)
+          - normal        # local PE + MeLi + eBay + importación + competencia
+          - local_only    # [W12] Falabella/Hiraoka/Coolbox/Compumundo + MeLi + importacion
+          - historical    # eBay + CamelCamelCamel + PCPartPicker + importacion
           - kaggle_only   # solo Kaggle (ejecutar 1 vez manualmente)
-          - full          # todo
+          - full          # todo (~110 min, usa MAX_ELAPSED_S para merge seguro)
 
 concurrency:
   group: data-collection-${{ github.ref }}
@@ -42,31 +43,32 @@ jobs:
   collect-data:
     name: "🤖 Recolección — ${{ github.event.inputs.mode || 'normal' }}"
     runs-on: ubuntu-latest
-    timeout-minutes: ${{ github.event.inputs.mode == 'full' && 90 || 55 }}
+    timeout-minutes: 90    # [W11] valor fijo — control real via MAX_ELAPSED_S en main.py
 
     env:
-      EBAY_APP_ID:     ${{ secrets.EBAY_APP_ID }}
-      KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
-      KAGGLE_KEY:      ${{ secrets.KAGGLE_KEY }}
-      RUN_MODE:        ${{ github.event.inputs.mode || 'normal' }}
-      OUTPUT_DIR:      data/raw
-      TZ:              America/Lima
+      EBAY_APP_ID:        ${{ secrets.EBAY_APP_ID }}
+      EBAY_CLIENT_SECRET: ${{ secrets.EBAY_CLIENT_SECRET }}   # [W10] faltaba
+      KAGGLE_USERNAME:    ${{ secrets.KAGGLE_USERNAME }}
+      KAGGLE_KEY:         ${{ secrets.KAGGLE_KEY }}
+      RUN_MODE:           ${{ github.event.inputs.mode || 'normal' }}
+      OUTPUT_DIR:         data/raw
+      TZ:                 America/Lima
 
     steps:
-      # ── 1. Checkout ──────────────────────────────────────────────
+      # ── 1. Checkout ────────────────────────────────────────────
       - name: "📥 Checkout"
-        uses: actions/checkout@v4.2.2    # [W9] Node 24
+        uses: actions/checkout@v4.2.2
         with:
           fetch-depth: 0
 
-      # ── 2. Python ────────────────────────────────────────────────
+      # ── 2. Python ──────────────────────────────────────────────
       - name: "🐍 Setup Python 3.11"
-        uses: actions/setup-python@v5.4.0  # [W9] Node 24
+        uses: actions/setup-python@v5.4.0
         with:
           python-version: '3.11'
           cache: 'pip'
 
-      # ── 3. Dependencias ──────────────────────────────────────────
+      # ── 3. Dependencias ────────────────────────────────────────
       - name: "📦 Instalar dependencias"
         run: |
           pip install --upgrade pip
@@ -85,9 +87,11 @@ jobs:
             fake-useragent \
             cloudscraper \
             pytz \
+            tzdata \
             ebaysdk
+          # [W14] tzdata necesario para ZoneInfo("America/Lima") en ubuntu-latest
 
-      # ── 4. Info del run ──────────────────────────────────────────
+      # ── 4. Info del run ────────────────────────────────────────
       - name: "ℹ️ Info del run"
         run: |
           echo "════════════════════════════════"
@@ -96,17 +100,26 @@ jobs:
           echo "  Hora PE  : $(TZ='America/Lima' date '+%Y-%m-%d %H:%M:%S')"
           echo "  Trigger  : ${{ github.event_name }}"
           echo "════════════════════════════════"
-          # [W1] BATCH_ID en hora PE para consistencia con los archivos CSV
           echo "BATCH_ID=batch_$(TZ='America/Lima' date '+%Y%m%d_%H%M%S')" >> $GITHUB_ENV
 
-      # ── 5. Ejecutar pipeline ─────────────────────────────────────
+          # [W17] MAX_ELAPSED_S según modo
+          if [ "$RUN_MODE" = "full" ]; then
+            echo "MAX_ELAPSED_S=5100" >> $GITHUB_ENV   # 85 min (margen 5 min)
+          else
+            echo "MAX_ELAPSED_S=3000" >> $GITHUB_ENV   # 50 min
+          fi
+
+      # ── 5. Ejecutar pipeline ───────────────────────────────────
       - name: "🚀 Ejecutar recolección"
         run: |
-          PYTHONPATH=agent:configuracion python agent/main.py \
+          # [W13] PYTHONPATH incluye agent/scrapers
+          PYTHONPATH=agent:agent/scrapers:configuracion \
+          python agent/main.py \
             --mode "$RUN_MODE" \
-            --batch-id "$BATCH_ID"
+            --batch-id "$BATCH_ID" \
+            --max-elapsed "$MAX_ELAPSED_S"   # [W17]
 
-      # ── 6. Verificar resultados ──────────────────────────────────
+      # ── 6. Verificar resultados ────────────────────────────────
       - name: "🔍 Verificar datos"
         run: |
           echo "── Archivos generados ──"
@@ -129,18 +142,18 @@ jobs:
             cat "$REPORT"
           fi
 
-      # ── 7. Batch 24h ─────────────────────────────────────────────
+      # ── 7. Batch 24h ───────────────────────────────────────────
       - name: "📊 Generar batch 24h"
         run: |
           python - <<'PYEOF'
           import os, glob, re, pandas as pd
           from datetime import datetime, timedelta, timezone
-          from zoneinfo import ZoneInfo  # [W7] zona PE
+          from zoneinfo import ZoneInfo   # [W14] tzdata instalado arriba
 
           raw_dir  = "data/raw"
           tz_pe    = ZoneInfo("America/Lima")
           now_utc  = datetime.now(timezone.utc)
-          now_pe   = datetime.now(tz_pe)          # [W7] fecha en hora PE
+          now_pe   = datetime.now(tz_pe)
           cutoff   = now_utc - timedelta(hours=24)
 
           all_batch_files = glob.glob(f"{raw_dir}/batch_*_*.csv")
@@ -151,7 +164,6 @@ jobs:
               if basename.startswith("batch_24h_"):
                   continue
               try:
-                  # [W8] regex soporta tanto 'batch_YYYYMMDD_' como 'batch_batch_YYYYMMDD_'
                   m = re.match(r"batch_(?:batch_)?(\d{8})_(\d{6})_", basename)
                   if not m:
                       continue
@@ -162,12 +174,12 @@ jobs:
               except (ValueError, AttributeError):
                   continue
 
+          # [W18] tag parsing con regex directo — sin lógica de índices frágil
           tags = {}
           for f in recent:
-              parts = os.path.basename(f).split("_")
-              # soporta prefijo simple y doble
-              tag_idx = 3 if parts[1] == "batch" else 2
-              tag = parts[tag_idx].replace(".csv", "") if tag_idx < len(parts) else "unknown"
+              basename = os.path.basename(f)
+              m2 = re.match(r"batch_(?:batch_)?\d{8}_\d{6}_(.+)\.csv", basename)
+              tag = m2.group(1) if m2 else "unknown"
               tags[tag] = tags.get(tag, 0) + 1
 
           print(f"Batches últimas 24h: {len(recent)}")
@@ -183,7 +195,6 @@ jobs:
 
               if dfs:
                   combined = pd.concat(dfs, ignore_index=True)
-                  # [W7] nombre del archivo con fecha PE
                   out = f"{raw_dir}/batch_24h_{now_pe.strftime('%Y%m%d')}.csv"
                   combined.to_csv(out, index=False)
                   print(f"✅ Batch 24h guardado: {out}")
@@ -194,15 +205,19 @@ jobs:
               print("⚠️ Sin batches recientes (primer run del día)")
           PYEOF
 
-      # ── 8. Commit ────────────────────────────────────────────────
-      # [W6] Orden corregido: pull PRIMERO → evita 'uncommitted changes'
+      # ── 8. Commit ──────────────────────────────────────────────
+      # [W6] Orden: pull PRIMERO → add → commit → push
       - name: "💾 Commit datos"
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          # [W6] Pull ANTES de staging para evitar conflicto de rebase
-          git pull --rebase origin main || true
+          # [W15] Pull con falla explícita — no silenciar errores reales
+          git pull --rebase origin main || {
+            echo "❌ git pull --rebase falló — abortando rebase"
+            git rebase --abort 2>/dev/null || true
+            exit 1
+          }
 
           git add data/raw/
 
@@ -220,7 +235,7 @@ jobs:
             echo "✅ Push exitoso — ${MASTER_LINES} registros en MASTER"
           fi
 
-      # ── 9. Resumen ───────────────────────────────────────────────
+      # ── 9. Resumen ─────────────────────────────────────────────
       - name: "📋 Resumen"
         if: always()
         run: |
