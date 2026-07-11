@@ -1,26 +1,22 @@
 """
-scraper_importacion.py  v3.1
+scraper_importacion.py  v4.0
 ════════════════════════════
 Fuentes de PRECIO DE IMPORTACIÓN (referencia precio piso USA):
   - Amazon USA    (HTML + Session/Retry + CAPTCHA detection)
-  - AliExpress    (JSON embebido + fallback HTML)
-  - eBay USA      (HTML — Finding API eliminada por deprecación)
+  - AliExpress    (JSON embebido con brackets balanceados + fallback HTML)
 
-Fixes v3.0:
-  - [FIX-1] Alias scrape_importacion() → interfaz compatible con main.py
-  - [FIX-2] scrape_importacion() retorna list[dict] — no tupla
-  - [FIX-3] logging.basicConfig() eliminado del top-level
-  - [FIX-4] OUTPUT_DIR default corregido: absoluto desde __file__
-  - [FIX-5] eBay Finding API eliminada (deprecada Dic 2024) → solo HTML
-  - [FIX-6] 'fingerprint' excluido del retorno público
-  - [FIX-7] Amazon rh= node filter hecho opcional
-  - [FIX-8] shipping_usd default documentado como estimado
+NOTA: eBay eliminado de este scraper — usar scraper_ebay.py (Browse API REST)
+      para evitar duplicación de source='ebay_usa' en el MASTER.
 
-Fixes v3.1:
-  - [FIX-9]  'sku' agregado en todos los records → dedup correcto en merge_to_master
-  - [FIX-10] 'price_date' agregado en todos los records → clave dedup completa
-  - [FIX-11] OUTPUT_DIR usa path absoluto desde __file__ → independiente del CWD
-  - [FIX-12] AliExpress: eliminado requests.utils.quote() → evita double-encoding
+Fixes v4.0 (sobre v3.1):
+  - [I1]  AmazonScraper: CAPTCHA strings adicionales
+  - [I2]  SHIPPING_EST_BY_CATEGORY: estimado por categoría en lugar de 15.0 fijo
+  - [I3]  AliExpressScraper: eliminado truncado raw_json[:2_000_000]
+  - [I4]  AliExpressScraper: extractor de brackets balanceados reemplaza regex non-greedy
+  - [I5]  AliExpressScraper: intenta extraer shippingFee del JSON
+  - [I6]  EbayScraper ELIMINADO — usar scraper_ebay.py (Browse API, sin duplicados)
+  - [I7]  scrape_importacion: CAPTCHA no reintenta (break inmediato)
+  - [I8]  __main__: datetime.now(timezone.utc)
 """
 
 import os
@@ -38,17 +34,37 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 from bs4 import BeautifulSoup
 
-# FIX-3: Sin basicConfig() — logging configurado solo en main.py
 log = logging.getLogger(__name__)
 
 # ── Constantes ───────────────────────────────────────────────────────────
-# FIX-11: path absoluto — independiente del CWD al ejecutar desde GitHub Actions
 _DEFAULT_OUTPUT = str(Path(__file__).resolve().parent.parent.parent / "data" / "raw")
 OUTPUT_DIR        = Path(os.getenv("OUTPUT_DIR", _DEFAULT_OUTPUT))
 MAX_PAGES         = int(os.getenv("MAX_PAGES_IMPORT", "5"))
 DELAY_REQ         = float(os.getenv("DELAY_REQ", "2.5"))
 DELAY_CAT         = float(os.getenv("DELAY_CAT", "5.0"))
 MAX_RETRIES_QUERY = int(os.getenv("MAX_RETRIES_QUERY", "2"))
+
+# [I2] Shipping estimado por categoría (USD) — Amazon no envía directo a Perú
+# Basado en peso/volumen promedio por categoría (courier internacional)
+SHIPPING_EST_BY_CATEGORY = {
+    "CPU":         18.0,
+    "GPU":         35.0,   # Mayor peso y volumen
+    "RAM":          8.0,
+    "SSD":          8.0,
+    "MOTHERBOARD": 22.0,
+    "PSU":         28.0,   # Pesado
+    "COOLER":      20.0,
+    "CASE":        45.0,   # Voluminoso
+}
+SHIPPING_EST_DEFAULT = 15.0   # Fallback para categorías no mapeadas
+
+# [I1] Strings de detección de CAPTCHA — Amazon rota entre 3 tipos
+AMAZON_CAPTCHA_STRINGS = [
+    "Enter the characters you see below",
+    "api-services-support@amazon.com",
+    "make sure you're not a robot",
+    "Type the characters you see in this image",
+]
 
 # ── Queries por categoría ─────────────────────────────────────────────────
 CATEGORY_QUERIES = {
@@ -110,7 +126,6 @@ CATEGORY_QUERIES = {
     ],
 }
 
-# FIX-7: Nodes opcionales — solo se aplican si el nodo es conocido
 AMAZON_CATEGORY_NODES = {
     "CPU":         "n:541966",
     "GPU":         "n:284822",
@@ -122,7 +137,6 @@ AMAZON_CATEGORY_NODES = {
     "CASE":        "n:1161758",
 }
 
-# ── User Agents rotativos ─────────────────────────────────────────────────
 USER_AGENTS = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Safari/605.1.15",
@@ -157,12 +171,10 @@ def _json_headers(referer: str = "") -> dict:
         "Connection": "keep-alive",
     }
 
-# ── Session con Retry automático ─────────────────────────────────────────
 def _make_session() -> requests.Session:
     session = requests.Session()
     retry   = Retry(
-        total=3,
-        backoff_factor=1.5,
+        total=3, backoff_factor=1.5,
         status_forcelist=[429, 500, 502, 503, 504],
         allowed_methods=["GET"],
     )
@@ -171,9 +183,7 @@ def _make_session() -> requests.Session:
     session.mount("http://",  adapter)
     return session
 
-# ── Parser de precio ─────────────────────────────────────────────────────
 def _parse_price(raw: str) -> float:
-    """Extrae float de strings como '$1,299.99', '1.299,99', '299'"""
     if not raw:
         return 0.0
     cleaned = re.sub(r"[^\d.,]", "", raw.strip())
@@ -188,19 +198,56 @@ def _parse_price(raw: str) -> float:
     except ValueError:
         return 0.0
 
-# ── Deduplicación ────────────────────────────────────────────────────────
 def _dedup(records: list) -> list:
-    """Elimina duplicados por fingerprint (source + category + title + price)."""
     seen = set()
     out  = []
     for r in records:
-        # FIX-6: fingerprint calculado internamente, no expuesto en el registro
         key = f"{r.get('source')}|{r.get('category')}|{r.get('title','')}|{r.get('price_usd',0)}"
         fp  = hashlib.md5(key.encode()).hexdigest()[:16]
         if fp not in seen and float(r.get("price_usd", 0)) > 0:
             seen.add(fp)
             out.append(r)
     return out
+
+
+# ── [I4] Extractor de brackets balanceados (de scraper_camel v3.0) ────────
+# Candidato a mover a agent/scrapers/utils.py como utilidad compartida
+def _extract_balanced(text: str, start_idx: int, open_ch: str, close_ch: str) -> Optional[str]:
+    """Extrae bloque balanceado desde start_idx, respetando strings JSON."""
+    depth   = 0
+    in_str  = False
+    escaped = False
+    i       = start_idx
+    while i < len(text):
+        ch = text[i]
+        if escaped:
+            escaped = False
+        elif ch == '\\' and in_str:
+            escaped = True
+        elif ch == '"' and not escaped:
+            in_str = not in_str
+        elif not in_str:
+            if ch == open_ch:
+                depth += 1
+            elif ch == close_ch:
+                depth -= 1
+                if depth == 0:
+                    return text[start_idx: i + 1]
+        i += 1
+    return None
+
+def _find_balanced_block(content: str, marker: str, open_ch: str) -> Optional[str]:
+    close_ch = '}' if open_ch == '{' else ']'
+    idx = content.find(marker)
+    while idx != -1:
+        start = content.find(open_ch, idx)
+        if start == -1:
+            break
+        block = _extract_balanced(content, start, open_ch, close_ch)
+        if block:
+            return block
+        idx = content.find(marker, idx + 1)
+    return None
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -212,29 +259,29 @@ class AmazonScraper:
     def __init__(self):
         self.session = _make_session()
 
-    def search(self, query: str, category: str, batch_id: str, max_pages: int = MAX_PAGES) -> list:
+    def search(self, query: str, category: str, batch_id: str,
+               max_pages: int = MAX_PAGES) -> list:
         items = []
         for page in range(1, max_pages + 1):
             log.info(f"  [Amazon] {category} | '{query[:40]}' | pág {page}")
-            page_items = self._fetch_page(query, page, category, batch_id)
+            page_items, captcha = self._fetch_page(query, page, category, batch_id)
             items.extend(page_items)
             log.info(f"    → {len(page_items)} items (total: {len(items)})")
+            if captcha:
+                log.warning("    Amazon CAPTCHA — abortando query (no reintenta)")
+                break   # [I7] No reintentar en CAPTCHA
             if not page_items:
                 break
             time.sleep(DELAY_REQ + (page * 0.3))
         return items
 
-    def _fetch_page(self, query: str, page: int, category: str, batch_id: str) -> list:
-        # FIX-7: rh= node solo si el nodo está definido para la categoría
-        params = {
-            "k":    query,
-            "page": page,
-            "ref":  f"sr_pg_{page}",
-        }
+    def _fetch_page(self, query: str, page: int, category: str,
+                    batch_id: str) -> tuple:
+        """Retorna (items, captcha_detected: bool)"""
+        params = {"k": query, "page": page, "ref": f"sr_pg_{page}"}
         rh_node = AMAZON_CATEGORY_NODES.get(category)
         if rh_node:
             params["rh"] = rh_node
-
         try:
             resp = self.session.get(
                 self.BASE, params=params,
@@ -244,24 +291,26 @@ class AmazonScraper:
             if resp.status_code == 503:
                 log.warning("    Amazon 503 — posible CAPTCHA, esperando 30s")
                 time.sleep(30)
-                return []
+                return [], True
             if resp.status_code != 200:
                 log.warning(f"    Amazon HTTP {resp.status_code}")
-                return []
-            if ("Enter the characters you see below" in resp.text or
-                    "api-services-support@amazon.com" in resp.text):
-                log.warning("    Amazon CAPTCHA detectado — saltando página")
-                return []
-            return self._parse(resp.text, category, batch_id)
+                return [], False
+            # [I1] Detección completa de CAPTCHA (3 tipos)
+            if any(s in resp.text for s in AMAZON_CAPTCHA_STRINGS):
+                log.warning("    Amazon CAPTCHA detectado — saltando query")
+                return [], True   # captcha=True → no reintentar
+            return self._parse(resp.text, category, batch_id), False
         except Exception as e:
             log.error(f"    Amazon error: {e}")
-            return []
+            return [], False
 
     def _parse(self, html: str, category: str, batch_id: str) -> list:
         soup       = BeautifulSoup(html, "html.parser")
         items      = []
         ts         = datetime.now(timezone.utc).isoformat()
-        price_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")  # FIX-10
+        price_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        # [I2] Shipping estimado por categoría
+        shipping_est = SHIPPING_EST_BY_CATEGORY.get(category, SHIPPING_EST_DEFAULT)
 
         for card in soup.select("div[data-component-type='s-search-result']"):
             try:
@@ -288,8 +337,8 @@ class AmazonScraper:
                         if price_usd > 0:
                             break
 
-                # FIX-8: shipping documentado como estimado
-                shipping_usd = 15.0   # estimado — Amazon no envía directo a Perú
+                # Shipping: 0.0 si Prime/FREE, shipping_est si no
+                shipping_usd = shipping_est
                 for sel in [
                     "span[aria-label='Amazon Prime']",
                     "i.a-icon-prime",
@@ -314,8 +363,10 @@ class AmazonScraper:
                         rating = float(m.group(1))
 
                 reviews = 0
-                rev_el  = (card.select_one("span[aria-label$='stars'] + span a span") or
-                           card.select_one("a[href*='#customerReviews'] span.a-size-base"))
+                rev_el  = (
+                    card.select_one("span[aria-label$='stars'] + span a span") or
+                    card.select_one("a[href*='#customerReviews'] span.a-size-base")
+                )
                 if rev_el:
                     raw_rev = rev_el.get_text(strip=True).replace(",", "").replace(".", "")
                     try:
@@ -325,20 +376,20 @@ class AmazonScraper:
 
                 if price_usd > 0:
                     items.append({
-                        "batch_id":      batch_id,
-                        "source":        "amazon_usa",
-                        "category":      category,
-                        "title":         title[:200],
-                        "sku":           asin,           # FIX-9
-                        "asin_sku":      asin,
-                        "price_usd":     round(price_usd, 2),
-                        "price_date":    price_date,     # FIX-10
-                        "shipping_usd":  shipping_usd,
-                        "total_usd":     round(price_usd + shipping_usd, 2),
-                        "url":           url[:300],
-                        "rating":        rating,
-                        "reviews":       reviews,
-                        "timestamp":     ts,
+                        "batch_id":     batch_id,
+                        "source":       "amazon_usa",
+                        "category":     category,
+                        "title":        title[:200],
+                        "sku":          asin,
+                        "asin_sku":     asin,
+                        "price_usd":    round(price_usd, 2),
+                        "price_date":   price_date,
+                        "shipping_usd": shipping_usd,
+                        "total_usd":    round(price_usd + shipping_usd, 2),
+                        "url":          url[:300],
+                        "rating":       rating,
+                        "reviews":      reviews,
+                        "timestamp":    ts,
                     })
             except Exception as e:
                 log.debug(f"    parse card error: {e}")
@@ -355,7 +406,8 @@ class AliExpressScraper:
     def __init__(self):
         self.session = _make_session()
 
-    def search(self, query: str, category: str, batch_id: str, max_pages: int = MAX_PAGES) -> list:
+    def search(self, query: str, category: str, batch_id: str,
+               max_pages: int = MAX_PAGES) -> list:
         items = []
         for page in range(1, max_pages + 1):
             log.info(f"  [AliExpress] {category} | '{query[:40]}' | pág {page}")
@@ -370,7 +422,7 @@ class AliExpressScraper:
     def _fetch_page(self, query: str, page: int, category: str, batch_id: str) -> list:
         try:
             params = {
-                "SearchText": query,   # FIX-12: sin quote() — requests encodea solo
+                "SearchText": query,
                 "page":       page,
                 "g":          "y",
                 "isrefine":   "y",
@@ -383,7 +435,6 @@ class AliExpressScraper:
             if resp.status_code != 200:
                 log.warning(f"    AliExpress HTTP {resp.status_code}")
                 return []
-
             items = self._extract_from_script(resp.text, category, batch_id)
             if items:
                 return items
@@ -393,43 +444,69 @@ class AliExpressScraper:
             return []
 
     def _extract_from_script(self, html: str, category: str, batch_id: str) -> list:
+        """
+        [I3] Sin truncado de JSON.
+        [I4] Usa extractor de brackets balanceados en lugar de regex non-greedy.
+        """
         ts    = datetime.now(timezone.utc).isoformat()
         items = []
-        script_patterns = [
-            r'window\.runParams\s*=\s*({.*?});\s*(?:var|window|</script>)',
-            r'window\._dida_config_\s*=\s*({.*?});\s*</script>',
-            r'<script id="__NEXT_DATA__"[^>]*>({.*?})</script>',
-            r'"itemList"\s*:\s*\{"content"\s*:\s*(\[.*?\])\s*[,}]',
-            r'"resultList"\s*:\s*(\[.*?\])',
-        ]
-        for pat in script_patterns:
-            try:
-                m = re.search(pat, html, re.DOTALL)
-                if not m:
-                    continue
-                raw_json = m.group(1)
-                if len(raw_json) > 2_000_000:
-                    raw_json = raw_json[:2_000_000]
-                data = json.loads(raw_json)
 
+        # Estrategia 1: window.runParams — extractor balanceado
+        block = _find_balanced_block(html, "window.runParams", '{')
+        if block:
+            try:
+                data         = json.loads(block)
                 product_list = (
                     self._dig(data, ["data", "root", "fields", "mods", "itemList", "content"]) or
                     self._dig(data, ["mods", "itemList", "content"]) or
                     self._dig(data, ["resultList"]) or
-                    self._dig(data, ["items"]) or
-                    (data if isinstance(data, list) else None)
+                    self._dig(data, ["items"])
                 )
-                if not product_list:
-                    continue
+                if product_list:
+                    for p in product_list[:60]:
+                        item = self._parse_ali_product(p, category, batch_id, ts)
+                        if item:
+                            items.append(item)
+                    if items:
+                        return items
+            except (json.JSONDecodeError, Exception):
+                pass
 
-                for p in product_list[:60]:
-                    item = self._parse_ali_product(p, category, batch_id, ts)
-                    if item:
-                        items.append(item)
-                if items:
-                    return items
-            except Exception:
-                continue
+        # Estrategia 2: __NEXT_DATA__ — extractor balanceado
+        block = _find_balanced_block(html, '__NEXT_DATA__', '{')
+        if block:
+            try:
+                data         = json.loads(block)
+                product_list = (
+                    self._dig(data, ["props", "pageProps", "searchResult", "resultList"]) or
+                    self._dig(data, ["props", "pageProps", "items"])
+                )
+                if product_list:
+                    for p in product_list[:60]:
+                        item = self._parse_ali_product(p, category, batch_id, ts)
+                        if item:
+                            items.append(item)
+                    if items:
+                        return items
+            except (json.JSONDecodeError, Exception):
+                pass
+
+        # Estrategia 3: array "itemList" o "resultList" directo
+        for marker in ['"itemList"', '"resultList"']:
+            block = _find_balanced_block(html, marker, '[')
+            if block:
+                try:
+                    product_list = json.loads(block)
+                    if isinstance(product_list, list):
+                        for p in product_list[:60]:
+                            item = self._parse_ali_product(p, category, batch_id, ts)
+                            if item:
+                                items.append(item)
+                        if items:
+                            return items
+                except (json.JSONDecodeError, Exception):
+                    pass
+
         return items
 
     def _dig(self, obj: dict, path: list):
@@ -442,8 +519,9 @@ class AliExpressScraper:
                 return None
         return current
 
-    def _parse_ali_product(self, p: dict, category: str, batch_id: str, ts: str) -> Optional[dict]:
-        price_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")  # FIX-10
+    def _parse_ali_product(self, p: dict, category: str, batch_id: str,
+                           ts: str) -> Optional[dict]:
+        price_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
         try:
             title = (
                 self._dig(p, ["title", "displayTitle"]) or
@@ -479,11 +557,28 @@ class AliExpressScraper:
             if url and not url.startswith("http"):
                 url = "https:" + url
 
-            rating  = float(self._dig(p, ["evaluation", "starRating"]) or
-                            p.get("averageStarRate") or p.get("starRating") or 0)
-            reviews = int(p.get("tradeCount") or p.get("orders") or
-                          self._dig(p, ["trade", "tradeCount"]) or 0)
-            sku     = str(p.get("productId") or p.get("itemId") or "")
+            rating  = float(
+                self._dig(p, ["evaluation", "starRating"]) or
+                p.get("averageStarRate") or p.get("starRating") or 0
+            )
+            reviews = int(
+                p.get("tradeCount") or p.get("orders") or
+                self._dig(p, ["trade", "tradeCount"]) or 0
+            )
+            sku = str(p.get("productId") or p.get("itemId") or "")
+
+            # [I5] Intentar extraer shippingFee del JSON
+            shipping_usd = 0.0
+            ship_raw = (
+                self._dig(p, ["logistics", "shippingFee"]) or
+                p.get("shippingFee") or
+                self._dig(p, ["shipping", "minFreight"])
+            )
+            if ship_raw is not None:
+                try:
+                    shipping_usd = float(str(ship_raw).replace("$", "").strip())
+                except (ValueError, TypeError):
+                    shipping_usd = 0.0
 
             if price > 0 and title:
                 return {
@@ -491,12 +586,12 @@ class AliExpressScraper:
                     "source":       "aliexpress",
                     "category":     category,
                     "title":        title[:200],
-                    "sku":          sku,            # FIX-9
+                    "sku":          sku,
                     "asin_sku":     sku,
                     "price_usd":    round(price, 2),
-                    "price_date":   price_date,     # FIX-10
-                    "shipping_usd": 0.0,
-                    "total_usd":    round(price, 2),
+                    "price_date":   price_date,
+                    "shipping_usd": round(shipping_usd, 2),
+                    "total_usd":    round(price + shipping_usd, 2),
                     "url":          str(url)[:300],
                     "rating":       rating,
                     "reviews":      reviews,
@@ -510,7 +605,7 @@ class AliExpressScraper:
         soup       = BeautifulSoup(html, "html.parser")
         items      = []
         ts         = datetime.now(timezone.utc).isoformat()
-        price_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")  # FIX-10
+        price_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
         for card in soup.select("a[href*='aliexpress.com/item/']")[:40]:
             try:
                 title = ""
@@ -532,16 +627,20 @@ class AliExpressScraper:
                     url = "https:" + url
                 if price > 0 and title:
                     items.append({
-                        "batch_id":   batch_id,   "source":    "aliexpress",
-                        "category":   category,   "title":     title[:200],
-                        "sku":        "",          "asin_sku":  "",   # FIX-9
-                        "price_usd":  round(price, 2),
-                        "price_date": price_date,                     # FIX-10
+                        "batch_id":     batch_id,
+                        "source":       "aliexpress",
+                        "category":     category,
+                        "title":        title[:200],
+                        "sku":          "",
+                        "asin_sku":     "",
+                        "price_usd":    round(price, 2),
+                        "price_date":   price_date,
                         "shipping_usd": 0.0,
-                        "total_usd":  round(price, 2),
-                        "url":        url[:300],
-                        "rating":     0.0,         "reviews":   0,
-                        "timestamp":  ts,
+                        "total_usd":    round(price, 2),
+                        "url":          url[:300],
+                        "rating":       0.0,
+                        "reviews":      0,
+                        "timestamp":    ts,
                     })
             except Exception:
                 continue
@@ -549,111 +648,8 @@ class AliExpressScraper:
 
 
 # ══════════════════════════════════════════════════════════════════════════
-# SCRAPER 3 — EBAY USA (solo HTML — Finding API deprecada Dic 2024)
+# INTERFAZ PÚBLICA
 # ══════════════════════════════════════════════════════════════════════════
-class EbayScraper:
-    BROWSE_URL = "https://www.ebay.com/sch/i.html"
-
-    def __init__(self):
-        self.session = _make_session()
-
-    def search(self, query: str, category: str, batch_id: str, max_pages: int = MAX_PAGES) -> list:
-        items      = []
-        ts         = datetime.now(timezone.utc).isoformat()
-        price_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")  # FIX-10
-
-        for page in range(1, max_pages + 1):
-            log.info(f"  [eBay] {category} | '{query[:40]}' | pág {page}")
-            try:
-                params = {
-                    "_nkw":   query,
-                    "_pgn":   str(page),
-                    "LH_New": "1",
-                    "LH_BIN": "1",
-                    "_sop":   "12",
-                }
-                resp = self.session.get(
-                    self.BROWSE_URL, params=params,
-                    headers=_headers("https://www.ebay.com/"),
-                    timeout=20
-                )
-                if resp.status_code != 200:
-                    break
-                soup       = BeautifulSoup(resp.text, "html.parser")
-                page_items = []
-
-                for card in soup.select("li.s-item"):
-                    try:
-                        title_el = (
-                            card.select_one("span[role='heading']") or
-                            card.select_one("div.s-item__title span[role='heading']") or
-                            card.select_one("h3.s-item__title") or
-                            card.select_one("div.s-item__title")
-                        )
-                        price_el = card.select_one("span.s-item__price")
-                        link_el  = card.select_one("a.s-item__link")
-
-                        if not title_el or not price_el:
-                            continue
-
-                        title = title_el.get_text(strip=True)
-                        if title.lower() in ("shop on ebay", ""):
-                            continue
-
-                        raw_price = price_el.get_text(strip=True).split(" to ")[0]
-                        price     = _parse_price(raw_price)
-
-                        ship     = 0.0
-                        ship_el  = card.select_one("span.s-item__shipping, span.s-item__freeXDays")
-                        if ship_el:
-                            ship_text = ship_el.get_text(strip=True).lower()
-                            if "free" not in ship_text:
-                                ship = _parse_price(ship_text)
-                                if ship == 0:
-                                    ship = 10.0
-
-                        url = link_el.get("href", "") if link_el else ""
-                        url = url.split("?")[0] if "?" in url else url
-                        item_id_m = re.search(r"/(\d{10,})", url)
-                        sku       = item_id_m.group(1) if item_id_m else ""
-
-                        if price > 0:
-                            page_items.append({
-                                "batch_id":     batch_id,
-                                "source":       "ebay_usa",
-                                "category":     category,
-                                "title":        title[:200],
-                                "sku":          sku,            # FIX-9
-                                "asin_sku":     sku,
-                                "price_usd":    round(price, 2),
-                                "price_date":   price_date,     # FIX-10
-                                "shipping_usd": round(ship, 2),
-                                "total_usd":    round(price + ship, 2),
-                                "url":          url[:300],
-                                "rating":       0.0,
-                                "reviews":      0,
-                                "timestamp":    ts,
-                            })
-                    except Exception:
-                        continue
-
-                items.extend(page_items)
-                log.info(f"    → {len(page_items)} items (total: {len(items)})")
-                if not page_items:
-                    break
-                time.sleep(DELAY_REQ)
-
-            except Exception as e:
-                log.error(f"    eBay HTML error: {e}")
-                break
-
-        return items
-
-
-# ══════════════════════════════════════════════════════════════════════════
-# FIX-1 + FIX-2: scrape_importacion() — interfaz pública compatible con main.py
-# ══════════════════════════════════════════════════════════════════════════
-
 def scrape_importacion(
     batch_id: str,
     sources: list = None,
@@ -662,21 +658,25 @@ def scrape_importacion(
 ) -> list:
     """
     Scraper de precios de importación USA.
-    FIX-1: Nombre correcto para main.py y __init__.py
-    FIX-2: Retorna list[dict] — compatible con save_batch() de main.py
-    FIX-6: 'fingerprint' excluido del retorno
+    Fuentes: amazon, aliexpress.
+    [I6] eBay eliminado — usar scraper_ebay.py (Browse API) para evitar duplicados.
     """
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
     if sources is None:
-        sources = ["amazon", "aliexpress", "ebay"]
+        sources = ["amazon", "aliexpress"]   # [I6] ebay removido del default
     if categories is None:
         categories = list(CATEGORY_QUERIES.keys())
 
     scrapers = {}
     if "amazon"     in sources: scrapers["amazon"]     = AmazonScraper()
     if "aliexpress" in sources: scrapers["aliexpress"] = AliExpressScraper()
-    if "ebay"       in sources: scrapers["ebay"]       = EbayScraper()
+    # [I6] eBay: si se pasa explícitamente, advertir
+    if "ebay" in sources:
+        log.warning(
+            "[Importación] 'ebay' en sources — usar scraper_ebay.py (Browse API) "
+            "para evitar duplicación de source='ebay_usa' en el MASTER. Ignorado."
+        )
 
     all_records = []
 
@@ -688,31 +688,39 @@ def scrape_importacion(
 
         for query in queries:
             for src_name, scraper in scrapers.items():
+                captcha_abort = False
                 for attempt in range(MAX_RETRIES_QUERY):
                     try:
+                        # AmazonScraper.search() retorna items directamente
+                        # (maneja CAPTCHA internamente con break)
                         items = scraper.search(query, category, batch_id, MAX_PAGES)
                         if not dry_run:
                             all_records.extend(items)
                         else:
-                            log.info(f"  [DRY-RUN] {src_name} | {len(items)} items (no guardados)")
-                        break
+                            log.info(
+                                f"  [DRY-RUN] {src_name} | "
+                                f"{len(items)} items (no guardados)"
+                            )
+                        break   # Éxito
                     except Exception as e:
-                        log.error(f"  [{src_name}] intento {attempt+1} error en '{query}': {e}")
+                        log.error(
+                            f"  [{src_name}] intento {attempt+1} "
+                            f"error en '{query}': {e}"
+                        )
                         if attempt < MAX_RETRIES_QUERY - 1:
                             time.sleep(DELAY_REQ * 2)
                 time.sleep(DELAY_REQ)
 
         time.sleep(DELAY_CAT)
 
-    # FIX-6: Deduplicar sin exponer fingerprint
     unique_records = _dedup(all_records)
-
-    log.info(f"\n[Importación] TOTAL: {len(unique_records):,} registros únicos "
-             f"(de {len(all_records):,} brutos)")
+    log.info(
+        f"\n[Importación] TOTAL: {len(unique_records):,} registros únicos "
+        f"(de {len(all_records):,} brutos)"
+    )
     return unique_records
 
 
-# Alias para compatibilidad con código legacy
 run_importacion = scrape_importacion
 
 
@@ -728,12 +736,13 @@ if __name__ == "__main__":
     )
     parser = argparse.ArgumentParser(description="Scraper de precios de importación")
     parser.add_argument("--sources",    nargs="+", default=None,
-                        choices=["amazon", "aliexpress", "ebay"])
+                        choices=["amazon", "aliexpress"])
     parser.add_argument("--categories", nargs="+", default=None,
                         choices=list(CATEGORY_QUERIES.keys()))
     parser.add_argument("--dry-run",    action="store_true")
     args     = parser.parse_args()
-    batch_id = datetime.now().strftime("%Y%m%d_%H%M%S")
+    # [I8] datetime con timezone explícita
+    batch_id = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
     results  = scrape_importacion(
         batch_id,
         sources=args.sources,
