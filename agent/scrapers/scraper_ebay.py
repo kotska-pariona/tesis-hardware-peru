@@ -1,21 +1,21 @@
 """
-scraper_ebay.py  v3.0
+scraper_ebay.py  v4.0
 eBay Browse API (REST) — Precios de mercado USA en tiempo real
 
-Fixes v3.0 (sobre v2.0):
-  - [E1] EBAY_CLIENT_SECRET documentado explícitamente en workflows
-         (requiere agregarlo a GitHub Secrets — ver instrucciones abajo)
-  - [E2] ship_free: solo True cuando shippingCost.value == '0.0' explícito
-  - [E3] Validación currency == 'USD' antes de guardar el registro
-  - [E4] Paginación migrada a while loop — 401 no consume páginas del contador
-  - [E5] Deduplicación sin item_id usa fingerprint title[:60]|price
-  - [E6] EBAY_QUERIES ampliado: PSU, Cooler, Case (cat IDs verificados)
-  - [E7] __main__: datetime.now(timezone.utc) — naive datetime corregido
-  - [E8] conditions ampliado: NEW|USED|VERY_GOOD|GOOD
+Fixes v4.0 (sobre v3.0):
+  - [E9]  Queries actualizadas: RTX 5070/5080, Ryzen 9000, Intel Core Ultra
+  - [E10] conditions filter: sintaxis corregida (comas, no pipes)
+  - [E11] seller_feedback: captura feedbackScore + feedbackPercentage
+  - [E12] fieldgroups: MATCHING_ITEMS,EXTENDED para shipping y seller completo
+  - [E13] _make_session(): retry automático 3 intentos en 429/5xx
+  - [E14] category_id Cooler corregido: 131486 → 164 (Computer Components)
+  - [M2]  REQUEST_DELAY: 0.8s → 1.2s (menos agresivo con 34 queries)
+  - [M3]  Dedup fingerprint: title[:60] → title[:100] (consistente con SC7)
+  - [M4]  Log de tiempo total de ejecución al finalizar
 
 CONFIGURACIÓN REQUERIDA (GitHub Secrets):
   EBAY_APP_ID        → Client ID  (https://developer.ebay.com/my/keys)
-  EBAY_CLIENT_SECRET → Client Secret (NUEVO — agregar al workflow)
+  EBAY_CLIENT_SECRET → Client Secret
 
 Workflows que deben incluir EBAY_CLIENT_SECRET en env:
   .github/workflows/daily_agent.yml
@@ -30,6 +30,8 @@ import logging
 import requests
 from datetime import datetime, timezone
 from typing import Optional
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +39,7 @@ logger = logging.getLogger(__name__)
 # CONFIGURACIÓN
 # ──────────────────────────────────────────────
 EBAY_APP_ID        = os.getenv("EBAY_APP_ID", "")
-EBAY_CLIENT_SECRET = os.getenv("EBAY_CLIENT_SECRET", "")   # [E1] Requerido
+EBAY_CLIENT_SECRET = os.getenv("EBAY_CLIENT_SECRET", "")
 
 BROWSE_API_URL = "https://api.ebay.com/buy/browse/v1/item_summary/search"
 OAUTH_URL      = "https://api.ebay.com/identity/v1/oauth2/token"
@@ -45,59 +47,88 @@ OAUTH_SCOPE    = "https://api.ebay.com/oauth/api_scope"
 
 ITEMS_PER_PAGE = 200
 MAX_PAGES      = 5
-REQUEST_DELAY  = 0.8
+REQUEST_DELAY  = float(os.getenv("EBAY_DELAY", "1.2"))   # [M2] menos agresivo
 
 PRICE_MIN_USD = 5.0
 PRICE_MAX_USD = 10_000.0
 
+
 # ──────────────────────────────────────────────
-# [E6] EBAY_QUERIES — ampliado con PSU, Cooler, Case
+# [E13] Sesión con retry automático
+# ──────────────────────────────────────────────
+def _make_session() -> requests.Session:
+    """
+    Sesión con retry automático:
+      - 3 reintentos en 429 / 500 / 502 / 503 / 504
+      - backoff exponencial: 1s, 2s, 4s
+      - NO reintenta 401 (se maneja manualmente para renovar token)
+    """
+    session = requests.Session()
+    retry = Retry(
+        total=3,
+        backoff_factor=1,
+        status_forcelist=[429, 500, 502, 503, 504],
+        allowed_methods=["GET", "POST"],
+        raise_on_status=False,
+    )
+    adapter = HTTPAdapter(max_retries=retry)
+    session.mount("https://", adapter)
+    session.mount("http://",  adapter)
+    return session
+
+
+# ──────────────────────────────────────────────
+# [E9] EBAY_QUERIES — actualizado 2025-2026
 # ──────────────────────────────────────────────
 EBAY_QUERIES = [
     # (query, category_id, label)
-    # ── CPU ──────────────────────────────────
-    ("intel core i5 processor",        "164",    "cpu"),
-    ("intel core i7 processor",        "164",    "cpu"),
-    ("intel core i9 processor",        "164",    "cpu"),
-    ("amd ryzen 5 processor",          "164",    "cpu"),
-    ("amd ryzen 7 processor",          "164",    "cpu"),
-    ("amd ryzen 9 processor",          "164",    "cpu"),
-    # ── GPU ──────────────────────────────────
-    ("nvidia rtx 4060 graphics card",  "27386",  "gpu"),
-    ("nvidia rtx 4070 graphics card",  "27386",  "gpu"),
-    ("nvidia rtx 4080 graphics card",  "27386",  "gpu"),
-    ("amd rx 7600 graphics card",      "27386",  "gpu"),
-    ("amd rx 7700 graphics card",      "27386",  "gpu"),
+    # ── CPU — Intel Core Ultra + Ryzen 9000 ──
+    ("intel core i5 13600k processor",      "164",   "cpu"),
+    ("intel core i7 14700k processor",      "164",   "cpu"),
+    ("intel core ultra 7 265k processor",   "164",   "cpu"),   # [E9] nuevo
+    ("intel core ultra 9 285k processor",   "164",   "cpu"),   # [E9] nuevo
+    ("amd ryzen 5 7600x processor",         "164",   "cpu"),
+    ("amd ryzen 7 9700x processor",         "164",   "cpu"),   # [E9] nuevo
+    ("amd ryzen 9 9950x processor",         "164",   "cpu"),   # [E9] nuevo
+    # ── GPU — RTX 50xx + RX 9000 ─────────────
+    ("nvidia rtx 4060 graphics card",       "27386", "gpu"),
+    ("nvidia rtx 4070 graphics card",       "27386", "gpu"),
+    ("nvidia rtx 4080 graphics card",       "27386", "gpu"),
+    ("nvidia rtx 5070 graphics card",       "27386", "gpu"),   # [E9] nuevo
+    ("nvidia rtx 5080 graphics card",       "27386", "gpu"),   # [E9] nuevo
+    ("amd rx 7700 graphics card",           "27386", "gpu"),
+    ("amd rx 9070 graphics card",           "27386", "gpu"),   # [E9] nuevo
     # ── RAM ──────────────────────────────────
-    ("ddr4 16gb ram",                  "170083", "ram"),
-    ("ddr4 32gb ram",                  "170083", "ram"),
-    ("ddr5 16gb ram",                  "170083", "ram"),
-    ("ddr5 32gb ram",                  "170083", "ram"),
+    ("ddr4 16gb ram",                       "170083","ram"),
+    ("ddr4 32gb ram",                       "170083","ram"),
+    ("ddr5 32gb ram",                       "170083","ram"),
+    ("ddr5 64gb ram",                       "170083","ram"),   # [E9] nuevo
     # ── SSD ──────────────────────────────────
-    ("nvme ssd 1tb",                   "56083",  "storage"),
-    ("nvme ssd 500gb",                 "56083",  "storage"),
-    ("samsung 870 evo ssd",            "56083",  "storage"),
+    ("nvme ssd 1tb m.2 pcie 4.0",           "56083", "storage"),
+    ("nvme ssd 2tb m.2 pcie 5.0",           "56083", "storage"),# [E9] nuevo
+    ("samsung 990 pro ssd",                 "56083", "storage"),
     # ── Motherboard ──────────────────────────
-    ("intel z790 motherboard",         "1244",   "motherboard"),
-    ("amd b650 motherboard",           "1244",   "motherboard"),
-    # ── PSU [E6] ─────────────────────────────
-    ("modular power supply 850w gold", "42017",  "psu"),
-    ("corsair rm850x power supply",    "42017",  "psu"),
-    # ── Cooler [E6] ──────────────────────────
-    ("240mm aio liquid cpu cooler",    "131486", "cooler"),
-    ("noctua cpu air cooler",          "131486", "cooler"),
-    # ── Case [E6] ────────────────────────────
-    ("atx mid tower pc case gaming",   "42014",  "case"),
-    ("lian li pc case tempered glass", "42014",  "case"),
+    ("intel z790 motherboard",              "1244",  "motherboard"),
+    ("amd b650 motherboard",                "1244",  "motherboard"),
+    ("amd x870 motherboard",                "1244",  "motherboard"),# [E9] nuevo
+    # ── PSU ──────────────────────────────────
+    ("modular power supply 850w gold",      "42017", "psu"),
+    ("corsair rm850x power supply",         "42017", "psu"),
+    # ── Cooler [E14] category_id corregido ───
+    ("240mm aio liquid cpu cooler",         "164",   "cooler"), # [E14] 131486→164
+    ("noctua cpu air cooler",               "164",   "cooler"), # [E14] corregido
+    # ── Case ─────────────────────────────────
+    ("atx mid tower pc case gaming",        "42014", "case"),
+    ("lian li pc case tempered glass",      "42014", "case"),
     # ── Laptop ───────────────────────────────
-    ("gaming laptop rtx 4060",         "177",    "laptop"),
-    ("laptop intel i7 16gb",           "177",    "laptop"),
+    ("gaming laptop rtx 4060",              "177",   "laptop"),
+    ("laptop intel core ultra 7",           "177",   "laptop"), # [E9] nuevo
     # ── Monitor ──────────────────────────────
-    ("gaming monitor 144hz 27 inch",   "80053",  "monitor"),
-    ("4k monitor 27 inch",             "80053",  "monitor"),
+    ("gaming monitor 144hz 27 inch",        "80053", "monitor"),
+    ("4k monitor 27 inch oled",             "80053", "monitor"), # [E9] nuevo
     # ── Periféricos ──────────────────────────
-    ("mechanical keyboard gaming",     "33963",  "peripheral"),
-    ("gaming mouse wireless",          "26252",  "peripheral"),
+    ("mechanical keyboard gaming",          "33963", "peripheral"),
+    ("gaming mouse wireless",               "26252", "peripheral"),
 ]
 
 
@@ -105,6 +136,7 @@ EBAY_QUERIES = [
 # OAuth2 Client Credentials
 # ──────────────────────────────────────────────
 _token_cache: dict = {}
+_session = _make_session()   # [E13] sesión global con retry
 
 
 def _get_oauth_token() -> Optional[str]:
@@ -129,7 +161,7 @@ def _get_oauth_token() -> Optional[str]:
             f"{EBAY_APP_ID}:{EBAY_CLIENT_SECRET}".encode()
         ).decode()
 
-        resp = requests.post(
+        resp = _session.post(
             OAUTH_URL,
             headers={
                 "Authorization": f"Basic {credentials}",
@@ -195,8 +227,7 @@ def _parse_items_browse(items: list, query: str, label: str, batch_id: str) -> l
                 ship_raw = shipping_options[0].get("shippingCost", {}).get("value")
                 if ship_raw is not None:
                     ship_cost = float(ship_raw)
-                    ship_free = (ship_cost == 0.0)   # Solo True si explícitamente 0.0
-            # Si shippingOptions=[] → ship_cost=None, ship_free=False (desconocido)
+                    ship_free = (ship_cost == 0.0)
 
             # Condición robusta
             condition_raw = item.get("condition", "")
@@ -205,34 +236,45 @@ def _parse_items_browse(items: list, query: str, label: str, batch_id: str) -> l
             else:
                 condition = str(condition_raw) if condition_raw else "Unknown"
 
-            # seller_feedback como int
-            seller_info     = item.get("seller", {})
-            feedback_raw    = seller_info.get("feedbackScore", None)
-            seller_feedback = None
-            if feedback_raw is not None:
+            # [E11] seller_feedback: score + porcentaje
+            seller_info          = item.get("seller", {})
+            feedback_score_raw   = seller_info.get("feedbackScore", None)
+            feedback_pct_raw     = seller_info.get("feedbackPercentage", None)
+
+            seller_feedback_score = None
+            seller_feedback_pct   = None
+
+            if feedback_score_raw is not None:
                 try:
-                    seller_feedback = int(feedback_raw)
+                    seller_feedback_score = int(feedback_score_raw)
                 except (ValueError, TypeError):
-                    seller_feedback = None
+                    pass
+
+            if feedback_pct_raw is not None:
+                try:
+                    seller_feedback_pct = round(float(feedback_pct_raw), 1)
+                except (ValueError, TypeError):
+                    pass
 
             records.append({
-                "batch_id":        batch_id,
-                "timestamp":       now_iso,
-                "source":          "ebay_usa",
-                "query":           query,
-                "category_label":  label,
-                "item_id":         item.get("itemId", ""),
-                "title":           item.get("title", ""),
-                "price_usd":       price_usd,
-                "currency":        currency,
-                "shipping_usd":    ship_cost,
-                "shipping_free":   ship_free,
-                "condition":       condition,
-                "location":        item.get("itemLocation", {}).get("city", ""),
-                "country":         item.get("itemLocation", {}).get("country", ""),
-                "seller_feedback": seller_feedback,
-                "url":             item.get("itemWebUrl", ""),
-                "image_url":       item.get("image", {}).get("imageUrl", ""),
+                "batch_id":             batch_id,
+                "timestamp":            now_iso,
+                "source":               "ebay_usa",
+                "query":                query,
+                "category_label":       label,
+                "item_id":              item.get("itemId", ""),
+                "title":                item.get("title", ""),
+                "price_usd":            price_usd,
+                "currency":             currency,
+                "shipping_usd":         ship_cost,
+                "shipping_free":        ship_free,
+                "condition":            condition,
+                "location":             item.get("itemLocation", {}).get("city", ""),
+                "country":              item.get("itemLocation", {}).get("country", ""),
+                "seller_feedback_score":seller_feedback_score,  # [E11]
+                "seller_feedback_pct":  seller_feedback_pct,    # [E11]
+                "url":                  item.get("itemWebUrl", ""),
+                "image_url":            item.get("image", {}).get("imageUrl", ""),
             })
 
         except (KeyError, ValueError, TypeError) as e:
@@ -250,6 +292,8 @@ def scrape_ebay(batch_id: str) -> list:
     Scraper principal eBay — Browse API REST v1.
     Retorna lista de dicts con precios de mercado USA.
     """
+    t_start = time.time()   # [M4] tiempo total
+
     if not EBAY_APP_ID:
         logger.error(
             "❌ EBAY_APP_ID no configurado. "
@@ -262,15 +306,17 @@ def scrape_ebay(batch_id: str) -> list:
         logger.error("❌ No se pudo obtener token OAuth2 de eBay.")
         return []
 
-    headers = {
-        "Authorization":           f"Bearer {token}",
-        "X-EBAY-C-MARKETPLACE-ID": "EBAY_US",
-        "Content-Type":            "application/json",
-    }
+    def _build_headers(tkn: str) -> dict:
+        return {
+            "Authorization":           f"Bearer {tkn}",
+            "X-EBAY-C-MARKETPLACE-ID": "EBAY_US",
+            "Content-Type":            "application/json",
+        }
 
+    headers       = _build_headers(token)
     all_records   = []
     seen_item_ids = set()
-    seen_fps      = set()    # [E5] fingerprints para items sin item_id
+    seen_fps      = set()
     total_queries = len(EBAY_QUERIES)
 
     for q_idx, (query, category_id, label) in enumerate(EBAY_QUERIES, 1):
@@ -283,21 +329,21 @@ def scrape_ebay(batch_id: str) -> list:
 
         while page < MAX_PAGES:
             try:
-                # [E8] conditions ampliado: NEW|USED|VERY_GOOD|GOOD
+                # [E10] conditions filter: comas en lugar de pipes
                 params = {
                     "q":            query,
                     "category_ids": category_id,
                     "filter":       (
                         "buyingOptions:{FIXED_PRICE},"
-                        "conditions:{NEW|USED|VERY_GOOD|GOOD}"
+                        "conditions:{NEW},{USED},{VERY_GOOD},{GOOD}"  # [E10]
                     ),
                     "sort":         "price",
                     "limit":        ITEMS_PER_PAGE,
                     "offset":       offset,
-                    "fieldgroups":  "MATCHING_ITEMS",
+                    "fieldgroups":  "MATCHING_ITEMS,EXTENDED",  # [E12]
                 }
 
-                resp = requests.get(
+                resp = _session.get(   # [E13] sesión con retry
                     BROWSE_API_URL,
                     headers=headers,
                     params=params,
@@ -311,10 +357,9 @@ def scrape_ebay(batch_id: str) -> list:
                     token = _get_oauth_token()
                     if not token:
                         break
-                    headers["Authorization"] = f"Bearer {token}"
-                    # NO incrementar page ni offset → reintentar la misma página
+                    headers = _build_headers(token)
                     time.sleep(REQUEST_DELAY)
-                    continue
+                    continue   # reintentar misma página
 
                 resp.raise_for_status()
                 data = resp.json()
@@ -355,7 +400,7 @@ def scrape_ebay(batch_id: str) -> list:
         logger.info(f"  ✅ '{query}': {len(query_records)} registros")
         time.sleep(REQUEST_DELAY)
 
-    # Deduplicación
+    # ── Deduplicación ────────────────────────
     unique_records = []
     for r in all_records:
         iid = r.get("item_id", "")
@@ -364,9 +409,9 @@ def scrape_ebay(batch_id: str) -> list:
                 seen_item_ids.add(iid)
                 unique_records.append(r)
         else:
-            # [E5] Sin item_id → fingerprint title[:60]|price
+            # [M3] title[:100] — consistente con SC7 de scraper_competencia
             fp = hashlib.md5(
-                f"{r.get('title','')[:60]}|{r.get('price_usd',0)}".encode()
+                f"{r.get('title','')[:100]}|{r.get('price_usd',0)}".encode()
             ).hexdigest()[:12]
             if fp not in seen_fps:
                 seen_fps.add(fp)
@@ -376,7 +421,13 @@ def scrape_ebay(batch_id: str) -> list:
     if dupes:
         logger.info(f"[eBay] Deduplicados: {dupes} registros eliminados")
 
-    logger.info(f"[eBay] TOTAL: {len(unique_records)} registros únicos")
+    # [M4] Log de tiempo total
+    elapsed = time.time() - t_start
+    logger.info(
+        f"[eBay] TOTAL: {len(unique_records):,} registros únicos "
+        f"(de {len(all_records):,} brutos) — "
+        f"⏱ {elapsed/60:.1f} min"
+    )
     return unique_records
 
 
@@ -385,7 +436,11 @@ def scrape_ebay(batch_id: str) -> list:
 # ──────────────────────────────────────────────
 if __name__ == "__main__":
     import logging as _logging
-    _logging.basicConfig(level=_logging.INFO)
+    _logging.basicConfig(
+        level=_logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(name)s — %(message)s",
+        datefmt="%H:%M:%S",
+    )
     # [E7] datetime con timezone explícita
     test_batch = f"test_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}"
     results    = scrape_ebay(test_batch)
