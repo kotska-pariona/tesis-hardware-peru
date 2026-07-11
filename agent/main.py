@@ -1,7 +1,16 @@
 #!/usr/bin/env python3
 """
-main.py — Orquestador v5.3
+main.py — Orquestador v5.4
 ════════════════════════════════════════════════════════════════════
+Fixes v5.4:
+  - [FIX-10] Integración Newegg USA (scraper_newegg.py)
+             Carga dinámica con importlib — no crashea si no existe
+             Precios en USD (price_usd) — sin conversión a PEN
+  - Paso [4/9] renumerado: eBay → [5/9], resto +1
+  - Paso [4/9] Newegg USA insertado entre MeLi PE y eBay
+  - FIELD_ORDER ya incluía price_usd — compatible sin cambios
+  - Modos normal/historical/full incluyen Newegg
+
 Fixes v5.3:
   - [FIX-9] Integración MercadoLibre PE (scraper_mercadolibre.py)
             Carga dinámica con importlib — no crashea si no existe
@@ -48,8 +57,6 @@ if str(AGENT_DIR) not in sys.path:
     sys.path.insert(0, str(AGENT_DIR))
 
 # ── FIX-9: Carga dinámica de MercadoLibre PE ──────────────────────────────
-# Si scraper_mercadolibre.py no existe, _HAS_MELI = False y se omite
-# el paso sin crashear el pipeline.
 _meli_path = AGENT_DIR / "scrapers" / "scraper_mercadolibre.py"
 _HAS_MELI  = False
 scrape_mercadolibre = None
@@ -68,6 +75,25 @@ if _meli_path.exists():
     except Exception as _e:
         pass  # se loguea más abajo cuando logging ya está activo
 
+# ── FIX-10: Carga dinámica de Newegg USA ──────────────────────────────────
+_newegg_path = AGENT_DIR / "scrapers" / "scraper_newegg.py"
+_HAS_NEWEGG  = False
+scrape_newegg = None
+
+if _newegg_path.exists():
+    try:
+        _newegg_spec = importlib.util.spec_from_file_location(
+            "scrapers.scraper_newegg",
+            str(_newegg_path),
+        )
+        _newegg_mod = importlib.util.module_from_spec(_newegg_spec)
+        sys.modules["scrapers.scraper_newegg"] = _newegg_mod
+        _newegg_spec.loader.exec_module(_newegg_mod)
+        scrape_newegg = _newegg_mod.scrape_newegg
+        _HAS_NEWEGG = True
+    except Exception as _e:
+        pass  # se loguea más abajo cuando logging ya está activo
+
 # ── Logging ───────────────────────────────────────────────────────────────
 LOG_FILE = LOG_DIR / "agent.log"
 logging.basicConfig(
@@ -81,6 +107,7 @@ logging.basicConfig(
 )
 log = logging.getLogger("main")
 
+# ── Status de carga de scrapers opcionales ────────────────────────────────
 if not _HAS_MELI:
     log.warning(
         "[FIX-9] scraper_mercadolibre.py no encontrado o con error — "
@@ -88,6 +115,14 @@ if not _HAS_MELI:
     )
 else:
     log.info("[FIX-9] scraper_mercadolibre.py cargado ✅")
+
+if not _HAS_NEWEGG:
+    log.warning(
+        "[FIX-10] scraper_newegg.py no encontrado o con error — "
+        "paso Newegg USA será omitido"
+    )
+else:
+    log.info("[FIX-10] scraper_newegg.py cargado ✅")
 
 # ── Imports desde scrapers (ya registrado en sys.modules) ─────────────────
 from scrapers import (
@@ -103,11 +138,11 @@ from scrapers import (
     _HAS_COMPETENCIA,
 )
 
-# ── FIX-5 + FIX-9: Orden lógico de columnas en CSV ───────────────────────
+# ── Orden lógico de columnas en CSV ───────────────────────────────────────
 FIELD_ORDER = [
     "batch_id", "timestamp", "source", "category",
     "sku", "brand", "title",
-    "price_pen", "price_orig_pen", "price_usd", "price_date",
+    "price_pen", "price_orig_pen", "price_usd", "price_orig_usd", "price_date",
     "discount_pct", "price_currency",
     "rating", "reviews",
     # Campos MeLi (vacíos en otras fuentes — no rompen nada)
@@ -125,10 +160,10 @@ def save_batch(records: list, batch_id: str, source_tag: str) -> Path:
         log.warning(f"  [save] Sin registros para {source_tag}")
         return None
 
-    out_path  = DATA_DIR / f"batch_{batch_id}_{source_tag}.csv"
-    all_keys  = set(k for r in records for k in r.keys())
-    ordered   = [f for f in FIELD_ORDER if f in all_keys]
-    remainder = sorted(all_keys - set(ordered))
+    out_path   = DATA_DIR / f"batch_{batch_id}_{source_tag}.csv"
+    all_keys   = set(k for r in records for k in r.keys())
+    ordered    = [f for f in FIELD_ORDER if f in all_keys]
+    remainder  = sorted(all_keys - set(ordered))
     fieldnames = ordered + remainder
 
     with open(out_path, "w", newline="", encoding="utf-8") as f:
@@ -247,11 +282,11 @@ def run(mode: str, batch_id: str):
     batches = []
 
     log.info("═" * 60)
-    log.info(f"  PIPELINE v5.3 — modo={mode} | batch={batch_id}")
+    log.info(f"  PIPELINE v5.4 — modo={mode} | batch={batch_id}")
     log.info("═" * 60)
 
     # ── 1. Tipo de cambio (siempre) ──────────────────────────────────
-    log.info("\n[1/9] 💱 Tipo de cambio USD/PEN")
+    log.info("\n[1/10] 💱 Tipo de cambio USD/PEN")
     try:
         dolar_records = scrape_dolar(batch_id)
         p = save_batch(dolar_records, batch_id, "dolar")
@@ -264,7 +299,7 @@ def run(mode: str, batch_id: str):
 
     # ── 2. Scrapers locales PE ───────────────────────────────────────
     if mode in ("normal", "local_only", "full"):
-        log.info("\n[2/9] 🇵🇪 Tiendas locales PE (Falabella + Hiraoka)")
+        log.info("\n[2/10] 🇵🇪 Tiendas locales PE (Falabella + Hiraoka)")
         try:
             local_records = scrape_local(batch_id)
             p = save_batch(local_records, batch_id, "local")
@@ -279,7 +314,7 @@ def run(mode: str, batch_id: str):
 
     # ── 3. MercadoLibre PE ───────────────────────────────────────────
     if _HAS_MELI and mode in ("normal", "local_only", "full"):
-        log.info("\n[3/9] 🛍️ MercadoLibre PE")
+        log.info("\n[3/10] 🛍️ MercadoLibre PE")
         try:
             meli_records = scrape_mercadolibre(batch_id)
             p = save_batch(meli_records, batch_id, "mercadolibre")
@@ -291,12 +326,29 @@ def run(mode: str, batch_id: str):
             stats["mercadolibre_pe"] = 0
     else:
         if not _HAS_MELI:
-            log.warning("  ⚠️  [3/9] MeLi PE omitido — scraper no disponible")
+            log.warning("  ⚠️  [3/10] MeLi PE omitido — scraper no disponible")
         stats["mercadolibre_pe"] = 0
 
-    # ── 4. eBay ──────────────────────────────────────────────────────
+    # ── 4. Newegg USA ────────────────────────────────────────────────
+    if _HAS_NEWEGG and mode in ("normal", "historical", "full"):
+        log.info("\n[4/10] 🖥️ Newegg USA (precios USD)")
+        try:
+            newegg_records = scrape_newegg(batch_id)
+            p = save_batch(newegg_records, batch_id, "newegg")
+            batches.append(p)
+            stats["newegg_usa"] = len(newegg_records)
+            log.info(f"  ✅ Newegg USA: {len(newegg_records):,} registros")
+        except Exception as e:
+            log.error(f"  ❌ Newegg USA: {e}")
+            stats["newegg_usa"] = 0
+    else:
+        if not _HAS_NEWEGG:
+            log.warning("  ⚠️  [4/10] Newegg USA omitido — scraper no disponible")
+        stats["newegg_usa"] = 0
+
+    # ── 5. eBay ──────────────────────────────────────────────────────
     if mode in ("normal", "historical", "full"):
-        log.info("\n[4/9] 🛒 eBay USA")
+        log.info("\n[5/10] 🛒 eBay USA")
         try:
             ebay_records = scrape_ebay(batch_id)
             p = save_batch(ebay_records, batch_id, "ebay")
@@ -309,9 +361,9 @@ def run(mode: str, batch_id: str):
     else:
         stats["ebay"] = 0
 
-    # ── 5. CamelCamelCamel ───────────────────────────────────────────
+    # ── 6. CamelCamelCamel ───────────────────────────────────────────
     if mode in ("historical", "full"):
-        log.info("\n[5/9] 🐪 CamelCamelCamel")
+        log.info("\n[6/10] 🐪 CamelCamelCamel")
         try:
             camel_records = scrape_camel(batch_id)
             p = save_batch(camel_records, batch_id, "camel")
@@ -324,9 +376,9 @@ def run(mode: str, batch_id: str):
     else:
         stats["camel"] = 0
 
-    # ── 6. PCPartPicker ──────────────────────────────────────────────
+    # ── 7. PCPartPicker ──────────────────────────────────────────────
     if mode in ("historical", "full"):
-        log.info("\n[6/9] 🖥️ PCPartPicker")
+        log.info("\n[7/10] 🖥️ PCPartPicker")
         try:
             pcp_records = scrape_pcpartpicker(batch_id)
             p = save_batch(pcp_records, batch_id, "pcpartpicker")
@@ -339,9 +391,9 @@ def run(mode: str, batch_id: str):
     else:
         stats["pcpartpicker"] = 0
 
-    # ── 7. Kaggle ────────────────────────────────────────────────────
+    # ── 8. Kaggle ────────────────────────────────────────────────────
     if mode in ("kaggle_only", "full"):
-        log.info("\n[7/9] 📦 Kaggle datasets")
+        log.info("\n[8/10] 📦 Kaggle datasets")
         try:
             kaggle_records = scrape_kaggle(batch_id)
             p = save_batch(kaggle_records, batch_id, "kaggle")
@@ -354,9 +406,9 @@ def run(mode: str, batch_id: str):
     else:
         stats["kaggle"] = 0
 
-    # ── 8. Importación ───────────────────────────────────────────────
+    # ── 9. Importación ───────────────────────────────────────────────
     if _HAS_IMPORTACION and mode in ("normal", "historical", "full"):
-        log.info("\n[8/9] 📦 Precios de importación")
+        log.info("\n[9/10] 📦 Precios de importación")
         try:
             imp_records = scrape_importacion(batch_id)
             p = save_batch(imp_records, batch_id, "importacion")
@@ -369,9 +421,9 @@ def run(mode: str, batch_id: str):
     else:
         stats["importacion"] = 0
 
-    # ── 9. Competencia ───────────────────────────────────────────────
+    # ── 10. Competencia ──────────────────────────────────────────────
     if _HAS_COMPETENCIA and mode in ("normal", "local_only", "full"):
-        log.info("\n[9/9] 🔍 Competencia local PE")
+        log.info("\n[10/10] 🔍 Competencia local PE")
         try:
             comp_records = scrape_competencia(batch_id)
             p = save_batch(comp_records, batch_id, "competencia")
@@ -419,7 +471,7 @@ def run(mode: str, batch_id: str):
 
 def _parse_args():
     parser = argparse.ArgumentParser(
-        description="Pipeline de recolección — tesis-hardware-peru v5.3",
+        description="Pipeline de recolección — tesis-hardware-peru v5.4",
         formatter_class=argparse.RawTextHelpFormatter,
     )
     parser.add_argument(
@@ -428,11 +480,11 @@ def _parse_args():
         choices=["normal", "local_only", "historical", "kaggle_only", "full"],
         help=(
             "Modo de ejecución:\n"
-            "  normal      → local PE + MeLi PE + eBay + importacion (~35 min)\n"
+            "  normal      → local PE + MeLi PE + Newegg + eBay + importacion (~45 min)\n"
             "  local_only  → Falabella/Hiraoka + MeLi PE (~22 min)\n"
-            "  historical  → eBay + CamelCamelCamel + PCPartPicker (~39 min)\n"
+            "  historical  → Newegg + eBay + CamelCamelCamel + PCPartPicker (~50 min)\n"
             "  kaggle_only → solo descarga Kaggle (~30 min)\n"
-            "  full        → todo (~95 min) ⚠️ supera timeout de 55 min"
+            "  full        → todo (~110 min) ⚠️ supera timeout de 55 min"
         ),
     )
     parser.add_argument(
