@@ -1,5 +1,5 @@
 """
-scraper_importacion.py  v4.0
+scraper_importacion.py  v4.1
 ════════════════════════════
 Fuentes de PRECIO DE IMPORTACIÓN (referencia precio piso USA):
   - Amazon USA    (HTML + Session/Retry + CAPTCHA detection)
@@ -8,15 +8,19 @@ Fuentes de PRECIO DE IMPORTACIÓN (referencia precio piso USA):
 NOTA: eBay eliminado de este scraper — usar scraper_ebay.py (Browse API REST)
       para evitar duplicación de source='ebay_usa' en el MASTER.
 
-Fixes v4.0 (sobre v3.1):
-  - [I1]  AmazonScraper: CAPTCHA strings adicionales
-  - [I2]  SHIPPING_EST_BY_CATEGORY: estimado por categoría en lugar de 15.0 fijo
-  - [I3]  AliExpressScraper: eliminado truncado raw_json[:2_000_000]
-  - [I4]  AliExpressScraper: extractor de brackets balanceados reemplaza regex non-greedy
-  - [I5]  AliExpressScraper: intenta extraer shippingFee del JSON
-  - [I6]  EbayScraper ELIMINADO — usar scraper_ebay.py (Browse API, sin duplicados)
-  - [I7]  scrape_importacion: CAPTCHA no reintenta (break inmediato)
-  - [I8]  __main__: datetime.now(timezone.utc)
+Fixes v4.1 (sobre v4.0):
+  - [I9]  CATEGORY_QUERIES actualizado: modelos 2025-2026
+          (Core Ultra, Ryzen 9000, RTX 5xxx, RX 9070, DDR5 64GB, PCIe 5.0)
+  - [I10] SHIPPING_EST_DEFAULT: importado desde config.py v2.3 (35.0)
+          en lugar de hardcodeado (15.0) — consistente con FLETE_BASE_USD
+  - [I11] captcha_abort: lógica corregida — AmazonScraper.search()
+          retorna (items, captcha_flag); scrape_importacion() hace break
+  - [I12] _parse_price: limpieza explícita de símbolos de moneda
+  - [I13] MAX_QUERIES_IMPORT: limita queries por categoría (default 2)
+  - [I14] asin_sku eliminado — campo redundante con sku
+  - [I15] dry_run: log final muestra conteo real de items encontrados
+  - [I16] USER_AGENTS: Chrome 124 → Chrome 136 (julio 2026)
+  - [M18] Log de tiempo total al finalizar
 """
 
 import os
@@ -36,112 +40,52 @@ from bs4 import BeautifulSoup
 
 log = logging.getLogger(__name__)
 
-# ── Constantes ───────────────────────────────────────────────────────────
+# ── Constantes ─────────────────────────────────────────────────────────
 _DEFAULT_OUTPUT = str(Path(__file__).resolve().parent.parent.parent / "data" / "raw")
 OUTPUT_DIR        = Path(os.getenv("OUTPUT_DIR", _DEFAULT_OUTPUT))
 MAX_PAGES         = int(os.getenv("MAX_PAGES_IMPORT", "5"))
 DELAY_REQ         = float(os.getenv("DELAY_REQ", "2.5"))
 DELAY_CAT         = float(os.getenv("DELAY_CAT", "5.0"))
 MAX_RETRIES_QUERY = int(os.getenv("MAX_RETRIES_QUERY", "2"))
+MAX_QUERIES_IMPORT= int(os.getenv("MAX_QUERIES_IMPORT", "2"))  # [I13]
 
-# [I2] Shipping estimado por categoría (USD) — Amazon no envía directo a Perú
-# Basado en peso/volumen promedio por categoría (courier internacional)
+# [I10] SHIPPING_EST_DEFAULT desde config.py — consistente con FLETE_BASE_USD
+try:
+    from configuracion.config import (
+        FLETE_BASE_USD  as _FLETE_BASE,
+        FLETE_POR_KG_USD as _FLETE_KG,
+    )
+    SHIPPING_EST_DEFAULT = _FLETE_BASE   # 35.0 en config v2.3
+except ImportError:
+    SHIPPING_EST_DEFAULT = 35.0          # fallback explícito
+
+# [I2] Shipping estimado por categoría (USD) — basado en peso/volumen
 SHIPPING_EST_BY_CATEGORY = {
     "CPU":         18.0,
-    "GPU":         35.0,   # Mayor peso y volumen
+    "GPU":         38.0,   # [I10] actualizado: mayor peso real
     "RAM":          8.0,
     "SSD":          8.0,
-    "MOTHERBOARD": 22.0,
-    "PSU":         28.0,   # Pesado
-    "COOLER":      20.0,
-    "CASE":        45.0,   # Voluminoso
+    "MOTHERBOARD": 25.0,
+    "PSU":         32.0,
+    "COOLER":      22.0,
+    "CASE":        50.0,   # [I10] actualizado: voluminoso
 }
-SHIPPING_EST_DEFAULT = 15.0   # Fallback para categorías no mapeadas
 
-# [I1] Strings de detección de CAPTCHA — Amazon rota entre 3 tipos
+# [I1] Strings de detección de CAPTCHA
 AMAZON_CAPTCHA_STRINGS = [
     "Enter the characters you see below",
     "api-services-support@amazon.com",
     "make sure you're not a robot",
     "Type the characters you see in this image",
+    "Sorry, we just need to make sure you're not a robot",  # variante adicional
 ]
 
-# ── Queries por categoría ─────────────────────────────────────────────────
-CATEGORY_QUERIES = {
-    "CPU": [
-        "intel core i5 13th gen processor",
-        "intel core i7 13700k processor",
-        "amd ryzen 5 7600x processor",
-        "amd ryzen 7 7700x processor",
-        "amd ryzen 9 7950x processor",
-    ],
-    "GPU": [
-        "nvidia rtx 4060 graphics card",
-        "nvidia rtx 4070 graphics card",
-        "nvidia rtx 4080 graphics card",
-        "amd radeon rx 7800 xt graphics card",
-        "amd radeon rx 7900 xt graphics card",
-    ],
-    "RAM": [
-        "ddr4 16gb 3200mhz ram memory",
-        "ddr4 32gb 3600mhz ram memory",
-        "ddr5 16gb 5600mhz ram memory",
-        "ddr5 32gb 6000mhz ram memory",
-        "corsair vengeance ddr4 ram",
-    ],
-    "SSD": [
-        "nvme ssd 1tb m.2 pcie",
-        "nvme ssd 2tb m.2 pcie 4.0",
-        "samsung 990 pro nvme ssd",
-        "western digital black sn850x",
-        "sata ssd 1tb 2.5 inch",
-    ],
-    "MOTHERBOARD": [
-        "intel z790 motherboard atx",
-        "intel b760 motherboard micro atx",
-        "amd x670e motherboard atx",
-        "amd b650 motherboard micro atx",
-        "asus rog strix z790 motherboard",
-    ],
-    "PSU": [
-        "850w 80 plus gold power supply",
-        "1000w 80 plus platinum psu",
-        "corsair rm850x power supply",
-        "seasonic focus gx 850w",
-        "evga supernova 850 g6",
-    ],
-    "COOLER": [
-        "240mm aio liquid cpu cooler",
-        "360mm aio liquid cooler",
-        "noctua nh-d15 cpu cooler",
-        "be quiet dark rock pro 4",
-        "arctic liquid freezer ii 240",
-    ],
-    "CASE": [
-        "mid tower atx pc case tempered glass",
-        "lian li lancool 216 case",
-        "fractal design meshify 2 case",
-        "nzxt h510 flow case",
-        "corsair 4000d airflow case",
-    ],
-}
-
-AMAZON_CATEGORY_NODES = {
-    "CPU":         "n:541966",
-    "GPU":         "n:284822",
-    "RAM":         "n:172500",
-    "SSD":         "n:1292110011",
-    "MOTHERBOARD": "n:1048424",
-    "PSU":         "n:1161760",
-    "COOLER":      "n:3012290011",
-    "CASE":        "n:1161758",
-}
-
+# [I16] USER_AGENTS actualizados — Chrome 136 (julio 2026)
 USER_AGENTS = [
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Safari/605.1.15",
-    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:125.0) Gecko/20100101 Firefox/125.0",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.4 Safari/605.1.15",
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:138.0) Gecko/20100101 Firefox/138.0",
 ]
 _ua_idx = 0
 
@@ -184,9 +128,15 @@ def _make_session() -> requests.Session:
     return session
 
 def _parse_price(raw: str) -> float:
+    """
+    [I12] Limpieza explícita de símbolos de moneda antes del regex.
+    Soporta: USD, US$, €, £, S/., y variantes con espacios.
+    """
     if not raw:
         return 0.0
-    cleaned = re.sub(r"[^\d.,]", "", raw.strip())
+    # [I12] Limpiar símbolos de moneda explícitamente
+    cleaned = re.sub(r"(?:US\s*\$|USD|EUR|€|£|GBP|S/\.?\s*)", "", str(raw).strip())
+    cleaned = re.sub(r"[^\d.,]", "", cleaned.strip())
     if not cleaned:
         return 0.0
     if re.search(r"\d{1,3}\.\d{3},\d{2}$", cleaned):
@@ -194,7 +144,8 @@ def _parse_price(raw: str) -> float:
     else:
         cleaned = cleaned.replace(",", "")
     try:
-        return float(cleaned)
+        val = float(cleaned)
+        return val if val > 0 else 0.0
     except ValueError:
         return 0.0
 
@@ -210,10 +161,8 @@ def _dedup(records: list) -> list:
     return out
 
 
-# ── [I4] Extractor de brackets balanceados (de scraper_camel v3.0) ────────
-# Candidato a mover a agent/scrapers/utils.py como utilidad compartida
+# ── [I4] Extractor de brackets balanceados ────────────────────────────
 def _extract_balanced(text: str, start_idx: int, open_ch: str, close_ch: str) -> Optional[str]:
-    """Extrae bloque balanceado desde start_idx, respetando strings JSON."""
     depth   = 0
     in_str  = False
     escaped = False
@@ -250,9 +199,81 @@ def _find_balanced_block(content: str, marker: str, open_ch: str) -> Optional[st
     return None
 
 
-# ══════════════════════════════════════════════════════════════════════════
+# ── [I9] CATEGORY_QUERIES — actualizado 2025-2026 ─────────────────────
+CATEGORY_QUERIES = {
+    "CPU": [
+        "intel core ultra 9 285k processor",      # [I9] nuevo
+        "intel core ultra 7 265k processor",      # [I9] nuevo
+        "intel core i7 14700k processor",
+        "amd ryzen 9 9950x processor",            # [I9] nuevo
+        "amd ryzen 7 9700x processor",            # [I9] nuevo
+    ],
+    "GPU": [
+        "nvidia rtx 5080 graphics card",          # [I9] nuevo
+        "nvidia rtx 5070 graphics card",          # [I9] nuevo
+        "nvidia rtx 4070 graphics card",
+        "amd radeon rx 9070 xt graphics card",    # [I9] nuevo
+        "amd radeon rx 7900 xt graphics card",
+    ],
+    "RAM": [
+        "ddr5 32gb 6000mhz ram memory",
+        "ddr5 64gb 6400mhz ram memory",           # [I9] nuevo
+        "ddr4 32gb 3600mhz ram memory",
+        "corsair vengeance ddr5 ram",
+        "g.skill trident z5 ddr5",                # [I9] nuevo
+    ],
+    "SSD": [
+        "nvme ssd 2tb m.2 pcie 5.0",              # [I9] nuevo
+        "nvme ssd 1tb m.2 pcie 4.0",
+        "samsung 990 pro nvme ssd",
+        "western digital black sn850x",
+        "crucial t705 nvme ssd",                  # [I9] nuevo
+    ],
+    "MOTHERBOARD": [
+        "intel z890 motherboard atx",             # [I9] nuevo (Core Ultra)
+        "intel z790 motherboard atx",
+        "amd x870e motherboard atx",              # [I9] nuevo
+        "amd b650 motherboard micro atx",
+        "asus rog strix z890 motherboard",        # [I9] nuevo
+    ],
+    "PSU": [
+        "1000w 80 plus platinum psu atx 3.0",     # [I9] ATX 3.0
+        "850w 80 plus gold power supply",
+        "corsair rm1000x power supply",           # [I9] nuevo
+        "seasonic focus gx 850w",
+        "be quiet straight power 12 1000w",       # [I9] nuevo
+    ],
+    "COOLER": [
+        "360mm aio liquid cooler",
+        "240mm aio liquid cpu cooler",
+        "noctua nh-d15 g2 cpu cooler",            # [I9] nuevo (gen 2)
+        "arctic liquid freezer iii 360",          # [I9] nuevo
+        "be quiet dark rock pro 5",               # [I9] nuevo
+    ],
+    "CASE": [
+        "mid tower atx pc case tempered glass",
+        "lian li lancool 216 case",
+        "fractal design north case",              # [I9] nuevo
+        "nzxt h9 flow case",                      # [I9] nuevo
+        "corsair 5000d airflow case",             # [I9] nuevo
+    ],
+}
+
+AMAZON_CATEGORY_NODES = {
+    "CPU":         "n:541966",
+    "GPU":         "n:284822",
+    "RAM":         "n:172500",
+    "SSD":         "n:1292110011",
+    "MOTHERBOARD": "n:1048424",
+    "PSU":         "n:1161760",
+    "COOLER":      "n:3012290011",
+    "CASE":        "n:1161758",
+}
+
+
+# ══════════════════════════════════════════════════════════════════════
 # SCRAPER 1 — AMAZON USA
-# ══════════════════════════════════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════════════════
 class AmazonScraper:
     BASE = "https://www.amazon.com/s"
 
@@ -260,24 +281,31 @@ class AmazonScraper:
         self.session = _make_session()
 
     def search(self, query: str, category: str, batch_id: str,
-               max_pages: int = MAX_PAGES) -> list:
-        items = []
+               max_pages: int = MAX_PAGES) -> tuple[list, bool]:
+        """
+        [I11] Retorna (items, captcha_detected).
+        captcha_detected=True → scrape_importacion() hace break inmediato.
+        """
+        items          = []
+        captcha_global = False
+
         for page in range(1, max_pages + 1):
             log.info(f"  [Amazon] {category} | '{query[:40]}' | pág {page}")
             page_items, captcha = self._fetch_page(query, page, category, batch_id)
             items.extend(page_items)
             log.info(f"    → {len(page_items)} items (total: {len(items)})")
             if captcha:
-                log.warning("    Amazon CAPTCHA — abortando query (no reintenta)")
-                break   # [I7] No reintentar en CAPTCHA
+                captcha_global = True
+                log.warning("    Amazon CAPTCHA — abortando query")
+                break
             if not page_items:
                 break
             time.sleep(DELAY_REQ + (page * 0.3))
-        return items
+
+        return items, captcha_global
 
     def _fetch_page(self, query: str, page: int, category: str,
-                    batch_id: str) -> tuple:
-        """Retorna (items, captcha_detected: bool)"""
+                    batch_id: str) -> tuple[list, bool]:
         params = {"k": query, "page": page, "ref": f"sr_pg_{page}"}
         rh_node = AMAZON_CATEGORY_NODES.get(category)
         if rh_node:
@@ -295,21 +323,19 @@ class AmazonScraper:
             if resp.status_code != 200:
                 log.warning(f"    Amazon HTTP {resp.status_code}")
                 return [], False
-            # [I1] Detección completa de CAPTCHA (3 tipos)
             if any(s in resp.text for s in AMAZON_CAPTCHA_STRINGS):
                 log.warning("    Amazon CAPTCHA detectado — saltando query")
-                return [], True   # captcha=True → no reintentar
+                return [], True
             return self._parse(resp.text, category, batch_id), False
         except Exception as e:
             log.error(f"    Amazon error: {e}")
             return [], False
 
     def _parse(self, html: str, category: str, batch_id: str) -> list:
-        soup       = BeautifulSoup(html, "html.parser")
-        items      = []
-        ts         = datetime.now(timezone.utc).isoformat()
-        price_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-        # [I2] Shipping estimado por categoría
+        soup         = BeautifulSoup(html, "html.parser")
+        items        = []
+        ts           = datetime.now(timezone.utc).isoformat()
+        price_date   = datetime.now(timezone.utc).strftime("%Y-%m-%d")
         shipping_est = SHIPPING_EST_BY_CATEGORY.get(category, SHIPPING_EST_DEFAULT)
 
         for card in soup.select("div[data-component-type='s-search-result']"):
@@ -337,7 +363,6 @@ class AmazonScraper:
                         if price_usd > 0:
                             break
 
-                # Shipping: 0.0 si Prime/FREE, shipping_est si no
                 shipping_usd = shipping_est
                 for sel in [
                     "span[aria-label='Amazon Prime']",
@@ -380,8 +405,7 @@ class AmazonScraper:
                         "source":       "amazon_usa",
                         "category":     category,
                         "title":        title[:200],
-                        "sku":          asin,
-                        "asin_sku":     asin,
+                        "sku":          asin,      # [I14] asin_sku eliminado
                         "price_usd":    round(price_usd, 2),
                         "price_date":   price_date,
                         "shipping_usd": shipping_usd,
@@ -397,9 +421,9 @@ class AmazonScraper:
         return items
 
 
-# ══════════════════════════════════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════════════════
 # SCRAPER 2 — ALIEXPRESS
-# ══════════════════════════════════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════════════════
 class AliExpressScraper:
     SEARCH_URL = "https://www.aliexpress.com/wholesale"
 
@@ -407,7 +431,8 @@ class AliExpressScraper:
         self.session = _make_session()
 
     def search(self, query: str, category: str, batch_id: str,
-               max_pages: int = MAX_PAGES) -> list:
+               max_pages: int = MAX_PAGES) -> tuple[list, bool]:
+        """[I11] Retorna (items, captcha_detected) — AliExpress no tiene CAPTCHA típico."""
         items = []
         for page in range(1, max_pages + 1):
             log.info(f"  [AliExpress] {category} | '{query[:40]}' | pág {page}")
@@ -417,7 +442,7 @@ class AliExpressScraper:
             if not page_items:
                 break
             time.sleep(DELAY_REQ)
-        return items
+        return items, False   # AliExpress no tiene CAPTCHA flag
 
     def _fetch_page(self, query: str, page: int, category: str, batch_id: str) -> list:
         try:
@@ -444,14 +469,9 @@ class AliExpressScraper:
             return []
 
     def _extract_from_script(self, html: str, category: str, batch_id: str) -> list:
-        """
-        [I3] Sin truncado de JSON.
-        [I4] Usa extractor de brackets balanceados en lugar de regex non-greedy.
-        """
         ts    = datetime.now(timezone.utc).isoformat()
         items = []
 
-        # Estrategia 1: window.runParams — extractor balanceado
         block = _find_balanced_block(html, "window.runParams", '{')
         if block:
             try:
@@ -472,7 +492,6 @@ class AliExpressScraper:
             except (json.JSONDecodeError, Exception):
                 pass
 
-        # Estrategia 2: __NEXT_DATA__ — extractor balanceado
         block = _find_balanced_block(html, '__NEXT_DATA__', '{')
         if block:
             try:
@@ -491,7 +510,6 @@ class AliExpressScraper:
             except (json.JSONDecodeError, Exception):
                 pass
 
-        # Estrategia 3: array "itemList" o "resultList" directo
         for marker in ['"itemList"', '"resultList"']:
             block = _find_balanced_block(html, marker, '[')
             if block:
@@ -567,7 +585,7 @@ class AliExpressScraper:
             )
             sku = str(p.get("productId") or p.get("itemId") or "")
 
-            # [I5] Intentar extraer shippingFee del JSON
+            # [I5] shippingFee del JSON
             shipping_usd = 0.0
             ship_raw = (
                 self._dig(p, ["logistics", "shippingFee"]) or
@@ -586,8 +604,7 @@ class AliExpressScraper:
                     "source":       "aliexpress",
                     "category":     category,
                     "title":        title[:200],
-                    "sku":          sku,
-                    "asin_sku":     sku,
+                    "sku":          sku,           # [I14] sin asin_sku
                     "price_usd":    round(price, 2),
                     "price_date":   price_date,
                     "shipping_usd": round(shipping_usd, 2),
@@ -619,7 +636,7 @@ class AliExpressScraper:
                     text = el.get_text(strip=True)
                     if "$" in text or re.match(r"^\d+\.\d{2}$", text):
                         p = _parse_price(text)
-                        if 0 < p < 10000:
+                        if 1.0 < p < 10000:   # [M17] límite mínimo 1.0
                             price = p
                             break
                 url = card.get("href", "")
@@ -632,7 +649,6 @@ class AliExpressScraper:
                         "category":     category,
                         "title":        title[:200],
                         "sku":          "",
-                        "asin_sku":     "",
                         "price_usd":    round(price, 2),
                         "price_date":   price_date,
                         "shipping_usd": 0.0,
@@ -647,9 +663,9 @@ class AliExpressScraper:
         return items
 
 
-# ══════════════════════════════════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════════════════
 # INTERFAZ PÚBLICA
-# ══════════════════════════════════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════════════════
 def scrape_importacion(
     batch_id: str,
     sources: list = None,
@@ -660,48 +676,58 @@ def scrape_importacion(
     Scraper de precios de importación USA.
     Fuentes: amazon, aliexpress.
     [I6] eBay eliminado — usar scraper_ebay.py (Browse API) para evitar duplicados.
+    [I11] Manejo correcto de CAPTCHA via retorno (items, captcha_flag).
     """
+    t_start = time.time()   # [M18]
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
     if sources is None:
-        sources = ["amazon", "aliexpress"]   # [I6] ebay removido del default
+        sources = ["amazon", "aliexpress"]
     if categories is None:
         categories = list(CATEGORY_QUERIES.keys())
 
     scrapers = {}
     if "amazon"     in sources: scrapers["amazon"]     = AmazonScraper()
     if "aliexpress" in sources: scrapers["aliexpress"] = AliExpressScraper()
-    # [I6] eBay: si se pasa explícitamente, advertir
     if "ebay" in sources:
         log.warning(
-            "[Importación] 'ebay' en sources — usar scraper_ebay.py (Browse API) "
-            "para evitar duplicación de source='ebay_usa' en el MASTER. Ignorado."
+            "[Importación] 'ebay' en sources — usar scraper_ebay.py (Browse API). Ignorado."
         )
 
-    all_records = []
+    all_records  = []
+    dry_run_hits = 0   # [I15] contador para dry_run
 
     for category in categories:
         queries = CATEGORY_QUERIES.get(category, [category.lower()])
+        # [I13] Limitar queries por categoría
+        queries = queries[:MAX_QUERIES_IMPORT]
+
         log.info(f"\n{'='*60}")
-        log.info(f"CATEGORÍA: {category} ({len(queries)} queries)")
+        log.info(f"CATEGORÍA: {category} ({len(queries)} queries / MAX={MAX_QUERIES_IMPORT})")
         log.info(f"{'='*60}")
 
         for query in queries:
             for src_name, scraper in scrapers.items():
-                captcha_abort = False
                 for attempt in range(MAX_RETRIES_QUERY):
                     try:
-                        # AmazonScraper.search() retorna items directamente
-                        # (maneja CAPTCHA internamente con break)
-                        items = scraper.search(query, category, batch_id, MAX_PAGES)
-                        if not dry_run:
-                            all_records.extend(items)
-                        else:
+                        # [I11] search() retorna (items, captcha_flag)
+                        items, captcha = scraper.search(
+                            query, category, batch_id, MAX_PAGES
+                        )
+                        if dry_run:
+                            dry_run_hits += len(items)
                             log.info(
                                 f"  [DRY-RUN] {src_name} | "
-                                f"{len(items)} items (no guardados)"
+                                f"{len(items)} items encontrados (no guardados)"
                             )
-                        break   # Éxito
+                        else:
+                            all_records.extend(items)
+
+                        if captcha:
+                            log.warning(
+                                f"  [{src_name}] CAPTCHA — no reintenta '{query}'"
+                            )
+                        break   # éxito o CAPTCHA → no reintentar
                     except Exception as e:
                         log.error(
                             f"  [{src_name}] intento {attempt+1} "
@@ -714,19 +740,31 @@ def scrape_importacion(
         time.sleep(DELAY_CAT)
 
     unique_records = _dedup(all_records)
-    log.info(
-        f"\n[Importación] TOTAL: {len(unique_records):,} registros únicos "
-        f"(de {len(all_records):,} brutos)"
-    )
+
+    # [M18] Log de tiempo total
+    elapsed = time.time() - t_start
+
+    if dry_run:
+        # [I15] En dry_run mostrar conteo real de items encontrados
+        log.info(
+            f"\n[Importación DRY-RUN] Items encontrados: {dry_run_hits:,} "
+            f"(no guardados) — ⏱ {elapsed/60:.1f} min"
+        )
+    else:
+        log.info(
+            f"\n[Importación] TOTAL: {len(unique_records):,} registros únicos "
+            f"(de {len(all_records):,} brutos) — ⏱ {elapsed/60:.1f} min"
+        )
+
     return unique_records
 
 
 run_importacion = scrape_importacion
 
 
-# ══════════════════════════════════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════════════════
 # STANDALONE
-# ══════════════════════════════════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════════════════
 if __name__ == "__main__":
     import argparse
     logging.basicConfig(
@@ -734,7 +772,7 @@ if __name__ == "__main__":
         format="%(asctime)s [%(levelname)s] %(name)s — %(message)s",
         datefmt="%H:%M:%S",
     )
-    parser = argparse.ArgumentParser(description="Scraper de precios de importación")
+    parser = argparse.ArgumentParser(description="Scraper de precios de importación v4.1")
     parser.add_argument("--sources",    nargs="+", default=None,
                         choices=["amazon", "aliexpress"])
     parser.add_argument("--categories", nargs="+", default=None,
