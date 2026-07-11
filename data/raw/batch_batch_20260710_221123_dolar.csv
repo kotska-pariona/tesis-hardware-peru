@@ -1,0 +1,2 @@
+batch_id,timestamp,source,buy,date,mid,sell
+batch_20260710_221123,2026-07-11T03:11:26.870767+00:00,exchangerate_api,3.3793,"Sat, 11 Ju",3.3962,3.4132
