@@ -1,21 +1,24 @@
 #!/usr/bin/env python3
 """
-scraper_mercadolibre.py  v2.0
+scraper_mercadolibre.py  v2.1
 Mercado Libre Perú — API pública gratuita (sin API key)
 
 ENDPOINT:
   https://api.mercadolibre.com/sites/MPE/search
   ?q=<keyword>&limit=50&offset=<n>&condition=all
 
-Fixes v2.0 (sobre v1.0):
-  - [M1] _fetch_page: eliminado retry manual de 429 — urllib3 Retry ya lo maneja
-  - [M2] _extract_brand: fallback '' en lugar de title.split()[0]
-  - [M3] seller_type: reemplazado por is_official_store (nickname heurística)
-         seller_reputation NO disponible en /search endpoint
-  - [M4] sold_qty: reemplazado por tags (best_seller/good_seller)
-         sold_quantity NO disponible en /search endpoint
-  - [M5] thumbnail: eliminado del registro
-  - [M6] __main__: datetime.now(timezone.utc)
+Fixes v2.1 (sobre v2.0):
+  [ML1] scrape_mercadolibre(): parámetro mode agregado — alinea firma con main.py
+        (main.py pasa mode= a todos los scrapers)
+  [ML2] scrape_mercadolibre(): session cerrada en finally — evita TCP huérfanas
+        (consistente con [L11] de scraper_local y [I18] de scraper_importacion)
+  [ML3] scrape_mercadolibre(): log de tiempo total al finalizar
+        (consistente con [M4]/[M18]/[K10]/[L13] del resto de scrapers)
+  [ML4] _fetch_page(): parámetro category_id agregado — permite filtrar por
+        categoría MeLi (MPE1648=CPU, MPE1144=GPU, etc.) cuando está disponible
+        → reduce resultados irrelevantes y mejora precisión por categoría
+  [ML5] MELI_QUERIES: dict ampliado a (query, category_id) — category_id=None
+        para categorías sin ID MeLi verificado
 """
 
 import re
@@ -38,23 +41,25 @@ ITEMS_PER_PAGE = 50
 MAX_OFFSET     = 1000
 TIMEOUT        = (10, 25)
 
+# [ML5] (query, category_id) — category_id=None si no hay ID MeLi verificado
+# IDs verificados: https://api.mercadolibre.com/sites/MPE/categories
 MELI_QUERIES = {
-    "cpu":         "procesador intel amd ryzen",
-    "gpu":         "tarjeta de video nvidia amd",
-    "ram":         "memoria ram ddr4 ddr5",
-    "ssd":         "disco solido ssd nvme",
-    "motherboard": "placa madre motherboard",
-    "psu":         "fuente de poder 80 plus",
-    "cooler":      "cooler cpu disipador",
-    "case":        "case gabinete pc",
-    "monitor":     "monitor gaming 144hz",
-    "laptop":      "laptop gamer",
-    "teclado":     "teclado mecanico gaming",
-    "mouse":       "mouse gamer",
-    "auriculares": "audifonos gamer",
-    "celular":     "smartphone samsung xiaomi",
-    "tablet":      "tablet android",
-    "smartwatch":  "smartwatch reloj inteligente",
+    "cpu":         ("procesador intel amd ryzen",        "MPE1648"),
+    "gpu":         ("tarjeta de video nvidia amd",       "MPE1144"),
+    "ram":         ("memoria ram ddr4 ddr5",             "MPE1651"),
+    "ssd":         ("disco solido ssd nvme",             "MPE175604"),
+    "motherboard": ("placa madre motherboard",           "MPE1646"),
+    "psu":         ("fuente de poder 80 plus",           "MPE1653"),
+    "cooler":      ("cooler cpu disipador",              "MPE1649"),
+    "case":        ("case gabinete pc",                  "MPE1655"),
+    "monitor":     ("monitor gaming 144hz",              "MPE1000"),
+    "laptop":      ("laptop gamer",                      "MPE1652"),
+    "teclado":     ("teclado mecanico gaming",           None),
+    "mouse":       ("mouse gamer",                       None),
+    "auriculares": ("audifonos gamer",                   None),
+    "celular":     ("smartphone samsung xiaomi",         "MPE1051"),
+    "tablet":      ("tablet android",                    "MPE1118"),
+    "smartwatch":  ("smartwatch reloj inteligente",      None),
 }
 
 # ── Sesión ────────────────────────────────────────────────────────────────
@@ -63,7 +68,7 @@ def _make_session() -> requests.Session:
     retry = Retry(
         total=4,
         backoff_factor=2.0,
-        # [M1] urllib3 maneja 429 con backoff — no se necesita retry manual
+        # [M1] urllib3 maneja 429 con backoff — no se duplica aquí
         status_forcelist=[429, 500, 502, 503, 504],
         allowed_methods=["GET"],
         raise_on_status=False,
@@ -108,14 +113,19 @@ def _extract_brand(title: str, seller_brand: str = "") -> str:
     if m:
         return m.group(1).upper()
     # [M2] Fallback '' — evita usar title.split()[0] que genera brands incorrectos
-    # (ej: 'Procesador Intel...' → 'Procesador' como brand)
     return ""
 
 # ── Fetch ─────────────────────────────────────────────────────────────────
-def _fetch_page(session: requests.Session, query: str, offset: int) -> dict:
+def _fetch_page(
+    session: requests.Session,
+    query: str,
+    offset: int,
+    category_id: Optional[str] = None,   # [ML4]
+) -> dict:
     """
     Llama a la API pública de MeLi.
-    [M1] El retry de 429 lo maneja urllib3 Retry con backoff — no se duplica aquí.
+    [M1]  El retry de 429 lo maneja urllib3 Retry con backoff.
+    [ML4] category_id opcional — filtra por categoría MeLi cuando está disponible.
     """
     params = {
         "q":         query,
@@ -124,18 +134,27 @@ def _fetch_page(session: requests.Session, query: str, offset: int) -> dict:
         "condition": "all",
         "sort":      "relevance",
     }
+    # [ML4] Agregar category_id solo si está disponible
+    if category_id:
+        params["category"] = category_id
+
     try:
         r = session.get(MELI_API_BASE, params=params, timeout=TIMEOUT)
         if r.status_code == 200:
             return r.json()
         # [M1] 429 ya manejado por urllib3 Retry — solo loguear si llega aquí
-        logger.debug(f"  [MeLi] HTTP {r.status_code} q='{query}' offset={offset}")
+        logger.debug(
+            f"  [MeLi] HTTP {r.status_code} "
+            f"q='{query}' offset={offset}"
+        )
     except Exception as e:
         logger.debug(f"  [MeLi] Error q='{query}' offset={offset}: {e}")
     return {}
 
 # ── Parser ────────────────────────────────────────────────────────────────
-def _parse_item(item: dict, category: str, batch_id: str, now_iso: str) -> Optional[dict]:
+def _parse_item(
+    item: dict, category: str, batch_id: str, now_iso: str
+) -> Optional[dict]:
     """
     Normaliza un item de la API de MeLi al esquema unificado.
 
@@ -163,24 +182,26 @@ def _parse_item(item: dict, category: str, batch_id: str, now_iso: str) -> Optio
         condition = item.get("condition", "not_specified")
 
         # Vendedor
-        seller    = item.get("seller", {})
-        seller_id = str(seller.get("id", ""))
+        seller          = item.get("seller", {})
+        seller_id       = str(seller.get("id", ""))
         seller_nickname = seller.get("nickname", "")
 
-        # [M3] is_official_store: heurística por nickname (formato 'MARCA-OFICIAL')
+        # [M3] is_official_store: heurística por nickname
         # MeLi official stores tienen nickname en mayúsculas con guión
         # Ej: 'LENOVO-OFICIAL', 'SAMSUNG-PERU', 'ASUS-STORE'
         # seller_reputation NO disponible en /search endpoint
         is_official_store = bool(
             seller_nickname and
-            re.search(r"OFICIAL|STORE|PERU|OFICIAL-PE", seller_nickname, re.IGNORECASE)
+            re.search(
+                r"OFICIAL|STORE|PERU|OFICIAL-PE",
+                seller_nickname, re.IGNORECASE
+            )
         )
 
-        # [M4] tags como proxy de popularidad — sold_quantity NO disponible en /search
-        # MeLi incluye tags: ['best_seller', 'good_seller', 'loyalty_discount_eligible', ...]
-        tags         = item.get("tags", [])
-        is_best_seller  = "best_seller"  in tags
-        is_good_seller  = "good_seller"  in tags
+        # [M4] tags como proxy de popularidad — sold_quantity NO en /search
+        tags            = item.get("tags", [])
+        is_best_seller  = "best_seller" in tags
+        is_good_seller  = "good_seller" in tags
 
         available_qty = int(item.get("available_quantity", 0) or 0)
 
@@ -193,7 +214,8 @@ def _parse_item(item: dict, category: str, batch_id: str, now_iso: str) -> Optio
             for a in item.get("attributes", [])
             if a.get("id") and a.get("value_name")
         }
-        brand = attrs.get("BRAND") or attrs.get("brand") or _extract_brand(title)
+        brand = (attrs.get("BRAND") or attrs.get("brand") or
+                 _extract_brand(title))
         model = attrs.get("MODEL") or attrs.get("model") or ""
 
         permalink = item.get("permalink", "")
@@ -211,88 +233,115 @@ def _parse_item(item: dict, category: str, batch_id: str, now_iso: str) -> Optio
             "price_pen":         price_pen,
             "price_orig_pen":    orig_price or 0.0,
             "discount_pct":      discount,
-            "condition":         condition,           # ✅ new/used/not_specified
-            "available_qty":     available_qty,       # ✅ stock disponible
-            "free_shipping":     free_shipping,       # ✅ envío gratis
-            "is_official_store": is_official_store,   # [M3] heurística nickname
-            "is_best_seller":    is_best_seller,      # [M4] tag MeLi
-            "is_good_seller":    is_good_seller,      # [M4] tag MeLi
+            "condition":         condition,
+            "available_qty":     available_qty,
+            "free_shipping":     free_shipping,
+            "is_official_store": is_official_store,   # [M3]
+            "is_best_seller":    is_best_seller,      # [M4]
+            "is_good_seller":    is_good_seller,      # [M4]
             "seller_id":         seller_id,
             "seller_nickname":   seller_nickname[:100],
-            "rating":            0.0,   # MeLi no expone rating en /search
+            "rating":            0.0,
             "reviews":           None,
             "url":               str(permalink)[:300],
         }
     except (TypeError, ValueError, KeyError, ZeroDivisionError) as e:
-        logger.debug(f"  [MeLi] Parse error item {item.get('id','?')}: {e}")
+        logger.debug(
+            f"  [MeLi] Parse error item {item.get('id','?')}: {e}"
+        )
         return None
 
 # ── Scraper principal ─────────────────────────────────────────────────────
-def scrape_mercadolibre(batch_id: str) -> list:
+def scrape_mercadolibre(batch_id: str, mode: str = "normal") -> list:
+    """
+    Scraper principal MeLi PE — API pública /search.
+    [ML1] Parámetro mode agregado — main.py lo pasa a todos los scrapers.
+    [ML2] Session cerrada en finally — evita TCP huérfanas.
+    [ML3] Log de tiempo total al finalizar.
+    """
     logger.info("══════════════════════════════════════════════════")
-    logger.info("  SCRAPING MERCADO LIBRE PE  v2.0")
+    logger.info("  SCRAPING MERCADO LIBRE PE  v2.1")
     logger.info("══════════════════════════════════════════════════")
 
+    t_start     = time.time()   # [ML3]
     all_records = []
     now_iso     = datetime.now(timezone.utc).isoformat()
     session     = _make_session()
 
-    for cat_name, query in MELI_QUERIES.items():
-        logger.info(f"\n[MeLi PE] CATEGORÍA: {cat_name} → \"{query}\"")
-        cat_records = []
-        seen_ids    = set()
-        offset      = 0
-        empty_pages = 0
-
-        while offset <= MAX_OFFSET:
-            data = _fetch_page(session, query, offset)
-
-            if not data:
-                empty_pages += 1
-                if empty_pages >= 2:
-                    logger.info(f"  offset={offset}: early-stop (sin datos)")
-                    break
-                offset += ITEMS_PER_PAGE
-                time.sleep(REQUEST_DELAY)
-                continue
-
-            total_available = data.get("paging", {}).get("total", 0)
-            items           = data.get("results", [])
-
-            if not items:
-                logger.info(f"  offset={offset}: 0 items → fin")
-                break
-
-            empty_pages = 0
-            added = 0
-            dupes = 0
-
-            for item in items:
-                iid = item.get("id", "")
-                if iid in seen_ids:
-                    dupes += 1
-                    continue
-                seen_ids.add(iid)
-                record = _parse_item(item, cat_name, batch_id, now_iso)
-                if record:
-                    cat_records.append(record)
-                    added += 1
+    try:   # [ML2] session cerrada en finally
+        for cat_name, query_tuple in MELI_QUERIES.items():
+            # [ML5] Desempaquetar (query, category_id)
+            query, category_id = query_tuple
 
             logger.info(
-                f"  offset={offset:>4}: +{len(items)} raw → "
-                f"+{added} válidos, {dupes} dupes "
-                f"(total MeLi: {total_available:,})"
+                f"\n[MeLi PE] CATEGORÍA: {cat_name} → \"{query}\" "
+                f"(cat_id={category_id or 'N/A'})"
+            )
+            cat_records = []
+            seen_ids    = set()
+            offset      = 0
+            empty_pages = 0
+
+            while offset <= MAX_OFFSET:
+                # [ML4] Pasar category_id al fetch
+                data = _fetch_page(session, query, offset, category_id)
+
+                if not data:
+                    empty_pages += 1
+                    if empty_pages >= 2:
+                        logger.info(
+                            f"  offset={offset}: early-stop (sin datos)"
+                        )
+                        break
+                    offset += ITEMS_PER_PAGE
+                    time.sleep(REQUEST_DELAY)
+                    continue
+
+                total_available = data.get("paging", {}).get("total", 0)
+                items           = data.get("results", [])
+
+                if not items:
+                    logger.info(f"  offset={offset}: 0 items → fin")
+                    break
+
+                empty_pages = 0
+                added = 0
+                dupes = 0
+
+                for item in items:
+                    iid = item.get("id", "")
+                    if iid in seen_ids:
+                        dupes += 1
+                        continue
+                    seen_ids.add(iid)
+                    record = _parse_item(item, cat_name, batch_id, now_iso)
+                    if record:
+                        cat_records.append(record)
+                        added += 1
+
+                logger.info(
+                    f"  offset={offset:>4}: +{len(items)} raw → "
+                    f"+{added} válidos, {dupes} dupes "
+                    f"(total MeLi: {total_available:,})"
+                )
+
+                if offset + ITEMS_PER_PAGE >= min(
+                    total_available,
+                    MAX_OFFSET + ITEMS_PER_PAGE
+                ):
+                    logger.info("  → Todos los items disponibles obtenidos")
+                    break
+
+                offset += ITEMS_PER_PAGE
+                time.sleep(REQUEST_DELAY)
+
+            all_records.extend(cat_records)
+            logger.info(
+                f"  ✅ {cat_name}: {len(cat_records)} registros únicos"
             )
 
-            if offset + ITEMS_PER_PAGE >= min(total_available, MAX_OFFSET + ITEMS_PER_PAGE):
-                logger.info("  → Todos los items disponibles obtenidos")
-                break
-
-            offset += ITEMS_PER_PAGE
-            time.sleep(REQUEST_DELAY)
-
-        all_records.extend(cat_records)
-        logger.info(f"  ✅ {cat_name}: {len(cat_records)} registros únicos")
+    finally:
+        session.close()   # [ML2]
 
     # Dedup global por sku (item_id MeLi — único por item)
     seen_global = set()
@@ -305,9 +354,17 @@ def scrape_mercadolibre(batch_id: str) -> list:
 
     dupes_global = len(all_records) - len(unique)
     if dupes_global:
-        logger.info(f"[MeLi PE] Dedup global: -{dupes_global} duplicados entre categorías")
+        logger.info(
+            f"[MeLi PE] Dedup global: -{dupes_global} "
+            f"duplicados entre categorías"
+        )
 
-    logger.info(f"[MeLi PE] TOTAL: {len(unique)} registros únicos")
+    # [ML3] Log de tiempo total
+    elapsed = time.time() - t_start
+    logger.info(
+        f"[MeLi PE] TOTAL: {len(unique)} registros únicos — "
+        f"⏱ {elapsed/60:.1f} min"
+    )
     return unique
 
 
@@ -325,7 +382,9 @@ if __name__ == "__main__":
     if results:
         import json
         for cond in ["new", "used"]:
-            ex = next((r for r in results if r["condition"] == cond), None)
+            ex = next(
+                (r for r in results if r["condition"] == cond), None
+            )
             if ex:
                 print(f"\nEjemplo [{cond}]:")
                 print(json.dumps(ex, ensure_ascii=False, indent=2))
