@@ -1,24 +1,29 @@
 """
-scraper_kaggle.py  v3.0
+scraper_kaggle.py  v3.1
 ════════════════════════
 Descarga automática de datasets de hardware/electrónica desde Kaggle.
 
-Fixes v3.0 (sobre v2.0):
-  - [K2] _normalize_dataset: conversión a USD para INR y EUR
-         → Flipkart (INR) y Laptops (EUR) ya no contaminan price_usd
-  - [K3] df.sample(random_state=42) en lugar de df.head() — muestra representativa
-  - [K4] df.where(notna, None) antes de to_dict — elimina float('nan')
-  - [K5] max_rows reducidos: amazon_2023→20k, resto→10k. Total: ~70k
-  - [K6] __main__: datetime.now(timezone.utc)
-  - [K1] brendan45774/computer-parts reemplazado por dataset verificado
+Fixes v3.1 (sobre v3.0):
+  [K7]  scrape_kaggle(): parámetro mode agregado — alinea firma con main.py
+        (main.py pasa mode= a todos los scrapers)
+  [K8]  _normalize_dataset(): price_usd validado con rango mínimo/máximo
+        (PRICE_MIN_USD=0.5, PRICE_MAX_USD=15000.0) — evita que precios
+        absurdos post-conversión (INR×0.012) contaminen el MASTER
+  [K9]  _is_cached(): datetime.now(timezone.utc) — naive datetime corregido
+        (consistente con [D2] de scraper_dolar)
+  [K10] scrape_kaggle(): log de tiempo total al finalizar
+        (consistente con [M4]/[M18] del resto de scrapers)
+  [K11] _normalize_dataset(): log WARNING cuando price_usd mediana < 1.0 USD
+        — indica posible error de conversión de moneda (fx_rate incorrecto)
 """
 
 import os
 import re
 import json
 import logging
+import time
 from pathlib import Path
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from typing import Optional
 
 import pandas as pd
@@ -44,6 +49,10 @@ KAGGLE_DIR   = BASE_DIR / "data" / "kaggle"
 
 CACHE_MAX_AGE_DAYS = 7
 
+# [K8] Rango de precio válido post-conversión a USD
+PRICE_MIN_USD = 0.5
+PRICE_MAX_USD = 15_000.0
+
 # [K2] Tasas de conversión fijas a USD — actualizar trimestralmente
 # Fuente: promedio histórico 2024-2026
 FX_TO_USD = {
@@ -64,7 +73,7 @@ TARGET_DATASETS = {
         "alias":       "amazon_2023",
         "description": "1.4M productos Amazon con precios (2023)",
         "priority":    1,
-        "max_rows":    20_000,   # [K5] era 100k
+        "max_rows":    20_000,   # [K5]
         "columns_map": {
             "title":        "title",
             "price":        "price_local",
@@ -82,7 +91,7 @@ TARGET_DATASETS = {
         "alias":       "amazon_2020",
         "description": "Productos Amazon con precios y ratings (2020)",
         "priority":    1,
-        "max_rows":    10_000,   # [K5] era 50k
+        "max_rows":    10_000,   # [K5]
         "columns_map": {
             "product_name":  "title",
             "selling_price": "price_local",
@@ -95,7 +104,7 @@ TARGET_DATASETS = {
         "alias":       "laptops_specs",
         "description": "Laptops con specs y precios en euros",
         "priority":    1,
-        "max_rows":    10_000,   # [K5] era 50k
+        "max_rows":    10_000,   # [K5]
         "columns_map": {
             "Company":     "brand",
             "Product":     "title",
@@ -111,7 +120,7 @@ TARGET_DATASETS = {
         "alias":       "gpu_prices",
         "description": "Historial de precios de GPUs",
         "priority":    1,
-        "max_rows":    10_000,   # [K5] era 50k
+        "max_rows":    10_000,   # [K5]
         "columns_map": {
             "name":  "title",
             "price": "price_local",
@@ -121,7 +130,6 @@ TARGET_DATASETS = {
         "price_currency": "USD",
     },
     # [K1] Reemplazado brendan45774/computer-parts (baja visibilidad)
-    #      por dataset verificado con componentes PC
     "promptcloud/product-details-on-amazon": {
         "alias":       "amazon_pc_parts",
         "description": "Componentes PC en Amazon USA — dataset verificado",
@@ -139,7 +147,7 @@ TARGET_DATASETS = {
         "alias":       "flipkart",
         "description": "Productos Flipkart — referencia precios Asia (rupias→USD)",
         "priority":    2,
-        "max_rows":    10_000,   # [K5] era 30k
+        "max_rows":    10_000,   # [K5]
         "columns_map": {
             "product_name":          "title",
             "discounted_price":      "price_local",
@@ -211,9 +219,14 @@ def _is_cached(dest: Path) -> bool:
     if not csv_files:
         return False
     newest_mtime = max(f.stat().st_mtime for f in csv_files)
-    age_days     = (datetime.now().timestamp() - newest_mtime) / 86400
+    # [K9] Usar timestamp UTC — evita naive datetime
+    age_days = (
+        datetime.now(timezone.utc).timestamp() - newest_mtime
+    ) / 86400
     if age_days < CACHE_MAX_AGE_DAYS:
-        logger.info(f"  📦 Cache hit: {dest.name} ({age_days:.1f}d de antigüedad)")
+        logger.info(
+            f"  📦 Cache hit: {dest.name} ({age_days:.1f}d de antigüedad)"
+        )
         return True
     return False
 
@@ -278,7 +291,9 @@ def _normalize_dataset(
                 encoding="utf-8",
                 encoding_errors="replace",
             )
-            logger.info(f"     Filas: {len(df):,} | Cols: {list(df.columns[:6])}")
+            logger.info(
+                f"     Filas: {len(df):,} | Cols: {list(df.columns[:6])}"
+            )
 
             # Renombrar columnas — evita mapear dos al mismo destino
             rename_map = {}
@@ -298,7 +313,6 @@ def _normalize_dataset(
                 logger.info(f"     Filtrado: {len(df):,} filas")
 
             # Detectar columna de precio si no fue mapeada
-            # [K2] El campo de precio se llama 'price_local' internamente
             if "price_local" not in df.columns:
                 price_cols = [c for c in df.columns if "price" in c.lower()]
                 if price_cols:
@@ -314,6 +328,22 @@ def _normalize_dataset(
                 df["price_usd"] = (df["price_local"] * fx_rate).round(2)
             else:
                 df["price_usd"] = None
+
+            # [K8] Filtrar precios fuera de rango post-conversión
+            if "price_usd" in df.columns and df["price_usd"].notna().any():
+                before = len(df)
+                df = df[
+                    df["price_usd"].notna() &
+                    (df["price_usd"] >= PRICE_MIN_USD) &
+                    (df["price_usd"] <= PRICE_MAX_USD)
+                ]
+                filtered_out = before - len(df)
+                if filtered_out > 0:
+                    logger.info(
+                        f"     [K8] {filtered_out:,} filas descartadas "
+                        f"(price_usd fuera de "
+                        f"[{PRICE_MIN_USD}, {PRICE_MAX_USD}])"
+                    )
 
             # Asegurar columna title
             if "title" not in df.columns:
@@ -332,22 +362,37 @@ def _normalize_dataset(
             df["timestamp"]      = now_iso
             df["source"]         = f"kaggle_{alias}"
             df["price_currency"] = price_currency
-            df["fx_rate_used"]   = fx_rate   # [K2] Tasa usada para auditoría
+            df["fx_rate_used"]   = fx_rate   # [K2] auditoría
 
-            # [K3] Muestra representativa aleatoria (no siempre las primeras N filas)
+            # [K3] Muestra representativa aleatoria
             n_sample = min(max_rows, len(df))
             subset   = df.sample(n=n_sample, random_state=42)
 
-            # [K4] Reemplazar NaN con None antes de to_dict — evita json.dumps(nan)
+            # [K4] Reemplazar NaN con None antes de to_dict
             subset_clean = subset.where(subset.notna(), other=None)
             batch        = subset_clean.to_dict(orient="records")
 
+            # [K11] Advertir si mediana de price_usd < 1.0 — posible fx error
+            if "price_usd" in df.columns and df["price_usd"].notna().any():
+                median_usd = df["price_usd"].median()
+                if median_usd < 1.0:
+                    logger.warning(
+                        f"     ⚠️ [K11] Mediana price_usd={median_usd:.4f} USD "
+                        f"< 1.0 — posible error de conversión "
+                        f"(currency={price_currency}, fx={fx_rate})"
+                    )
+                logger.info(
+                    f"     ✅ {len(batch):,} registros "
+                    f"(currency={price_currency}, fx={fx_rate}, "
+                    f"price_usd_mediana={median_usd:.2f} USD)"
+                )
+            else:
+                logger.info(
+                    f"     ✅ {len(batch):,} registros "
+                    f"(currency={price_currency}, fx={fx_rate})"
+                )
+
             records.extend(batch)
-            logger.info(
-                f"     ✅ {len(batch):,} registros "
-                f"(currency={price_currency}, fx={fx_rate}, "
-                f"price_usd_sample={df['price_usd'].median():.2f} USD mediana)"
-            )
 
         except Exception as e:
             logger.warning(f"  ⚠️ Error procesando {csv_file.name}: {e}")
@@ -359,14 +404,19 @@ def _normalize_dataset(
 # ──────────────────────────────────────────────
 # SCRAPER PRINCIPAL
 # ──────────────────────────────────────────────
-def scrape_kaggle(batch_id: str) -> list:
+def scrape_kaggle(batch_id: str, mode: str = "normal") -> list:
     """
     Descarga y normaliza datasets de Kaggle.
     Retorna lista de registros con price_usd siempre en USD.
     Si no hay credenciales, retorna [] sin fallar.
 
+    [K7]  Parámetro mode agregado — main.py lo pasa a todos los scrapers.
+    [K10] Log de tiempo total al finalizar.
+
     NOTA: data/kaggle/ debe estar en .gitignore — archivos >100MB.
     """
+    t_start = time.time()   # [K10]
+
     KAGGLE_DIR.mkdir(parents=True, exist_ok=True)
     DATA_RAW_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -375,7 +425,9 @@ def scrape_kaggle(batch_id: str) -> list:
         return []
 
     if not KAGGLE_AVAILABLE:
-        logger.error("[Kaggle] Librería 'kaggle' no instalada — pip install kaggle")
+        logger.error(
+            "[Kaggle] Librería 'kaggle' no instalada — pip install kaggle"
+        )
         return []
 
     all_records = []
@@ -398,7 +450,12 @@ def scrape_kaggle(batch_id: str) -> list:
         all_records.extend(records)
         logger.info(f"  📊 Acumulado: {len(all_records):,} registros")
 
-    logger.info(f"\n[Kaggle] TOTAL: {len(all_records):,} registros")
+    # [K10] Log de tiempo total
+    elapsed = time.time() - t_start
+    logger.info(
+        f"\n[Kaggle] TOTAL: {len(all_records):,} registros — "
+        f"⏱ {elapsed/60:.1f} min"
+    )
     return all_records
 
 
