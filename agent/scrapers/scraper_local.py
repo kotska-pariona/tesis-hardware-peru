@@ -1,19 +1,22 @@
 #!/usr/bin/env python3
 """
-scraper_local.py  v3.5
+scraper_local.py  v3.6
 Scraper de tiendas locales Perú — Falabella, Hiraoka
 (Ripley deshabilitado — 403 Cloudflare)
 
-Fixes v3.5 (sobre v3.4):
-  - [L1]  UA rotativo via fake_useragent — consistente con scrapers v3.0
-  - [L2]  _falabella_parse_api_data: intenta claves directas antes de recursión
-  - [L3]  reviews convertido a int (maneja strings '1,234')
-  - [L4]  HIRAOKA_EMPTY_LIMIT: 2 → 3 (tolera páginas vacías intercaladas)
-  - [L5]  _hiraoka_fetch_url: fallback 'html.parser' si lxml no está instalado
-  - [L6]  sku regex: captura el ÚLTIMO número de la URL (no el primero)
-  - [L7]  scrape_local: deduplicación sin SKU usa fingerprint title[:80]+price
-  - [L8]  scrape_ripley: warning emitido UNA vez al inicio, no en el loop
-  - [L9]  __main__: datetime.now(timezone.utc)
+Fixes v3.6 (sobre v3.5):
+  [L10] scrape_local(): parámetro mode agregado — alinea firma con main.py
+        (main.py pasa mode= a todos los scrapers)
+  [L11] scrape_falabella() / scrape_hiraoka(): session cerrada en finally
+        — evita conexiones TCP huérfanas (consistente con [I18])
+  [L12] _falabella_parse_api_data(): operador 'or' con data.get() corregido
+        — la expresión `data.get("data",{}).get("results") if isinstance(data,dict)
+        else None or []` tiene precedencia incorrecta; reescrito con variables
+        intermedias explícitas
+  [L13] scrape_local(): log de tiempo total al finalizar
+        (consistente con [M4]/[M18]/[K10] del resto de scrapers)
+  [L14] FALABELLA_API: migrado a v2 + zones=150101 (Lima Metropolitana)
+        — consistente con FalabellaScraper de scraper_competencia v4.1 [SC11]
 """
 
 import re
@@ -31,7 +34,7 @@ from urllib3.util.retry import Retry
 
 logger = logging.getLogger(__name__)
 
-# [L1] UA rotativo — consistente con scraper_camel v3.0 y scraper_competencia v3.0
+# [L1] UA rotativo — consistente con scraper_camel v3.1 y scraper_competencia v4.1
 try:
     from fake_useragent import UserAgent as _UA
     _ua_gen = _UA()
@@ -41,7 +44,7 @@ except ImportError:
 _UA_FALLBACK = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
     "AppleWebKit/537.36 (KHTML, like Gecko) "
-    "Chrome/124.0.0.0 Safari/537.36"
+    "Chrome/136.0.0.0 Safari/537.36"
 )
 
 def _get_ua() -> str:
@@ -67,7 +70,6 @@ def _headers_html(referer: str = "") -> dict:
         "Accept-Language": "es-PE,es;q=0.9,en;q=0.8",
         "Referer":         referer,
     }
-
 
 def _make_session(retries: int = 3) -> requests.Session:
     session = requests.Session()
@@ -101,7 +103,8 @@ def _parse_price_str(text: str) -> Optional[float]:
                 clean = clean.replace(",", "")
         elif "," in clean:
             parts = clean.split(",")
-            clean = (clean.replace(",", ".") if len(parts) == 2 and len(parts[1]) <= 2
+            clean = (clean.replace(",", ".")
+                     if len(parts) == 2 and len(parts[1]) <= 2
                      else clean.replace(",", ""))
         val = float(clean)
         return val if val > 0 else None
@@ -132,7 +135,9 @@ def _extract_brand(title: str) -> str:
 # ══════════════════════════════════════════════
 # FALABELLA
 # ══════════════════════════════════════════════
-FALABELLA_API = "https://www.falabella.com.pe/s/browse/v1/listing/pe"
+# [L14] Migrado a v2 + zones=150101 (Lima Metropolitana)
+#       consistente con FalabellaScraper de scraper_competencia v4.1 [SC11]
+FALABELLA_API = "https://www.falabella.com.pe/s/browse/v2/listing/pe"
 
 FALABELLA_QUERIES = {
     "laptops":        "laptop",
@@ -157,11 +162,18 @@ FALABELLA_MAX_PAGES   = 15
 FALABELLA_EMPTY_LIMIT = 2
 
 
-def _falabella_fetch_page(session: requests.Session, query: str, page: int) -> list:
-    # Intento 1 — API JSON
+def _falabella_fetch_page(
+    session: requests.Session, query: str, page: int
+) -> list:
+    # Intento 1 — API JSON v2 [L14]
     try:
-        params = {"Ntt": query, "page": page, "imageSize": "zoom", "zones": "15"}
-        resp   = session.get(
+        params = {
+            "Ntt":       query,
+            "page":      page,
+            "imageSize": "zoom",
+            "zones":     "150101",   # [L14] Lima Metropolitana
+        }
+        resp = session.get(
             FALABELLA_API, params=params,
             headers=_headers_json(), timeout=TIMEOUT,
         )
@@ -170,7 +182,10 @@ def _falabella_fetch_page(session: requests.Session, query: str, page: int) -> l
             if items:
                 return items
         else:
-            logger.debug(f"  [Falabella] API HTTP {resp.status_code} '{query}' p{page}")
+            logger.debug(
+                f"  [Falabella] API HTTP {resp.status_code} "
+                f"'{query}' p{page}"
+            )
     except Exception as e:
         logger.debug(f"  [Falabella] API error '{query}' p{page}: {e}")
 
@@ -185,7 +200,8 @@ def _falabella_fetch_page(session: requests.Session, query: str, page: int) -> l
         )
         if resp.status_code == 200:
             m = re.search(
-                r'<script id="__NEXT_DATA__" type="application/json">(.*?)</script>',
+                r'<script id="__NEXT_DATA__" type="application/json">'
+                r'(.*?)</script>',
                 resp.text, re.DOTALL,
             )
             if m:
@@ -199,13 +215,25 @@ def _falabella_fetch_page(session: requests.Session, query: str, page: int) -> l
 
 
 def _falabella_parse_api_data(data: dict) -> list:
-    # [L2] Intentar claves directas antes de recursión — evita 'recommendations'
-    products = (
-        data.get("results") or
-        data.get("products") or
-        data.get("data", {}).get("results") if isinstance(data, dict) else None or
-        []
-    )
+    """
+    [L12] Operador 'or' con data.get() reescrito con variables intermedias
+    explícitas — la expresión original tenía precedencia incorrecta:
+      `data.get("data",{}).get("results") if isinstance(data,dict) else None or []`
+    se evaluaba como:
+      `(data.get(...)) if (...) else (None or [])` → siempre retornaba []
+    """
+    if not isinstance(data, dict):
+        return []
+
+    # [L12] Variables intermedias — precedencia explícita
+    products = data.get("results")
+    if not products:
+        products = data.get("products")
+    if not products:
+        nested = data.get("data", {})
+        if isinstance(nested, dict):
+            products = nested.get("results") or nested.get("products")
+
     if products and isinstance(products, list):
         return [
             p for p in products
@@ -222,8 +250,10 @@ def _falabella_parse_api_data(data: dict) -> list:
         if isinstance(obj, list):
             for item in obj:
                 if isinstance(item, dict):
-                    if any(k in item for k in ["displayName", "productName", "name", "title"]):
-                        if any(k in item for k in ["prices", "price", "offerPrice"]):
+                    if any(k in item for k in
+                           ["displayName", "productName", "name", "title"]):
+                        if any(k in item for k in
+                               ["prices", "price", "offerPrice"]):
                             found.append(item)
                     found.extend(extract_products(item, depth + 1))
         elif isinstance(obj, dict):
@@ -260,7 +290,8 @@ def _falabella_parse_product(
                         elif "normal" in label or "original" in label:
                             price_orig = parsed
         elif isinstance(prices_obj, dict):
-            for key in ["offerPrice", "salePrice", "normalPrice", "originalPrice", "price"]:
+            for key in ["offerPrice", "salePrice", "normalPrice",
+                        "originalPrice", "price"]:
                 val = prices_obj.get(key)
                 if val:
                     parsed = _parse_price_str(str(val))
@@ -292,16 +323,20 @@ def _falabella_parse_product(
             discount = round((price_orig - price_pen) / price_orig * 100, 1)
 
         brand    = p.get("brand") or p.get("brandName") or _extract_brand(title)
-        url_path = p.get("url") or p.get("pdpUrl") or p.get("productUrl") or ""
+        url_path = (p.get("url") or p.get("pdpUrl") or
+                    p.get("productUrl") or "")
         url      = (f"https://www.falabella.com.pe{url_path}"
-                    if url_path and not url_path.startswith("http") else url_path)
+                    if url_path and not url_path.startswith("http")
+                    else url_path)
 
         # [L3] reviews convertido a int — maneja strings '1,234'
         reviews_raw = p.get("totalReviews") or p.get("reviewCount")
         reviews     = None
         if reviews_raw is not None:
             try:
-                reviews = int(str(reviews_raw).replace(",", "").replace(".", ""))
+                reviews = int(
+                    str(reviews_raw).replace(",", "").replace(".", "")
+                )
             except (ValueError, TypeError):
                 reviews = None
 
@@ -316,7 +351,9 @@ def _falabella_parse_product(
             "price_pen":      round(price_pen, 2),
             "price_orig_pen": round(price_orig, 2),
             "discount_pct":   discount,
-            "rating":         float(p.get("rating") or p.get("averageRating") or 0),
+            "rating":         float(
+                p.get("rating") or p.get("averageRating") or 0
+            ),
             "reviews":        reviews,
             "url":            str(url)[:300],
         }
@@ -330,55 +367,71 @@ def scrape_falabella(batch_id: str) -> list:
     now_iso     = datetime.now(timezone.utc).isoformat()
     session     = _make_session()
 
-    for cat_name, keyword in FALABELLA_QUERIES.items():
-        logger.info(f"[Falabella] '{cat_name}' → '{keyword}'")
-        cat_records = []
-        seen_ids    = set()
-        empty_pages = 0
+    try:   # [L11] session cerrada en finally
+        for cat_name, keyword in FALABELLA_QUERIES.items():
+            logger.info(f"[Falabella] '{cat_name}' → '{keyword}'")
+            cat_records = []
+            seen_ids    = set()
+            empty_pages = 0
 
-        for page in range(1, FALABELLA_MAX_PAGES + 1):
-            raw_items = _falabella_fetch_page(session, keyword, page)
+            for page in range(1, FALABELLA_MAX_PAGES + 1):
+                raw_items = _falabella_fetch_page(session, keyword, page)
 
-            if not raw_items:
-                empty_pages += 1
-                logger.debug(f"  p{page}: sin items (empty_pages={empty_pages})")
-                if empty_pages >= FALABELLA_EMPTY_LIMIT:
-                    logger.info(f"  p{page}: early-stop — {empty_pages} páginas vacías")
-                    break
-                continue
-
-            added = 0
-            for raw in raw_items:
-                pid = raw.get("productId") or raw.get("id") or raw.get("skuId") or ""
-                if pid and pid in seen_ids:
+                if not raw_items:
+                    empty_pages += 1
+                    logger.debug(
+                        f"  p{page}: sin items "
+                        f"(empty_pages={empty_pages})"
+                    )
+                    if empty_pages >= FALABELLA_EMPTY_LIMIT:
+                        logger.info(
+                            f"  p{page}: early-stop — "
+                            f"{empty_pages} páginas vacías"
+                        )
+                        break
                     continue
-                if pid:
-                    seen_ids.add(pid)
-                record = _falabella_parse_product(raw, cat_name, batch_id, now_iso)
-                if record:
-                    cat_records.append(record)
-                    added += 1
 
-            if added == 0:
-                empty_pages += 1
-                logger.info(
-                    f"  p{page}: +{len(raw_items)} raw → +0 nuevos "
-                    f"(todos dupes, empty_pages={empty_pages})"
-                )
-                if empty_pages >= FALABELLA_EMPTY_LIMIT:
-                    logger.info(f"  p{page}: early-stop — {empty_pages} páginas sin nuevos")
-                    break
-            else:
-                empty_pages = 0
-                logger.info(
-                    f"  p{page}: +{len(raw_items)} raw → +{added} válidos "
-                    f"(acum {len(cat_records)})"
-                )
+                added = 0
+                for raw in raw_items:
+                    pid = (raw.get("productId") or raw.get("id") or
+                           raw.get("skuId") or "")
+                    if pid and pid in seen_ids:
+                        continue
+                    if pid:
+                        seen_ids.add(pid)
+                    record = _falabella_parse_product(
+                        raw, cat_name, batch_id, now_iso
+                    )
+                    if record:
+                        cat_records.append(record)
+                        added += 1
 
-            time.sleep(REQUEST_DELAY)
+                if added == 0:
+                    empty_pages += 1
+                    logger.info(
+                        f"  p{page}: +{len(raw_items)} raw → +0 nuevos "
+                        f"(todos dupes, empty_pages={empty_pages})"
+                    )
+                    if empty_pages >= FALABELLA_EMPTY_LIMIT:
+                        logger.info(
+                            f"  p{page}: early-stop — "
+                            f"{empty_pages} páginas sin nuevos"
+                        )
+                        break
+                else:
+                    empty_pages = 0
+                    logger.info(
+                        f"  p{page}: +{len(raw_items)} raw → "
+                        f"+{added} válidos (acum {len(cat_records)})"
+                    )
 
-        all_records.extend(cat_records)
-        logger.info(f"  ✅ '{cat_name}': {len(cat_records)} registros")
+                time.sleep(REQUEST_DELAY)
+
+            all_records.extend(cat_records)
+            logger.info(f"  ✅ '{cat_name}': {len(cat_records)} registros")
+
+    finally:
+        session.close()   # [L11]
 
     logger.info(f"[Falabella] TOTAL: {len(all_records)} registros")
     return all_records
@@ -388,7 +441,7 @@ def scrape_falabella(batch_id: str) -> list:
 # RIPLEY — Deshabilitado (403 Cloudflare)
 # ══════════════════════════════════════════════
 def scrape_ripley(batch_id: str) -> list:
-    # [L8] Warning solo en llamada directa — scrape_local() no llama esta función
+    # [L8] Warning solo en llamada directa
     logger.warning(
         "[Ripley] DESHABILITADO — 403 Cloudflare JS Challenge. "
         "Requiere playwright headless para bypass."
@@ -425,7 +478,7 @@ HIRAOKA_SEARCH_KEYWORDS = {
 
 HIRAOKA_MAX_PAGES      = 30
 HIRAOKA_MIN_ITEMS_PAGE = 2
-HIRAOKA_EMPTY_LIMIT    = 3   # [L4] era 2 → 3 para tolerar páginas vacías intercaladas
+HIRAOKA_EMPTY_LIMIT    = 3   # [L4]
 
 
 def _hiraoka_fetch_url(session: requests.Session, url: str) -> list:
@@ -485,7 +538,9 @@ def _hiraoka_parse_card(
             return None
 
         final_el = (
-            card.select_one("span[data-price-type='finalPrice'] span.price") or
+            card.select_one(
+                "span[data-price-type='finalPrice'] span.price"
+            ) or
             card.select_one("span[class*='price-final'] span.price") or
             card.select_one("span.special-price span.price") or
             card.select_one("span.price")
@@ -495,7 +550,9 @@ def _hiraoka_parse_card(
         ) or 0.0
 
         orig_el = (
-            card.select_one("span[data-price-type='oldPrice'] span.price") or
+            card.select_one(
+                "span[data-price-type='oldPrice'] span.price"
+            ) or
             card.select_one("span.old-price span.price") or
             card.select_one("span[class*='regular-price'] span.price")
         )
@@ -520,22 +577,25 @@ def _hiraoka_parse_card(
             card.select_one("div.product-item-brand") or
             card.select_one("span[class*='brand']")
         )
-        brand = brand_el.get_text(strip=True) if brand_el else _extract_brand(title)
+        brand = (brand_el.get_text(strip=True) if brand_el
+                 else _extract_brand(title))
 
-        # SKU: data-product-id → selector interno → [L6] ÚLTIMO número de la URL
+        # SKU: data-product-id → selector interno → [L6] ÚLTIMO número de URL
         sku = card.get("data-product-id", "")
         if not sku:
             sku_tag = card.select_one("[data-product-id]")
             if sku_tag:
                 sku = sku_tag.get("data-product-id", "")
         if not sku and item_url:
-            # [L6] re.findall + tomar el último match — evita capturar número de categoría
+            # [L6] Tomar el último match — evita capturar número de categoría
             matches = re.findall(r"-(\d{5,})(?=\.html|$)", item_url)
             if matches:
                 sku = matches[-1]
 
-        rating = 0.0
-        rating_el = card.select_one("span.rating-result, div[class*='rating']")
+        rating    = 0.0
+        rating_el = card.select_one(
+            "span.rating-result, div[class*='rating']"
+        )
         if rating_el:
             style = rating_el.get("style", "")
             m     = re.search(r"width:\s*([\d.]+)%", style)
@@ -567,71 +627,87 @@ def scrape_hiraoka(batch_id: str) -> list:
     now_iso     = datetime.now(timezone.utc).isoformat()
     session     = _make_session()
 
-    for cat_name, cat_path in HIRAOKA_CATEGORIES.items():
-        logger.info(f"[Hiraoka] Categoría: {cat_name}")
-        cat_records = []
-        seen_skus   = set()
-        seen_fps    = set()   # [L7] fingerprints para items sin SKU
-        empty_pages = 0
+    try:   # [L11] session cerrada en finally
+        for cat_name, cat_path in HIRAOKA_CATEGORIES.items():
+            logger.info(f"[Hiraoka] Categoría: {cat_name}")
+            cat_records = []
+            seen_skus   = set()
+            seen_fps    = set()   # [L7] fingerprints para items sin SKU
+            empty_pages = 0
 
-        for page in range(1, HIRAOKA_MAX_PAGES + 1):
-            if cat_path:
-                url = f"{HIRAOKA_BASE}{cat_path}?p={page}"
-            else:
-                keyword = HIRAOKA_SEARCH_KEYWORDS.get(cat_name, cat_name)
-                url = (f"{HIRAOKA_BASE}/catalogsearch/result/"
-                       f"?q={requests.utils.quote(keyword)}&p={page}")
+            for page in range(1, HIRAOKA_MAX_PAGES + 1):
+                if cat_path:
+                    url = f"{HIRAOKA_BASE}{cat_path}?p={page}"
+                else:
+                    keyword = HIRAOKA_SEARCH_KEYWORDS.get(cat_name, cat_name)
+                    url = (f"{HIRAOKA_BASE}/catalogsearch/result/"
+                           f"?q={requests.utils.quote(keyword)}&p={page}")
 
-            cards = _hiraoka_fetch_url(session, url)
+                cards = _hiraoka_fetch_url(session, url)
 
-            if not cards or len(cards) < HIRAOKA_MIN_ITEMS_PAGE:
-                empty_pages += 1
-                logger.debug(f"  p{page}: {len(cards)} cards (empty_pages={empty_pages})")
-                if empty_pages >= HIRAOKA_EMPTY_LIMIT:
-                    logger.info(f"  p{page}: early-stop — {empty_pages} páginas vacías")
-                    break
-                continue
+                if not cards or len(cards) < HIRAOKA_MIN_ITEMS_PAGE:
+                    empty_pages += 1
+                    logger.debug(
+                        f"  p{page}: {len(cards)} cards "
+                        f"(empty_pages={empty_pages})"
+                    )
+                    if empty_pages >= HIRAOKA_EMPTY_LIMIT:
+                        logger.info(
+                            f"  p{page}: early-stop — "
+                            f"{empty_pages} páginas vacías"
+                        )
+                        break
+                    continue
 
-            added = 0
-            for card in cards:
-                record = _hiraoka_parse_card(card, cat_name, batch_id, now_iso)
-                if record:
-                    sku = record["sku"]
-                    if sku:
-                        if sku in seen_skus:
-                            continue
-                        seen_skus.add(sku)
-                    else:
-                        # [L7] Sin SKU → fingerprint title[:80]+price
-                        fp = hashlib.md5(
-                            f"{record['title'][:80]}|{record['price_pen']}".encode()
-                        ).hexdigest()[:12]
-                        if fp in seen_fps:
-                            continue
-                        seen_fps.add(fp)
-                    cat_records.append(record)
-                    added += 1
+                added = 0
+                for card in cards:
+                    record = _hiraoka_parse_card(
+                        card, cat_name, batch_id, now_iso
+                    )
+                    if record:
+                        sku = record["sku"]
+                        if sku:
+                            if sku in seen_skus:
+                                continue
+                            seen_skus.add(sku)
+                        else:
+                            # [L7] Sin SKU → fingerprint title[:80]+price
+                            fp = hashlib.md5(
+                                f"{record['title'][:80]}|"
+                                f"{record['price_pen']}".encode()
+                            ).hexdigest()[:12]
+                            if fp in seen_fps:
+                                continue
+                            seen_fps.add(fp)
+                        cat_records.append(record)
+                        added += 1
 
-            if added == 0:
-                empty_pages += 1
-                logger.info(
-                    f"  p{page}: +{len(cards)} cards → +0 nuevos "
-                    f"(todos dupes, empty_pages={empty_pages})"
-                )
-                if empty_pages >= HIRAOKA_EMPTY_LIMIT:
-                    logger.info(f"  p{page}: early-stop — {empty_pages} páginas sin nuevos")
-                    break
-            else:
-                empty_pages = 0
-                logger.info(
-                    f"  p{page}: +{len(cards)} cards → +{added} válidos "
-                    f"(acum {len(cat_records)})"
-                )
+                if added == 0:
+                    empty_pages += 1
+                    logger.info(
+                        f"  p{page}: +{len(cards)} cards → +0 nuevos "
+                        f"(todos dupes, empty_pages={empty_pages})"
+                    )
+                    if empty_pages >= HIRAOKA_EMPTY_LIMIT:
+                        logger.info(
+                            f"  p{page}: early-stop — "
+                            f"{empty_pages} páginas sin nuevos"
+                        )
+                        break
+                else:
+                    empty_pages = 0
+                    logger.info(
+                        f"  p{page}: +{len(cards)} cards → "
+                        f"+{added} válidos (acum {len(cat_records)})"
+                    )
 
-            time.sleep(REQUEST_DELAY)
+                time.sleep(REQUEST_DELAY)
 
-        all_records.extend(cat_records)
-        logger.info(f"  ✅ {cat_name}: {len(cat_records)} registros")
+            all_records.extend(cat_records)
+            logger.info(f"  ✅ {cat_name}: {len(cat_records)} registros")
+
+    finally:
+        session.close()   # [L11]
 
     logger.info(f"[Hiraoka] TOTAL: {len(all_records)} registros")
     return all_records
@@ -640,16 +716,20 @@ def scrape_hiraoka(batch_id: str) -> list:
 # ══════════════════════════════════════════════
 # SCRAPER UNIFICADO
 # ══════════════════════════════════════════════
-def scrape_local(batch_id: str) -> list:
+def scrape_local(batch_id: str, mode: str = "normal") -> list:
     """
     Ejecuta Falabella + Hiraoka en secuencia.
-    [L8] Ripley deshabilitado — warning emitido UNA vez aquí, no en el loop.
+    [L8]  Ripley deshabilitado — warning emitido UNA vez aquí.
+    [L10] Parámetro mode agregado — main.py lo pasa a todos los scrapers.
+    [L13] Log de tiempo total al finalizar.
     Deduplica por (source, sku) + fingerprint para items sin SKU.
     """
+    t_start = time.time()   # [L13]
+
     all_records = []
 
     logger.info("═" * 50)
-    logger.info("  SCRAPING TIENDAS LOCALES PERÚ  v3.5")
+    logger.info("  SCRAPING TIENDAS LOCALES PERÚ  v3.6")
     logger.info("═" * 50)
 
     # [L8] Warning de Ripley una sola vez, fuera del loop
@@ -684,7 +764,8 @@ def scrape_local(batch_id: str) -> list:
         else:
             # [L7] Sin SKU → fingerprint title[:80]+price
             fp = hashlib.md5(
-                f"{r.get('title','')[:80]}|{r.get('price_pen',0)}".encode()
+                f"{r.get('title','')[:80]}|"
+                f"{r.get('price_pen',0)}".encode()
             ).hexdigest()[:12]
             if fp not in seen_fps:
                 seen_fps.add(fp)
@@ -694,7 +775,12 @@ def scrape_local(batch_id: str) -> list:
     if dupes:
         logger.info(f"[LOCAL PE] Deduplicados: {dupes} eliminados")
 
-    logger.info(f"[LOCAL PE] TOTAL COMBINADO: {len(unique)} registros únicos")
+    # [L13] Log de tiempo total
+    elapsed = time.time() - t_start
+    logger.info(
+        f"[LOCAL PE] TOTAL COMBINADO: {len(unique)} registros únicos — "
+        f"⏱ {elapsed/60:.1f} min"
+    )
     return unique
 
 
