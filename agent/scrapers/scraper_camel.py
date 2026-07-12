@@ -1,17 +1,17 @@
 """
-scraper_camel.py  v3.0
+scraper_camel.py  v3.1
 CamelCamelCamel — Historial de precios Amazon (desde 2008)
 
-Fixes v3.0 (sobre v2.0):
-  - [C1] User-Agent rotativo via fake-useragent (en lugar de UA estático)
-  - [C4] _fetch_rss_feed: registros sin ASIN filtrados (skip si asin='')
-  - [C5] _extract_chartjs_data: extractor de llaves balanceadas reemplaza
-         regex non-greedy r'{.*?}' — causa raíz del camel=0 en todos los batches
-  - [C6] _extract_chartjs_data: extractor de brackets balanceados para arrays
-         reemplaza regex non-greedy r'\[.*?\]'
-  - [C7] Fallback regex reemplazado por extractor balanceado conservador
-  - [C8] Log de advertencia cuando price_source cae al selector genérico
-  - [C9] __main__: datetime.now(timezone.utc) — naive datetime corregido
+Fixes v3.1 (sobre v3.0):
+  [C10] ebaysdk eliminado de dependencias (no usado aquí — alineado con [W20]/[P10])
+  [C11] _fetch_rss_feed: session requests reutilizada en lugar de requests.get()
+        por llamada — reduce overhead de conexión TCP en RSS + ASIN loop
+  [C12] _fetch_asin_history: backoff exponencial reemplaza delay lineal
+        (attempt+2 → 2**attempt * REQUEST_DELAY) — más robusto ante 429/403
+  [C13] scrape_camel: parámetro mode agregado para alinear firma con main.py
+        (main.py pasa mode= a todos los scrapers opcionales)
+  [C14] _extract_chartjs_data: log DEBUG cuando ninguna estrategia extrae datos
+        (facilita diagnóstico del camel=0 sin spam en modo normal)
 """
 
 import re
@@ -226,6 +226,7 @@ def _extract_chartjs_data(scripts) -> list:
     Extrae historial de precios del JSON de Chart.js.
     [C5/C6] Usa extractor de brackets balanceados en lugar de regex non-greedy.
     Solo captura datos del vendedor 'amazon' (no third_party ni used).
+    [C14] Log DEBUG cuando ninguna estrategia extrae datos.
     """
     history = []
 
@@ -238,7 +239,6 @@ def _extract_chartjs_data(scripts) -> list:
         chart_block = _find_balanced_block(content, "new Chart", '{')
         if chart_block:
             try:
-                # Limpiar comentarios JS
                 clean = re.sub(r'//[^\n]*', '', chart_block)
                 clean = re.sub(r'/\*.*?\*/', '', clean, flags=re.DOTALL)
                 data  = json.loads(clean)
@@ -320,16 +320,26 @@ def _extract_chartjs_data(scripts) -> list:
             except (json.JSONDecodeError, ValueError, TypeError):
                 pass
 
+        # [C14] Ninguna estrategia extrajo datos — loguear para diagnóstico
+        if not history:
+            logger.debug(
+                "[Camel] _extract_chartjs_data: ninguna estrategia extrajo datos "
+                f"(script len={len(content)})"
+            )
+
     return history
 
 
 # ──────────────────────────────────────────────
 # MÉTODO 1: RSS
 # ──────────────────────────────────────────────
-def _fetch_rss_feed(url: str, batch_id: str) -> list:
+def _fetch_rss_feed(url: str, batch_id: str, session: requests.Session) -> list:
+    """
+    [C11] Recibe session reutilizable en lugar de crear conexión TCP por llamada.
+    """
     records = []
     try:
-        resp = requests.get(url, headers=_get_headers(), timeout=TIMEOUT)  # [C1]
+        resp = session.get(url, headers=_get_headers(), timeout=TIMEOUT)  # [C1][C11]
         resp.raise_for_status()
         root    = ET.fromstring(resp.content)
         channel = root.find("channel")
@@ -403,21 +413,28 @@ def _fetch_rss_feed(url: str, batch_id: str) -> list:
 # ──────────────────────────────────────────────
 # MÉTODO 2: Historial por ASIN
 # ──────────────────────────────────────────────
-def _fetch_asin_history(asin: str, name: str, batch_id: str) -> list:
+def _fetch_asin_history(
+    asin: str, name: str, batch_id: str, session: requests.Session
+) -> list:
+    """
+    [C11] Recibe session reutilizable.
+    [C12] Backoff exponencial: 2**attempt * REQUEST_DELAY.
+    """
     records = []
     url     = f"{BASE_URL}/product/{asin}"
     now_iso = datetime.now(timezone.utc).isoformat()
 
     for attempt in range(MAX_RETRIES):
         try:
-            resp = requests.get(url, headers=_get_headers(), timeout=TIMEOUT)  # [C1]
+            resp = session.get(url, headers=_get_headers(), timeout=TIMEOUT)  # [C1][C11]
 
             if resp.status_code == 403:
-                logger.warning(f"  [Camel] 403 en {asin} — posible bloqueo")
-                time.sleep(REQUEST_DELAY * (attempt + 2))
+                wait = (2 ** attempt) * REQUEST_DELAY   # [C12] backoff exponencial
+                logger.warning(f"  [Camel] 403 en {asin} — esperando {wait:.1f}s")
+                time.sleep(wait)
                 continue
             if resp.status_code == 429:
-                wait = 30 * (attempt + 1)
+                wait = (2 ** attempt) * 30              # [C12] backoff exponencial
                 logger.warning(f"  [Camel] Rate limit en {asin} — esperando {wait}s")
                 time.sleep(wait)
                 continue
@@ -499,9 +516,13 @@ def _fetch_asin_history(asin: str, name: str, batch_id: str) -> list:
             break  # Éxito
 
         except requests.RequestException as e:
-            logger.warning(f"  [Camel] Intento {attempt+1}/{MAX_RETRIES} fallido {asin}: {e}")
+            wait = (2 ** attempt) * REQUEST_DELAY   # [C12] backoff exponencial
+            logger.warning(
+                f"  [Camel] Intento {attempt+1}/{MAX_RETRIES} fallido {asin}: {e} "
+                f"— esperando {wait:.1f}s"
+            )
             if attempt < MAX_RETRIES - 1:
-                time.sleep(REQUEST_DELAY * (attempt + 2))
+                time.sleep(wait)
         except Exception as e:
             logger.warning(f"  [Camel] Error inesperado en {asin}: {e}")
             break
@@ -512,18 +533,24 @@ def _fetch_asin_history(asin: str, name: str, batch_id: str) -> list:
 # ──────────────────────────────────────────────
 # SCRAPER PRINCIPAL
 # ──────────────────────────────────────────────
-def scrape_camel(batch_id: str) -> list:
+def scrape_camel(batch_id: str, mode: str = "normal") -> list:
     """
     Scraper principal de CamelCamelCamel.
     Combina RSS + historial por ASIN con esquema unificado.
+
+    [C13] Parámetro mode agregado — main.py lo pasa a todos los scrapers opcionales.
+    [C11] Session requests compartida entre RSS + ASIN loop.
     """
     all_records = []
     valid_asins = _validate_asins(HARDWARE_ASINS)
 
+    # [C11] Session compartida — reutiliza conexiones TCP
+    session = requests.Session()
+
     # ── Paso 1: RSS feeds ──────────────────────────────────────────────
     logger.info("[Camel] Iniciando RSS feeds...")
     for feed_url in RSS_FEEDS:
-        records = _fetch_rss_feed(feed_url, batch_id)
+        records = _fetch_rss_feed(feed_url, batch_id, session)   # [C11]
         all_records.extend(records)
         logger.info(f"  RSS {feed_url.split('/')[-1]}: {len(records)} items")
         time.sleep(REQUEST_DELAY)
@@ -532,10 +559,11 @@ def scrape_camel(batch_id: str) -> list:
     logger.info(f"[Camel] Iniciando historial de {len(valid_asins)} ASINs...")
     for idx, (name, asin) in enumerate(valid_asins.items(), 1):
         logger.info(f"  [{idx}/{len(valid_asins)}] {name} ({asin})")
-        records = _fetch_asin_history(asin, name, batch_id)
+        records = _fetch_asin_history(asin, name, batch_id, session)   # [C11]
         all_records.extend(records)
         time.sleep(REQUEST_DELAY)
 
+    session.close()
     logger.info(f"[Camel] TOTAL: {len(all_records)} registros recolectados")
     return all_records
 
