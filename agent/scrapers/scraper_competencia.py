@@ -1,24 +1,24 @@
 """
-scraper_competencia.py  v4.0
+scraper_competencia.py  v4.1
 ════════════════════════════
 Fuentes de PRECIO DE COMPETENCIA (referencia precio techo PE):
   - Falabella PE   (API JSON v2 + fallback HTML)
   - Hiraoka PE     (HTML Magento 2 — categoría directa + fallback búsqueda)
   - Coolbox PE     (HTML — tienda especializada hardware/gaming)
-  - Compumundo PE  (HTML Magento 2 — hardware y componentes)
+  - Compumundo PE  (HTML Magento 2 — DESHABILITADO por SSL mismatch)
   - Ripley PE      (PENDIENTE — 403 Cloudflare, requiere playwright)
 
-Fixes v4.0 (sobre v3.0):
-  - [SC11] FalabellaScraper: API migrada a v2 + zona Lima (150101)
-  - [SC12] HiraokaScraper: CATEGORY_PATHS actualizados (/componentes/*)
-  - [SC13] _parse_price_str: limpieza explícita de "S/." antes del regex
-  - [SC14] _make_session(): sesión con retry automático (3 intentos, backoff)
-  - [SC15] MAX_QUERIES_PER_CAT: limita queries por categoría (default=2, env override)
-  - [SC16] price_pen validado con MIN/MAX (evita precios absurdos)
-  - [SC17] CoolboxScraper: nuevo scraper HTML para coolbox.pe
-  - [SC18] CompumundoScraper: nuevo scraper HTML Magento 2 para compumundo.com.pe
-  - [SC19] scrape_competencia(): sources default incluye coolbox + compumundo
-  - [SC20] DELAY_CAT aumentado a 6.0s para Hiraoka/Coolbox/Compumundo
+Fixes v4.1 (sobre v4.0):
+  [SC21] COMPUMUNDO_ENABLED: leído desde env — deshabilita CompumundoScraper
+         si COMPUMUNDO_ENABLED=false (SSL mismatch permanente — ahorra ~12 min)
+  [SC22] scrape_competencia(): sources default excluye compumundo si
+         COMPUMUNDO_ENABLED=false (consistencia con [SC21])
+  [SC23] scrape_competencia(): parámetro mode agregado — alinea firma
+         con main.py (main.py pasa mode= a todos los scrapers)
+  [SC24] _dedup(): float() con fallback 0.0 — evita ValueError si
+         price_pen es string no numérico en registros mal formados
+  [SC25] CompumundoScraper: verify=False + suppress InsecureRequestWarning
+         como fallback si COMPUMUNDO_ENABLED=true (SSL mismatch conocido)
 """
 
 import os
@@ -27,6 +27,7 @@ import time
 import json
 import hashlib
 import logging
+import warnings
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
@@ -51,19 +52,25 @@ _UA_FALLBACK = (
 
 log = logging.getLogger(__name__)
 
-OUTPUT_DIR        = Path(os.getenv("OUTPUT_DIR", "data/raw"))
-MAX_PAGES         = int(os.getenv("MAX_PAGES_COMP", "5"))
-DELAY_REQ         = float(os.getenv("DELAY_REQ", "2.0"))
-DELAY_CAT         = float(os.getenv("DELAY_CAT", "6.0"))          # [SC20]
-MAX_QUERIES_PER_CAT = int(os.getenv("MAX_QUERIES_COMP", "2"))     # [SC15]
-PRICE_MIN         = float(os.getenv("PRICE_MIN_PEN", "10.0"))     # [SC16]
-PRICE_MAX         = float(os.getenv("PRICE_MAX_PEN", "50000.0"))  # [SC16]
+OUTPUT_DIR          = Path(os.getenv("OUTPUT_DIR", "data/raw"))
+MAX_PAGES           = int(os.getenv("MAX_PAGES_COMP", "5"))
+DELAY_REQ           = float(os.getenv("DELAY_REQ", "2.0"))
+DELAY_CAT           = float(os.getenv("DELAY_CAT", "6.0"))           # [SC20]
+MAX_QUERIES_PER_CAT = int(os.getenv("MAX_QUERIES_COMP", "2"))        # [SC15]
+PRICE_MIN           = float(os.getenv("PRICE_MIN_PEN", "10.0"))      # [SC16]
+PRICE_MAX           = float(os.getenv("PRICE_MAX_PEN", "50000.0"))   # [SC16]
+# [SC21] Leído desde env — workflows v6.2/v2.1 setean COMPUMUNDO_ENABLED=false
+COMPUMUNDO_ENABLED  = os.getenv("COMPUMUNDO_ENABLED", "true").lower() == "true"
 
 
 # ── [SC14] Sesión con retry automático ────────────────────────────────────
-def _make_session() -> requests.Session:
-    """Sesión HTTP con reintentos automáticos en errores 429/5xx."""
+def _make_session(verify_ssl: bool = True) -> requests.Session:
+    """
+    Sesión HTTP con reintentos automáticos en errores 429/5xx.
+    [SC25] verify_ssl=False para CompumundoScraper (SSL mismatch conocido).
+    """
     s     = requests.Session()
+    s.verify = verify_ssl
     retry = Retry(
         total=3,
         backoff_factor=1.5,
@@ -613,7 +620,6 @@ class HiraokaScraper:
 class CoolboxScraper:
     BASE = "https://www.coolbox.pe"
 
-    # Paths de categoría de Coolbox (estructura 2025-2026)
     CATEGORY_PATHS = {
         "CPU":         "/procesadores",
         "GPU":         "/tarjetas-de-video",
@@ -633,7 +639,6 @@ class CoolboxScraper:
         items    = []
         cat_path = self.CATEGORY_PATHS.get(category)
 
-        # Intento 1: URL de categoría directa
         if cat_path:
             for page in range(1, max_pages + 1):
                 log.info(f"  [Coolbox] {category} | categoría directa | pág {page}")
@@ -644,7 +649,6 @@ class CoolboxScraper:
                     break
                 time.sleep(DELAY_REQ)
 
-        # Fallback: búsqueda por texto si categoría no dio resultados
         if not items:
             log.info(f"  [Coolbox] {category} | fallback búsqueda '{query[:30]}'")
             for page in range(1, min(max_pages, 3) + 1):
@@ -691,7 +695,6 @@ class CoolboxScraper:
         items = []
         ts    = datetime.now(timezone.utc).isoformat()
 
-        # Coolbox usa estructura tipo Shopify/WooCommerce
         cards = []
         for sel in [
             "div.product-card",
@@ -713,7 +716,6 @@ class CoolboxScraper:
 
         for card in cards:
             try:
-                # Título
                 title_el = (
                     card.select_one("h2.product-card__title") or
                     card.select_one("h3.product-card__title") or
@@ -730,7 +732,6 @@ class CoolboxScraper:
                 if not title:
                     continue
 
-                # Precio
                 price_pen  = 0.0
                 price_orig = 0.0
 
@@ -760,22 +761,21 @@ class CoolboxScraper:
                 if price_orig > price_pen > 0:
                     discount = round((price_orig - price_pen) / price_orig * 100, 1)
 
-                # URL del producto
                 link_el  = card.select_one("a[href]")
                 item_url = link_el.get("href", "") if link_el else ""
                 if item_url and not item_url.startswith("http"):
                     item_url = self.BASE + item_url
 
-                # Marca — extraída del título si no hay campo explícito
-                brand_el = card.select_one("span[class*='brand']") or card.select_one("div[class*='vendor']")
+                brand_el = (card.select_one("span[class*='brand']") or
+                            card.select_one("div[class*='vendor']"))
                 brand    = brand_el.get_text(strip=True) if brand_el else ""
 
-                # Stock
-                stock_el  = card.select_one("span[class*='stock']") or card.select_one("div[class*='badge']")
+                stock_el  = (card.select_one("span[class*='stock']") or
+                             card.select_one("div[class*='badge']"))
                 available = True
                 if stock_el:
                     txt = stock_el.get_text(strip=True).lower()
-                    available = "agotado" not in txt and "sin stock" not in txt and "out of stock" not in txt
+                    available = not any(x in txt for x in ["agotado", "sin stock", "out of stock"])
 
                 items.append({
                     "batch_id":       batch_id,
@@ -800,7 +800,9 @@ class CoolboxScraper:
 
 # ══════════════════════════════════════════════════════════════════════════
 # SCRAPER 5 — COMPUMUNDO PE  [SC18]
-# Hardware y componentes — HTML Magento 2 (similar a Hiraoka)
+# Hardware y componentes — HTML Magento 2
+# [SC21] Deshabilitado por defecto via COMPUMUNDO_ENABLED=false
+# [SC25] Si habilitado: verify=False para bypass SSL mismatch conocido
 # ══════════════════════════════════════════════════════════════════════════
 class CompumundoScraper:
     BASE = "https://www.compumundo.com.pe"
@@ -817,7 +819,11 @@ class CompumundoScraper:
     }
 
     def __init__(self):
-        self._session = _make_session()
+        # [SC25] verify=False — SSL mismatch en www.compumundo.com.pe
+        import urllib3
+        warnings.filterwarnings("ignore", message="Unverified HTTPS request")
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+        self._session = _make_session(verify_ssl=False)  # [SC25]
 
     def search(self, query: str, category: str, batch_id: str,
                max_pages: int = MAX_PAGES) -> list:
@@ -877,7 +883,7 @@ class CompumundoScraper:
             return []
 
     def _parse_html(self, html, category, batch_id, base_url=""):
-        """Parser Magento 2 — reutiliza misma lógica que HiraokaScraper."""
+        """Parser Magento 2 — misma lógica que HiraokaScraper."""
         soup  = BeautifulSoup(html, "html.parser")
         items = []
         ts    = datetime.now(timezone.utc).isoformat()
@@ -956,7 +962,8 @@ class CompumundoScraper:
                 )
                 brand = brand_el.get_text(strip=True) if brand_el else ""
 
-                stock_el  = card.select_one("div.stock") or card.select_one("span[class*='stock']")
+                stock_el  = (card.select_one("div.stock") or
+                             card.select_one("span[class*='stock']"))
                 available = True
                 if stock_el:
                     available = "unavailable" not in stock_el.get("class", [])
@@ -989,9 +996,14 @@ def _dedup(records: list) -> list:
     seen = set()
     out  = []
     for r in records:
-        key = f"{r.get('source')}|{r.get('title','')[:100]}|{r.get('price_pen',0)}"
+        # [SC24] float() con fallback 0.0 — evita ValueError en price_pen no numérico
+        try:
+            price = float(r.get("price_pen", 0) or 0)
+        except (ValueError, TypeError):
+            price = 0.0
+        key = f"{r.get('source')}|{r.get('title','')[:100]}|{price}"
         fp  = hashlib.md5(key.encode()).hexdigest()[:12]
-        if fp not in seen and _valid_price(float(r.get("price_pen", 0))):
+        if fp not in seen and _valid_price(price):
             seen.add(fp)
             out.append(r)
     return out
@@ -1002,6 +1014,7 @@ def _dedup(records: list) -> list:
 # ══════════════════════════════════════════════════════════════════════════
 def scrape_competencia(
     batch_id: str,
+    mode: str = "normal",       # [SC23] alinea firma con main.py
     sources: list = None,
     categories: list = None,
 ) -> list:
@@ -1009,20 +1022,32 @@ def scrape_competencia(
     Scraper de precios de competencia PE.
     Retorna list[dict] compatible con save_batch() de main.py.
 
+    [SC21] Compumundo excluido por defecto si COMPUMUNDO_ENABLED=false.
+    [SC23] Parámetro mode agregado — main.py lo pasa a todos los scrapers.
+
     sources disponibles: falabella, hiraoka, coolbox, compumundo
     (ripley: PENDIENTE — requiere playwright)
     """
     if sources is None:
-        # [SC19] Incluye coolbox + compumundo por defecto
-        sources = ["falabella", "hiraoka", "coolbox", "compumundo"]
+        # [SC22] Excluir compumundo si COMPUMUNDO_ENABLED=false
+        default_sources = ["falabella", "hiraoka", "coolbox"]
+        if COMPUMUNDO_ENABLED:
+            default_sources.append("compumundo")
+        else:
+            log.warning(
+                "[Compumundo] DESHABILITADO (COMPUMUNDO_ENABLED=false) "
+                "— SSL mismatch permanente. Omitido."
+            )
+        sources = default_sources
+
     if categories is None:
         categories = list(CATEGORY_QUERIES_PE.keys())
 
     scrapers = {}
     if "falabella"  in sources: scrapers["falabella"]  = FalabellaScraper()
     if "hiraoka"    in sources: scrapers["hiraoka"]    = HiraokaScraper()
-    if "coolbox"    in sources: scrapers["coolbox"]    = CoolboxScraper()    # [SC17]
-    if "compumundo" in sources: scrapers["compumundo"] = CompumundoScraper() # [SC18]
+    if "coolbox"    in sources: scrapers["coolbox"]    = CoolboxScraper()     # [SC17]
+    if "compumundo" in sources: scrapers["compumundo"] = CompumundoScraper()  # [SC18][SC25]
     if "ripley"     in sources:
         log.warning("[Ripley] DESHABILITADO — 403 Cloudflare. Requiere playwright. Omitido.")
 
