@@ -16,6 +16,8 @@ CAMBIOS v1.2 (sobre v1.1):
          y el desalineamiento de índices que descartaba filas.
   [FIX4] Estacionariedad ahora ordena por price_date real (datetime),
          no por string.
+  [FIX5] Conversión explícita a bool/float nativos de Python antes
+         de json.dump() — numpy.bool_/float64 no son serializables.
   [Q1-Q3 de v1.1 se mantienen sin cambios]
 
 Uso:
@@ -80,9 +82,9 @@ def audit_completeness(df: pd.DataFrame, contract: dict) -> dict:
     for col in required:
         if col in df.columns:
             non_null = df[col].notna().sum()
-            pct = round(non_null / len(df) * 100, 2) if len(df) else 0.0
-            result[col] = pct
-    overall = round(np.mean(list(result.values())), 2) if result else 0.0
+            pct = round(float(non_null) / len(df) * 100, 2) if len(df) else 0.0
+            result[col] = float(pct)
+    overall = round(float(np.mean(list(result.values()))), 2) if result else 0.0
     result["_overall_pct"] = overall
     return result
 
@@ -142,14 +144,12 @@ def detect_price_outliers(df: pd.DataFrame, contract: dict) -> pd.DataFrame:
     before = len(df)
 
     # [FIX2] NaN se preserva (no se marca fuera de rango).
-    # between() devuelve False para NaN por defecto → lo corregimos con | isna()
     mask_rango = df["price_usd"].between(rango[0], rango[1]) | df["price_usd"].isna()
 
-    # [FIX3] IQR k=3.0 por categoría, respetando NaN en price_usd y en category
+    # [FIX3] IQR k=3.0 por categoría, respetando NaN en price_usd y category
     def _iqr_mask(s: pd.Series) -> pd.Series:
         valid = s.dropna()
         if len(valid) < 4:
-            # Muestra insuficiente para IQR confiable → no se filtra por outlier
             return pd.Series(True, index=s.index)
         q1, q3 = valid.quantile([0.25, 0.75])
         iqr = q3 - q1
@@ -159,8 +159,6 @@ def detect_price_outliers(df: pd.DataFrame, contract: dict) -> pd.DataFrame:
         return s.between(lo, hi) | s.isna()
 
     if "category" in df.columns:
-        # dropna=False evita perder filas con category NaN;
-        # seleccionamos la columna price_usd explícitamente (evita el warning)
         mask_iqr = (
             df.groupby("category", dropna=False)["price_usd"]
             .apply(_iqr_mask)
@@ -174,7 +172,7 @@ def detect_price_outliers(df: pd.DataFrame, contract: dict) -> pd.DataFrame:
     df_clean = df[final_mask].copy()
 
     removed = before - len(df_clean)
-    preserved_nan = df["price_usd"].isna().sum()
+    preserved_nan = int(df["price_usd"].isna().sum())
     print(f"  🔍 Outliers reales removidos: {removed:,} ({removed/before*100:.2f}%)")
     print(f"  ℹ️  price_usd faltantes preservados para MICE: {preserved_nan:,}")
     return df_clean
@@ -205,11 +203,12 @@ def stationarity_tests(df: pd.DataFrame) -> dict:
         adf_result  = adfuller(serie, autolag="AIC")
         kpss_result = kpss(serie, regression="c", nlags="auto")
 
+        # [FIX5] cast explícito a tipos nativos de Python
         return {
-            "adf_pvalue":  round(adf_result[1], 4),
-            "kpss_pvalue": round(kpss_result[1], 4),
-            "adf_estacionaria":  adf_result[1] < 0.05,
-            "kpss_estacionaria": kpss_result[1] > 0.05,
+            "adf_pvalue":  round(float(adf_result[1]), 4),
+            "kpss_pvalue": round(float(kpss_result[1]), 4),
+            "adf_estacionaria":  bool(adf_result[1] < 0.05),
+            "kpss_estacionaria": bool(kpss_result[1] > 0.05),
             "status": "ok",
         }
     except Exception as e:
@@ -239,7 +238,7 @@ def run_quality_pipeline(input_path: Path, contract_path: Path, output_path: Pat
     print("✅ Esquema validado — todas las columnas obligatorias presentes")
 
     completeness = audit_completeness(df, contract)
-    min_required = contract["reglas_de_validacion"]["completitud_minima_pct"]
+    min_required = float(contract["reglas_de_validacion"]["completitud_minima_pct"])
     print(f"\n📈 Completitud general: {completeness['_overall_pct']}% "
           f"(mínimo requerido: {min_required}%)")
     for col, pct in completeness.items():
@@ -265,6 +264,9 @@ def run_quality_pipeline(input_path: Path, contract_path: Path, output_path: Pat
     df.to_csv(output_path, index=False)
     print(f"\n💾 Dataset limpio guardado: {output_path} ({len(df):,} registros)")
 
+    # [FIX5] hito_H1_cumplido como bool nativo
+    hito_cumplido = bool(completeness["_overall_pct"] >= min_required)
+
     batch_id = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
     report = {
         "batch_id": batch_id,
@@ -272,10 +274,10 @@ def run_quality_pipeline(input_path: Path, contract_path: Path, output_path: Pat
         "registros_originales": int(n_original),
         "registros_sin_fecha_removidos": int(n_sin_fecha),
         "registros_finales": int(len(df)),
-        "pct_retenido": round(len(df) / n_original * 100, 2) if n_original else 0.0,
+        "pct_retenido": round(float(len(df)) / n_original * 100, 2) if n_original else 0.0,
         "completitud": completeness,
         "estacionariedad": stationarity,
-        "hito_H1_cumplido": completeness["_overall_pct"] >= min_required,
+        "hito_H1_cumplido": hito_cumplido,
     }
     report_path = output_path.parent / f"quality_report_{batch_id}.json"
     with open(report_path, "w", encoding="utf-8") as f:
