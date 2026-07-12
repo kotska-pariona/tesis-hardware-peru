@@ -1,12 +1,26 @@
 # ════════════════════════════════════════════════════════════
-# Hardware Peru — Data Agent v6.2
+# Hardware Peru — Data Agent v6.3
+# CAMBIOS v6.3 (sobre v6.2):
+#   [W23] FIX CRÍTICO: [W19] estaba incompleto — `git add` (staging)
+#         NO satisface el requisito de "working tree limpio" que exige
+#         `git pull --rebase`. Git sigue reportando "uncommitted changes"
+#         aunque los archivos estén staged. La solución real es hacer
+#         COMMIT completo ANTES del pull --rebase, no solo `git add`.
+#         Orden correcto: add → commit → pull --rebase → push.
+#   [W24] Push con reintentos (3x) — protege contra carreras si dos
+#         workflows (daily_agent.yml y pipeline.yml) commitean casi
+#         a la vez pese al concurrency group.
+#   [W25] rebase --abort explícito en cada fallo de reintento, para
+#         no dejar el repo en estado "rebase in progress" a mitad de retry.
+#
 # CAMBIOS v6.2 (sobre v6.1):
 #   [W19] git add ANTES de pull --rebase (fix bug "unstaged changes")
+#         — INCOMPLETO, corregido en [W23] arriba.
 #   [W20] ebaysdk eliminado de pip install (no usado — OAuth2 directo)
 #   [W21] batch 24h: escritura atómica con .tmp → rename (anti-corrupción)
 #   [W22] Compumundo: flag COMPUMUNDO_ENABLED=false via env (ahorra ~12 min)
 # ════════════════════════════════════════════════════════════
-name: Hardware Peru — Data Agent v6.2
+name: Hardware Peru — Data Agent v6.3
 
 on:
   schedule:
@@ -203,35 +217,71 @@ jobs:
           PYEOF
 
       # ── 8. Commit ──────────────────────────────────────────────
-      # [W19] Orden correcto: add PRIMERO → pull --rebase → commit → push
+      # [W23] FIX REAL: commit COMPLETO antes de pull --rebase.
+      # `git add` (staging) NO satisface el requisito de git para rebasear;
+      # el índice debe estar COMMITEADO, no solo staged.
+      # Orden correcto: add → commit → pull --rebase → push.
       - name: "💾 Commit datos"
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          # [W19] PRIMERO stagear — working tree limpio antes del rebase
           git add data/raw/
-
-          # [W15] Pull con falla explícita — no silenciar errores reales
-          git pull --rebase origin main || {
-            echo "❌ git pull --rebase falló — abortando rebase"
-            git rebase --abort 2>/dev/null || true
-            exit 1
-          }
 
           if git diff --staged --quiet; then
             echo "ℹ️ Sin cambios nuevos para commitear"
-          else
-            MASTER_LINES=$(python -c "
+            exit 0
+          fi
+
+          MASTER_LINES=$(python -c "
           import pathlib
           f = pathlib.Path('data/raw/MASTER_hardware_peru.csv')
           print(sum(1 for _ in open(f)) - 1 if f.exists() else 0)
           " 2>/dev/null || echo "0")
 
-            git commit -m "🤖 [${BATCH_ID}] ${RUN_MODE} — ${MASTER_LINES} registros"
-            git push origin main
-            echo "✅ Push exitoso — ${MASTER_LINES} registros en MASTER"
+          # [W23] Commit ANTES del rebase — deja el índice limpio de verdad
+          git commit -m "🤖 [${BATCH_ID}] ${RUN_MODE} — ${MASTER_LINES} registros"
+
+          # [W15] Pull con falla explícita — no silenciar errores reales
+          # Ahora el índice SÍ está limpio (commiteado), el rebase puede proceder
+          REBASE_OK=false
+          for i in 1 2 3; do
+            if git pull --rebase origin main; then
+              REBASE_OK=true
+              break
+            else
+              echo "⚠️ pull --rebase falló (intento $i/3) — abortando rebase y reintentando"
+              git rebase --abort 2>/dev/null || true   # [W25]
+              sleep $((i * 5))
+            fi
+          done
+
+          if [ "$REBASE_OK" = false ]; then
+            echo "❌ git pull --rebase falló tras 3 intentos"
+            echo "💾 El commit sigue local en este runner — no se perdió el dato,"
+            echo "   pero requiere revisión manual del branch main."
+            exit 1
           fi
+
+          # [W24] Push con reintentos — protege contra carreras entre workflows
+          PUSH_OK=false
+          for i in 1 2 3; do
+            if git push origin main; then
+              PUSH_OK=true
+              break
+            else
+              echo "⚠️ git push falló (intento $i/3) — re-sincronizando"
+              git pull --rebase origin main || true
+              sleep $((i * 5))
+            fi
+          done
+
+          if [ "$PUSH_OK" = false ]; then
+            echo "❌ git push falló tras 3 intentos"
+            exit 1
+          fi
+
+          echo "✅ Push exitoso — ${MASTER_LINES} registros en MASTER"
 
       # ── 9. Resumen ─────────────────────────────────────────────
       - name: "📋 Resumen"
