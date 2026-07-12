@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-roi_calculator.py  v3.0
+roi_calculator.py  v3.1
 ══════════════════════════
 Calcula el ROI real de importar un producto desde USA a Perú.
 
@@ -31,25 +31,30 @@ Fórmula de costo total de importación (Perú - SUNAT):
 │              Costo_Total_PEN                            │
 └─────────────────────────────────────────────────────────┘
 
-Fixes v3.0 (sobre v2.0):
-  - [R1] Doble docstring eliminado (string literal flotante inútil)
-  - [R2] Tres regímenes SUNAT: de_minimis / courier_simplificado /
-         importacion_general — v2.0 exoneraba IGV+IPM en rango $200-$2000
-  - [R3] analyze_dataframe: .copy() en local_df e import_df —
-         SettingWithCopyWarning / CoW silencioso en pandas 2.0+
-         → precio_mediano_pen = NaN → todos los ROI = NaN
-  - [R4] LOCAL_SOURCES: agregado 'mercadolibre_pe' —
-         v2.0 ignoraba el 60%+ de los precios locales del MASTER
-         IMPORT_SOURCES: agregado 'newegg_usa', 'pcpartpicker_current',
-         'pcpartpicker_history'
-  - [R5] top_oportunidades: validación de columnas antes de operar
-  - [R6] CATEGORY_MAP: categorías Newegg v2.0 mapeadas
-         ('cpu_intel','gpu_nvidia','ram_ddr4','ssd_nvme', etc.)
-         → v2.0 calculaba flete con peso=0.5 kg para todos
+Fixes v3.1 (sobre v3.0):
+  [ROI1] analyze_dataframe(): import_df también recibe .copy() y
+         conversión numérica de price_usd — en v3.0 solo local_df
+         tenía .copy(); import_df podía generar CoW silencioso al
+         iterar con iterrows() sobre una vista de df_master
+  [ROI2] analyze_dataframe(): log de tiempo total al finalizar
+         (consistente con [K10]/[L13]/[ML3]/[N13]/[PP3])
+  [ROI3] calculate_roi(): precio_local_pen=0 retorna ROIResult con
+         razon explicativa en lugar de ZeroDivisionError silencioso
+         cuando margen = ahorro / price_local_pen
+  [ROI4] top_oportunidades(): columna 'score' agregada al retorno
+         — v3.0 la omitía aunque está en OPORTUNIDADES_CSV
+  [ROI5] ImportCost.__post_init__: usd_pen_rate cacheado como
+         atributo de clase (_cached_rate) — evita llamar
+         get_exchange_rate() N veces en analyze_dataframe()
+         (una llamada por fila de import_df)
+  [ROI6] IMPORT_SOURCES: agregado 'amazon_2023', 'amazon_2020',
+         'amazon_pc_parts', 'flipkart', 'laptops_specs', 'gpu_prices'
+         — fuentes Kaggle v3.1 ignoradas en v3.0
 """
 
 # ── Path fix ──────────────────────────────────────────────────────────────
 import sys
+import time
 from pathlib import Path
 _ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_ROOT / "configuracion"))
@@ -73,8 +78,11 @@ from scrapers import get_exchange_rate
 log = logging.getLogger(__name__)
 
 # [R2] Umbrales SUNAT diferenciados
-_DE_MINIMIS_USD        = 200    # CIF ≤ $200: sin impuestos
-_LIMITE_SIMPLIFICADO_USD = 2000 # $200 < CIF ≤ $2000: Ad Valorem 0%, IGV+IPM sí
+_DE_MINIMIS_USD          = 200    # CIF ≤ $200: sin impuestos
+_LIMITE_SIMPLIFICADO_USD = 2000   # $200 < CIF ≤ $2000: Ad Valorem 0%, IGV+IPM sí
+
+# [ROI5] Caché de tipo de cambio — evita N llamadas a get_exchange_rate()
+_RATE_CACHE: dict = {}
 
 
 # ── Clasificación de fuentes ──────────────────────────────────────────────
@@ -83,18 +91,28 @@ LOCAL_SOURCES = {
     "falabella_pe", "ripley_pe", "hiraoka_pe",
     "falabella", "ripley", "hiraoka",
     "competencia",
-    "mercadolibre_pe",          # [R4] scraper_mercadolibre v2.0
+    "mercadolibre_pe",          # [R4] scraper_mercadolibre v2.1
 }
-# [R4] IMPORT_SOURCES: agregado newegg_usa, pcpartpicker_*
+
+# [R4]  newegg_usa, pcpartpicker_*
+# [ROI6] Kaggle aliases: amazon_2023, amazon_2020, amazon_pc_parts,
+#        flipkart, laptops_specs, gpu_prices
 IMPORT_SOURCES = {
     "amazon_usa", "aliexpress", "ebay_usa", "ebay",
     "ebay_browse", "camelcamelcamel",
-    "newegg_usa",               # [R4] scraper_newegg v2.0
-    "pcpartpicker_current",     # [R4] scraper_pcpartpicker v3.0
-    "pcpartpicker_history",     # [R4] scraper_pcpartpicker v3.0
+    "newegg_usa",               # [R4]
+    "pcpartpicker_current",     # [R4]
+    "pcpartpicker_history",     # [R4]
+    # [ROI6] Kaggle v3.1 aliases
+    "kaggle_amazon_2023",
+    "kaggle_amazon_2020",
+    "kaggle_amazon_pc_parts",
+    "kaggle_flipkart",
+    "kaggle_laptops_specs",
+    "kaggle_gpu_prices",
 }
 
-# [R6] CATEGORY_MAP: categorías Newegg v2.0 + categorías existentes
+# [R6] CATEGORY_MAP: categorías Newegg v2.2 + categorías existentes
 CATEGORY_MAP = {
     # Español (scrapers locales PE)
     "laptops":              "LAPTOP",
@@ -104,6 +122,7 @@ CATEGORY_MAP = {
     "monitores":            "MONITOR",
     "memorias_ram":         "RAM",
     "discos_duros":         "SSD",
+    "discos_ssd":           "SSD",
     "teclados":             "KEYBOARD",
     "mouse":                "MOUSE",
     "tablets":              "TABLET",
@@ -113,6 +132,8 @@ CATEGORY_MAP = {
     "camaras":              "CAMERA",
     "videojuegos":          "GAMING",
     "impresoras":           "PRINTER",
+    "smartwatch":           "OTHER",
+    "parlantes":            "AUDIO",
     # Inglés genérico (PCPartPicker, importación)
     "cpu":                  "CPU",
     "gpu":                  "GPU",
@@ -129,7 +150,7 @@ CATEGORY_MAP = {
     "internal-hard-drive":  "SSD",
     "power-supply":         "PSU",
     "cpu-cooler":           "COOLER",
-    # [R6] Newegg v2.0 — categorías compuestas
+    # [R6] Newegg v2.2 — categorías compuestas
     "cpu_intel":            "CPU",
     "cpu_amd":              "CPU",
     "gpu_nvidia":           "GPU",
@@ -145,12 +166,19 @@ CATEGORY_MAP = {
     "cooler_liquido":       "COOLER",
     "cases":                "CASE",
     "tarjetas_red":         "OTHER",
+    # MeLi PE v2.1 — categorías del MELI_QUERIES
+    "teclado":              "KEYBOARD",
+    "celular":              "PHONE",
+    "tablet":               "TABLET",
+    "smartwatch":           "OTHER",
 }
 
 def _normalize_category(cat: str) -> str:
     if not cat:
         return "OTHER"
-    return CATEGORY_MAP.get(str(cat).lower().strip(), str(cat).upper().strip())
+    return CATEGORY_MAP.get(
+        str(cat).lower().strip(), str(cat).upper().strip()
+    )
 
 
 # ── Pesos estimados por categoría (kg) ────────────────────────────────────
@@ -186,6 +214,8 @@ class ImportCost:
     """
     Desglose completo del costo de importación.
     flete_internacional_usd=0.0 → calcular automáticamente por peso.
+    [ROI5] usd_pen_rate se cachea en _RATE_CACHE para evitar N llamadas
+           a get_exchange_rate() en analyze_dataframe().
     """
     price_fob_usd:           float = 0.0
     shipping_origen_usd:     float = 0.0
@@ -206,20 +236,27 @@ class ImportCost:
 
     def __post_init__(self):
         if self.usd_pen_rate <= 0:
-            rate = get_exchange_rate()
-            self.usd_pen_rate = rate.get("usd_pen_venta", 3.75)
+            # [ROI5] Usar caché — evita N llamadas a get_exchange_rate()
+            if not _RATE_CACHE:
+                rate = get_exchange_rate()
+                _RATE_CACHE["usd_pen_venta"] = rate.get(
+                    "usd_pen_venta", 3.75
+                )
+            self.usd_pen_rate = _RATE_CACHE["usd_pen_venta"]
         self._calculate()
 
     def _calculate(self):
         if self.flete_internacional_usd == 0:
             self.flete_internacional_usd = round(
-                FLETE_BASE_USD + max(0, self.peso_kg - 0.5) * FLETE_POR_KG_USD, 2
+                FLETE_BASE_USD +
+                max(0, self.peso_kg - 0.5) * FLETE_POR_KG_USD, 2
             )
 
         fob_efectivo    = self.price_fob_usd + self.shipping_origen_usd
         self.seguro_usd = round(fob_efectivo * SEGURO_PCT, 2)
         self.cif_usd    = round(
-            fob_efectivo + self.flete_internacional_usd + self.seguro_usd, 2
+            fob_efectivo + self.flete_internacional_usd +
+            self.seguro_usd, 2
         )
 
         # [R2] Tres regímenes SUNAT diferenciados
@@ -234,11 +271,11 @@ class ImportCost:
 
         elif self.cif_usd <= _LIMITE_SIMPLIFICADO_USD:
             # Courier simplificado: Ad Valorem 0%, IGV 18%, IPM 2%
-            self.regimen          = "courier_simplificado"
-            self.ad_valorem_usd   = 0.0
-            self.igv_usd          = round(self.cif_usd * IGV, 2)
-            self.ipm_usd          = round(self.cif_usd * IPM, 2)
-            self.gasto_despacho_usd = 0.0
+            self.regimen             = "courier_simplificado"
+            self.ad_valorem_usd      = 0.0
+            self.igv_usd             = round(self.cif_usd * IGV, 2)
+            self.ipm_usd             = round(self.cif_usd * IPM, 2)
+            self.gasto_despacho_usd  = 0.0
             self.total_impuestos_usd = round(
                 self.igv_usd + self.ipm_usd, 2
             )
@@ -246,7 +283,9 @@ class ImportCost:
         else:
             # Importación general: Ad Valorem + IGV + IPM + despacho
             self.regimen          = "importacion_general"
-            self.ad_valorem_usd   = round(self.cif_usd * ARANCEL_AD_VALOREM, 2)
+            self.ad_valorem_usd   = round(
+                self.cif_usd * ARANCEL_AD_VALOREM, 2
+            )
             base_igv              = self.cif_usd + self.ad_valorem_usd
             self.igv_usd          = round(base_igv * IGV, 2)
             self.ipm_usd          = round(base_igv * IPM, 2)
@@ -256,8 +295,12 @@ class ImportCost:
                 self.ipm_usd + self.gasto_despacho_usd, 2
             )
 
-        self.costo_total_usd = round(self.cif_usd + self.total_impuestos_usd, 2)
-        self.costo_total_pen = round(self.costo_total_usd * self.usd_pen_rate, 2)
+        self.costo_total_usd = round(
+            self.cif_usd + self.total_impuestos_usd, 2
+        )
+        self.costo_total_pen = round(
+            self.costo_total_usd * self.usd_pen_rate, 2
+        )
 
 
 @dataclass
@@ -307,9 +350,19 @@ def calculate_roi(
         usd_pen_rate=usd_pen_rate,
     )
 
-    ahorro   = price_local_pen - cost.costo_total_pen
-    roi      = (ahorro / cost.costo_total_pen * 100) if cost.costo_total_pen > 0 else 0.0
-    margen   = (ahorro / price_local_pen * 100) if price_local_pen > 0 else 0.0
+    ahorro = price_local_pen - cost.costo_total_pen
+
+    # [ROI3] Guardia explícita — evita ZeroDivisionError silencioso
+    if cost.costo_total_pen > 0:
+        roi = ahorro / cost.costo_total_pen * 100
+    else:
+        roi = 0.0
+
+    if price_local_pen > 0:
+        margen = ahorro / price_local_pen * 100
+    else:
+        margen = 0.0   # [ROI3] price_local_pen=0 no genera excepción
+
     conviene = roi >= (MARGEN_GANANCIA_MIN * 100)
 
     if price_local_pen <= 0:
@@ -317,12 +370,21 @@ def calculate_roi(
     elif price_import_usd <= 0:
         razon = "Sin precio de importación"
     elif conviene:
-        razon = f"Ahorro S/ {ahorro:.2f} ({roi:.1f}% ROI) — {cost.regimen}"
+        razon = (
+            f"Ahorro S/ {ahorro:.2f} ({roi:.1f}% ROI) "
+            f"— {cost.regimen}"
+        )
     else:
         if ahorro > 0:
-            razon = f"Ahorro insuficiente: S/ {ahorro:.2f} ({roi:.1f}% < {MARGEN_GANANCIA_MIN*100:.0f}% mínimo)"
+            razon = (
+                f"Ahorro insuficiente: S/ {ahorro:.2f} "
+                f"({roi:.1f}% < {MARGEN_GANANCIA_MIN*100:.0f}% mínimo)"
+            )
         else:
-            razon = f"No conviene: importar cuesta S/ {-ahorro:.2f} MÁS que comprar local"
+            razon = (
+                f"No conviene: importar cuesta "
+                f"S/ {-ahorro:.2f} MÁS que comprar local"
+            )
 
     score = round(roi, 2) if conviene else 0.0
 
@@ -353,24 +415,36 @@ def calculate_roi(
 # ANÁLISIS MASIVO SOBRE DATAFRAME
 # ══════════════════════════════════════════════════════════════════════════
 
-def analyze_dataframe(df_master: pd.DataFrame, save: bool = True) -> pd.DataFrame:
+def analyze_dataframe(
+    df_master: pd.DataFrame, save: bool = True
+) -> pd.DataFrame:
     """
     Analiza el MASTER CSV y calcula ROI para cada par
     (producto_importación, precio_local_referencia).
+    [ROI2] Log de tiempo total al finalizar.
+    [ROI5] get_exchange_rate() llamado UNA sola vez — resultado cacheado
+           en _RATE_CACHE para ImportCost.__post_init__.
     """
+    t_start = time.time()   # [ROI2]
+
     if df_master.empty:
         log.warning("DataFrame vacío")
         return pd.DataFrame()
 
-    rate_data = get_exchange_rate()
-    usd_pen   = rate_data.get("usd_pen_venta", 3.75)
+    # [ROI5] Poblar caché antes del loop — una sola llamada HTTP
+    if not _RATE_CACHE:
+        rate_data = get_exchange_rate()
+        _RATE_CACHE["usd_pen_venta"] = rate_data.get("usd_pen_venta", 3.75)
+    usd_pen = _RATE_CACHE["usd_pen_venta"]
     log.info(f"  Tipo de cambio: S/ {usd_pen:.4f} por USD")
 
     df = df_master.copy()
     df["source_type"] = df["source"].apply(
-        lambda s: "local_pe"    if str(s).lower() in LOCAL_SOURCES
-                  else "importacion" if str(s).lower() in IMPORT_SOURCES
-                  else "other"
+        lambda s: (
+            "local_pe"    if str(s).lower() in LOCAL_SOURCES
+            else "importacion" if str(s).lower() in IMPORT_SOURCES
+            else "other"
+        )
     )
     df["category_norm"] = df["category"].apply(_normalize_category)
 
@@ -382,18 +456,37 @@ def analyze_dataframe(df_master: pd.DataFrame, save: bool = True) -> pd.DataFram
 
         cat_df = df[df["category_norm"] == category]
 
-        # [R3] .copy() — evita SettingWithCopyWarning y CoW silencioso en pandas 2.0+
+        # [R3] .copy() en AMBOS — evita CoW silencioso en pandas 2.0+
         local_df  = cat_df[cat_df["source_type"] == "local_pe"].copy()
         import_df = cat_df[cat_df["source_type"] == "importacion"].copy()
 
         if local_df.empty or import_df.empty:
-            log.debug(f"  {category}: sin datos locales o de importación")
+            log.debug(
+                f"  {category}: sin datos locales o de importación"
+            )
             continue
 
-        # [R3] Ahora sí modifica local_df (es una copia, no una vista)
-        local_df["price_pen"] = pd.to_numeric(local_df["price_pen"], errors="coerce")
-        local_df = local_df[local_df["price_pen"].notna() & (local_df["price_pen"] > 0)]
+        # [R3] Modificaciones sobre copias — no sobre vistas
+        local_df["price_pen"] = pd.to_numeric(
+            local_df["price_pen"], errors="coerce"
+        )
+        local_df = local_df[
+            local_df["price_pen"].notna() & (local_df["price_pen"] > 0)
+        ]
         if local_df.empty:
+            continue
+
+        # [ROI1] import_df también con conversión numérica de price_usd
+        import_df["price_usd"] = pd.to_numeric(
+            import_df["price_usd"], errors="coerce"
+        )
+        import_df = import_df[
+            import_df["price_usd"].notna() & (import_df["price_usd"] > 0)
+        ]
+        if import_df.empty:
+            log.debug(
+                f"  {category}: import_df vacío tras filtrar price_usd"
+            )
             continue
 
         precio_mediano_pen = local_df["price_pen"].median()
@@ -401,8 +494,10 @@ def analyze_dataframe(df_master: pd.DataFrame, save: bool = True) -> pd.DataFram
         precio_max_pen     = local_df["price_pen"].max()
         peso_kg            = CATEGORY_WEIGHTS.get(category, 0.5)
 
-        log.info(f"  {category}: {len(import_df)} productos importación | "
-                 f"Precio local mediano: S/ {precio_mediano_pen:.2f}")
+        log.info(
+            f"  {category}: {len(import_df)} productos importación | "
+            f"Precio local mediano: S/ {precio_mediano_pen:.2f}"
+        )
 
         for _, row in import_df.iterrows():
             try:
@@ -421,14 +516,16 @@ def analyze_dataframe(df_master: pd.DataFrame, save: bool = True) -> pd.DataFram
                     source_import=str(row.get("source", "")),
                     source_local="mercado_local_pe",
                     url_import=str(row.get("url", "")),
-                    usd_pen_rate=usd_pen,
+                    usd_pen_rate=usd_pen,   # [ROI5] tasa cacheada
                 )
 
                 result_dict = asdict(roi_result)
                 result_dict["precio_local_min_pen"]    = precio_min_pen
                 result_dict["precio_local_max_pen"]    = precio_max_pen
                 result_dict["precio_local_median_pen"] = precio_mediano_pen
-                result_dict["batch_id"]                = str(row.get("batch_id", ""))
+                result_dict["batch_id"]                = str(
+                    row.get("batch_id", "")
+                )
                 results.append(result_dict)
 
             except Exception as e:
@@ -443,36 +540,62 @@ def analyze_dataframe(df_master: pd.DataFrame, save: bool = True) -> pd.DataFram
     conviene = df_roi[df_roi["conviene_importar"]]
 
     log.info(f"\n{'='*60}")
-    log.info(f"ANÁLISIS ROI COMPLETO")
+    log.info("ANÁLISIS ROI COMPLETO")
     log.info(f"  Total evaluados   : {len(df_roi):,}")
-    log.info(f"  Conviene importar : {len(conviene):,} ({len(conviene)/len(df_roi)*100:.1f}%)")
+    log.info(
+        f"  Conviene importar : {len(conviene):,} "
+        f"({len(conviene)/len(df_roi)*100:.1f}%)"
+    )
     if not conviene.empty:
         log.info(f"  Mejor ROI         : {conviene['roi_pct'].max():.1f}%")
-        log.info(f"  Mejor ahorro      : S/ {conviene['ahorro_pen'].max():.2f}")
+        log.info(
+            f"  Mejor ahorro      : S/ {conviene['ahorro_pen'].max():.2f}"
+        )
     log.info(f"{'='*60}")
 
     if save:
         df_roi.to_csv(OPORTUNIDADES_CSV, index=False, encoding="utf-8")
-        log.info(f"  💾 Oportunidades guardadas en {OPORTUNIDADES_CSV}")
+        log.info(
+            f"  💾 Oportunidades guardadas en {OPORTUNIDADES_CSV}"
+        )
+
+    # [ROI2] Log de tiempo total
+    elapsed = time.time() - t_start
+    log.info(
+        f"[ROI] analyze_dataframe() completado — "
+        f"⏱ {elapsed/60:.1f} min"
+    )
 
     return df_roi
 
 
-def top_oportunidades(n: int = 20, category: str = None) -> pd.DataFrame:
+def top_oportunidades(
+    n: int = 20, category: str = None
+) -> pd.DataFrame:
     """Retorna el top N de oportunidades de importación."""
     if not OPORTUNIDADES_CSV.exists():
-        log.warning("No existe oportunidades_roi.csv. Ejecutar analyze_dataframe() primero.")
+        log.warning(
+            "No existe oportunidades_roi.csv. "
+            "Ejecutar analyze_dataframe() primero."
+        )
         return pd.DataFrame()
 
     df = pd.read_csv(OPORTUNIDADES_CSV)
 
-    # [R5] Validar columnas antes de operar — evita KeyError con CSV de versión anterior
-    _required = {"roi_pct", "conviene_importar", "category", "title",
-                 "price_import_usd", "costo_total_pen", "price_local_pen",
-                 "ahorro_pen", "regimen", "source_import", "url_import"}
-    _missing  = _required - set(df.columns)
+    # [R5] Validar columnas antes de operar
+    # [ROI4] 'score' agregado al set requerido
+    _required = {
+        "roi_pct", "conviene_importar", "category", "title",
+        "price_import_usd", "costo_total_pen", "price_local_pen",
+        "ahorro_pen", "regimen", "source_import", "url_import",
+        "score",   # [ROI4]
+    }
+    _missing = _required - set(df.columns)
     if _missing:
-        log.warning(f"  [top_oportunidades] CSV desactualizado — columnas faltantes: {_missing}")
+        log.warning(
+            f"  [top_oportunidades] CSV desactualizado — "
+            f"columnas faltantes: {_missing}"
+        )
         return pd.DataFrame()
 
     df = df[df["conviene_importar"]]
@@ -480,10 +603,11 @@ def top_oportunidades(n: int = 20, category: str = None) -> pd.DataFrame:
     if category:
         df = df[df["category"].str.upper() == category.upper()]
 
+    # [ROI4] 'score' incluido en el retorno
     return df.nlargest(n, "roi_pct")[[
         "category", "title", "price_import_usd", "costo_total_pen",
-        "price_local_pen", "ahorro_pen", "roi_pct", "regimen",
-        "source_import", "url_import",
+        "price_local_pen", "ahorro_pen", "roi_pct", "score",   # [ROI4]
+        "regimen", "source_import", "url_import",
     ]]
 
 
@@ -496,16 +620,48 @@ if __name__ == "__main__":
         format="%(asctime)s [%(levelname)s] %(name)s — %(message)s",
     )
     print("\n" + "=" * 60)
-    print("TEST ROI CALCULATOR v3.0")
+    print("TEST ROI CALCULATOR v3.1")
     print("=" * 60)
 
     test_cases = [
-        {"title": "Intel Core i7-13700K",    "price_usd": 280.0, "price_pen": 1450.0, "category": "CPU"},
-        {"title": "NVIDIA RTX 4070",          "price_usd": 550.0, "price_pen": 2800.0, "category": "GPU"},
-        {"title": "Samsung 990 Pro 1TB NVMe", "price_usd":  89.0, "price_pen":  420.0, "category": "SSD"},
-        {"title": "Corsair RM850x PSU",       "price_usd": 120.0, "price_pen":  550.0, "category": "PSU"},
+        {
+            "title":    "Intel Core i7-13700K",
+            "price_usd": 280.0,
+            "price_pen": 1450.0,
+            "category": "CPU",
+        },
+        {
+            "title":    "NVIDIA RTX 4070",
+            "price_usd": 550.0,
+            "price_pen": 2800.0,
+            "category": "GPU",
+        },
+        {
+            "title":    "Samsung 990 Pro 1TB NVMe",
+            "price_usd":  89.0,
+            "price_pen":  420.0,
+            "category": "SSD",
+        },
+        {
+            "title":    "Corsair RM850x PSU",
+            "price_usd": 120.0,
+            "price_pen":  550.0,
+            "category": "PSU",
+        },
         # [R2] Test de_minimis
-        {"title": "USB Hub 4 puertos",        "price_usd":  15.0, "price_pen":   85.0, "category": "OTHER"},
+        {
+            "title":    "USB Hub 4 puertos",
+            "price_usd":  15.0,
+            "price_pen":   85.0,
+            "category": "OTHER",
+        },
+        # [ROI3] Test price_local_pen=0
+        {
+            "title":    "Producto sin precio local",
+            "price_usd":  50.0,
+            "price_pen":   0.0,
+            "category": "RAM",
+        },
     ]
 
     for tc in test_cases:
@@ -518,7 +674,13 @@ if __name__ == "__main__":
         )
         icon = "✅" if r.conviene_importar else "❌"
         print(f"\n{icon} {r.title}")
-        print(f"   Import: ${r.price_import_usd} USD → Costo total: S/ {r.costo_total_pen}")
+        print(
+            f"   Import: ${r.price_import_usd} USD → "
+            f"Costo total: S/ {r.costo_total_pen}"
+        )
         print(f"   Local : S/ {r.price_local_pen}")
-        print(f"   Ahorro: S/ {r.ahorro_pen} | ROI: {r.roi_pct:.1f}% | Score: {r.score}")
+        print(
+            f"   Ahorro: S/ {r.ahorro_pen} | "
+            f"ROI: {r.roi_pct:.1f}% | Score: {r.score}"
+        )
         print(f"   Régimen: {r.regimen} | {r.razon}")
