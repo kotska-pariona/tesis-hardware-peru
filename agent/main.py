@@ -1,7 +1,20 @@
 #!/usr/bin/env python3
 """
-main.py — Orquestador v5.7
+main.py — Orquestador v5.8
 ════════════════════════════════════════════════════════════════════
+Fixes v5.8 (sobre v5.7):
+  [O21] BUG CRÍTICO: en TODOS los pasos que usan _near_timeout(),
+        si mode-condición=True PERO near_timeout=True, stats[key]
+        NUNCA se asignaba (ni 0 ni conteo real) — la clave quedaba
+        ausente del dict `stats` y por ende del report JSON.
+        Esto rompe cualquier consumidor downstream (roi_calculator,
+        dashboards) que acceda a report["stats"][fuente] esperando
+        que la clave siempre exista. Fix: se invirtió la condición
+        (if _near_timeout(): stats[key]=0 else: try/except) para
+        que la clave SIEMPRE se asigne, y se agregó un log explícito
+        "⏭️ omitido por timeout" por fuente (antes solo había un
+        warning global genérico, sin indicar qué fuente se saltó).
+
 Fixes v5.7 (sobre v5.6):
   [O16] scrape_pcpartpicker cargado dinámicamente igual que MeLi/Newegg
         — era import directo desde scrapers/__init__.py; si falla, el
@@ -216,10 +229,10 @@ def _make_dedup_key(row: dict) -> tuple:
     Clave: (source, fp_<md5>) para items sin SKU — determinístico.
     """
     source = row.get("source", "")
-    sku    = row.get("sku", "").strip()
+    sku    = (row.get("sku") or "").strip()
 
     if not sku:
-        title = row.get("title", row.get("name", ""))[:80]
+        title = (row.get("title") or row.get("name") or "")[:80]
         price = str(row.get("price_pen") or row.get("price_usd") or "")
         fp    = hashlib.md5(f"{title}|{price}".encode()).hexdigest()[:12]
         return (source, f"fp_{fp}")
@@ -363,7 +376,7 @@ def run(mode: str, batch_id: str):
         return False
 
     log.info("═" * 60)
-    log.info(f"  PIPELINE v5.7 — modo={mode} | batch={batch_id}")
+    log.info(f"  PIPELINE v5.8 — modo={mode} | batch={batch_id}")
     log.info(
         f"  MAX_ELAPSED_S={MAX_ELAPSED_S}s ({MAX_ELAPSED_S//60} min)"
     )
@@ -384,288 +397,14 @@ def run(mode: str, batch_id: str):
     # ── 2. Scrapers locales PE ───────────────────────────────────
     if mode in ("normal", "local_only", "full"):
         log.info(_step("🇵🇪 Tiendas locales PE (Falabella + Hiraoka)"))
-        if not _near_timeout():
+        if _near_timeout():                                   # [O21]
+            log.warning("  ⏭️  Local PE omitido — cerca del timeout")
+            stats["local"] = 0
+        else:
             try:
                 local_records = scrape_local(batch_id, mode=mode)   # [O17]
                 p = save_batch(local_records, batch_id, "local")
                 if p: batches.append(p)
                 stats["local"] = len(local_records)
                 log.info(
-                    f"  ✅ Local PE: {len(local_records):,} registros"
-                )
-            except Exception as e:
-                log.error(f"  ❌ Local PE: {e}")
-                stats["local"] = 0
-    else:
-        stats["local"] = 0
-
-    # ── 3. MercadoLibre PE ───────────────────────────────────────
-    # [O20] local_only incluye MeLi PE (consistente con help string)
-    if _HAS_MELI and mode in ("normal", "local_only", "full"):
-        log.info(_step("🛍️ MercadoLibre PE"))
-        if not _near_timeout():
-            try:
-                meli_records = scrape_mercadolibre(
-                    batch_id, mode=mode   # [O17]
-                )
-                p = save_batch(meli_records, batch_id, "mercadolibre")
-                if p: batches.append(p)
-                stats["mercadolibre_pe"] = len(meli_records)
-                log.info(
-                    f"  ✅ MeLi PE: {len(meli_records):,} registros"
-                )
-            except Exception as e:
-                log.error(f"  ❌ MeLi PE: {e}")
-                stats["mercadolibre_pe"] = 0
-    else:
-        if not _HAS_MELI:
-            log.warning("  ⚠️  MeLi PE omitido — scraper no disponible")
-        stats["mercadolibre_pe"] = 0
-
-    # ── 4. Newegg USA ────────────────────────────────────────────
-    if _HAS_NEWEGG and mode in ("normal", "historical", "full"):
-        log.info(_step("🖥️ Newegg USA (precios USD)"))
-        if not _near_timeout():
-            try:
-                newegg_records = scrape_newegg(
-                    batch_id, mode=mode   # [O17]
-                )
-                p = save_batch(newegg_records, batch_id, "newegg")
-                if p: batches.append(p)
-                stats["newegg_usa"] = len(newegg_records)
-                log.info(
-                    f"  ✅ Newegg USA: {len(newegg_records):,} registros"
-                )
-            except Exception as e:
-                log.error(f"  ❌ Newegg USA: {e}")
-                stats["newegg_usa"] = 0
-    else:
-        if not _HAS_NEWEGG:
-            log.warning(
-                "  ⚠️  Newegg USA omitido — scraper no disponible"
-            )
-        stats["newegg_usa"] = 0
-
-    # ── 5. eBay ──────────────────────────────────────────────────
-    if mode in ("normal", "historical", "full"):
-        log.info(_step("🛒 eBay USA"))
-        if not _near_timeout():
-            try:
-                ebay_records = scrape_ebay(batch_id, mode=mode)   # [O17]
-                p = save_batch(ebay_records, batch_id, "ebay")
-                if p: batches.append(p)
-                stats["ebay"] = len(ebay_records)
-                log.info(
-                    f"  ✅ eBay: {len(ebay_records):,} registros"
-                )
-            except Exception as e:
-                log.error(f"  ❌ eBay: {e}")
-                stats["ebay"] = 0
-    else:
-        stats["ebay"] = 0
-
-    # ── 6. CamelCamelCamel ───────────────────────────────────────
-    # [O18] Guard _HAS_CAMEL — si el módulo no carga, omite con warning
-    if _HAS_CAMEL and mode in ("historical", "full"):
-        log.info(_step("🐪 CamelCamelCamel"))
-        if not _near_timeout():
-            try:
-                camel_records = scrape_camel(batch_id, mode=mode)   # [O17]
-                p = save_batch(camel_records, batch_id, "camel")
-                if p: batches.append(p)
-                stats["camel"] = len(camel_records)
-                log.info(
-                    f"  ✅ Camel: {len(camel_records):,} registros"
-                )
-            except Exception as e:
-                log.error(f"  ❌ Camel: {e}")
-                stats["camel"] = 0
-    else:
-        if not _HAS_CAMEL and mode in ("historical", "full"):
-            log.warning(
-                "  ⚠️  CamelCamelCamel omitido — scraper no disponible"
-            )
-        stats["camel"] = 0
-
-    # ── 7. PCPartPicker ──────────────────────────────────────────
-    # [O16] Guard _HAS_PCP — carga dinámica igual que MeLi/Newegg
-    if _HAS_PCP and mode in ("historical", "full"):
-        log.info(_step("🖥️ PCPartPicker"))
-        if not _near_timeout():
-            try:
-                pcp_records = scrape_pcpartpicker(
-                    batch_id, mode=mode   # [O17]
-                )
-                p = save_batch(pcp_records, batch_id, "pcpartpicker")
-                if p: batches.append(p)
-                stats["pcpartpicker"] = len(pcp_records)
-                log.info(
-                    f"  ✅ PCPartPicker: {len(pcp_records):,} registros"
-                )
-            except Exception as e:
-                log.error(f"  ❌ PCPartPicker: {e}")
-                stats["pcpartpicker"] = 0
-    else:
-        if not _HAS_PCP and mode in ("historical", "full"):
-            log.warning(
-                "  ⚠️  PCPartPicker omitido — scraper no disponible"
-            )
-        stats["pcpartpicker"] = 0
-
-    # ── 8. Kaggle ────────────────────────────────────────────────
-    # [O18] Guard _HAS_KAGGLE — si el módulo no carga, omite con warning
-    if _HAS_KAGGLE and mode in ("kaggle_only", "full"):
-        log.info(_step("📦 Kaggle datasets"))
-        if not _near_timeout():
-            try:
-                kaggle_records = scrape_kaggle(
-                    batch_id, mode=mode   # [O17]
-                )
-                p = save_batch(kaggle_records, batch_id, "kaggle")
-                if p: batches.append(p)
-                stats["kaggle"] = len(kaggle_records)
-                log.info(
-                    f"  ✅ Kaggle: {len(kaggle_records):,} registros"
-                )
-            except Exception as e:
-                log.error(f"  ❌ Kaggle: {e}")
-                stats["kaggle"] = 0
-    else:
-        if not _HAS_KAGGLE and mode in ("kaggle_only", "full"):
-            log.warning(
-                "  ⚠️  Kaggle omitido — scraper no disponible"
-            )
-        stats["kaggle"] = 0
-
-    # ── 9. Importación ───────────────────────────────────────────
-    # [O9] 'local_only' incluido
-    if _HAS_IMPORTACION and mode in (
-        "normal", "local_only", "historical", "full"
-    ):
-        log.info(_step("📦 Precios de importación"))
-        if not _near_timeout():
-            try:
-                imp_records = scrape_importacion(
-                    batch_id, mode=mode   # [O17]
-                )
-                p = save_batch(imp_records, batch_id, "importacion")
-                if p: batches.append(p)
-                stats["importacion"] = len(imp_records)
-                log.info(
-                    f"  ✅ Importación: {len(imp_records):,} registros"
-                )
-            except Exception as e:
-                log.error(f"  ❌ Importación: {e}")
-                stats["importacion"] = 0
-    else:
-        stats["importacion"] = 0
-
-    # ── 10. Competencia ──────────────────────────────────────────
-    # [O8] 'normal' incluido
-    if _HAS_COMPETENCIA and mode in ("normal", "local_only", "full"):
-        log.info(_step("🔍 Competencia local PE"))
-        if not _near_timeout():
-            try:
-                comp_records = scrape_competencia(
-                    batch_id, mode=mode   # [O17]
-                )
-                p = save_batch(comp_records, batch_id, "competencia")
-                if p: batches.append(p)
-                stats["competencia"] = len(comp_records)
-                log.info(
-                    f"  ✅ Competencia: {len(comp_records):,} registros"
-                )
-            except Exception as e:
-                log.error(f"  ❌ Competencia: {e}")
-                stats["competencia"] = 0
-    else:
-        stats["competencia"] = 0
-
-    # ── Merge al MASTER ──────────────────────────────────────────
-    log.info("\n[MERGE] Actualizando MASTER_hardware_peru.csv...")
-    master_total, new_added = merge_to_master(batches)
-    stats["master_total"] = master_total
-
-    # ── Reporte ──────────────────────────────────────────────────
-    elapsed = time.time() - start
-    report  = save_report(batch_id, stats, elapsed, new_added)
-
-    # ── Resumen final ────────────────────────────────────────────
-    log.info("\n" + "═" * 60)
-    log.info("  RESUMEN FINAL")
-    log.info("═" * 60)
-    log.info(f"  Batch ID     : {batch_id}")
-    log.info(f"  Modo         : {mode}")
-    log.info(f"  Duración     : {int(elapsed//60)}m {int(elapsed%60)}s")
-    log.info(f"  {'Fuente':<22} {'Registros':>10}")
-    log.info(f"  {'-'*34}")
-    for src, count in stats.items():
-        if src != "master_total":
-            log.info(f"  {src:<22} {count:>10,}")
-    log.info(f"  {'-'*34}")
-    log.info(f"  {'NUEVOS REALES':<22} {new_added:>10,}")
-    log.info(f"  {'MASTER TOTAL':<22} {master_total:>10,}")
-    log.info("═" * 60)
-
-    return report
-
-
-# ══════════════════════════════════════════════════════════════════════
-# ARGPARSE
-# ══════════════════════════════════════════════════════════════════════
-
-def _parse_args():
-    parser = argparse.ArgumentParser(
-        description="Pipeline de recolección — tesis-hardware-peru v5.7",
-        formatter_class=argparse.RawTextHelpFormatter,
-    )
-    parser.add_argument(
-        "--mode",
-        default="normal",
-        choices=[
-            "normal", "local_only", "historical", "kaggle_only", "full"
-        ],
-        help=(
-            "Modo de ejecución:\n"
-            "  normal      → local PE + MeLi PE + Newegg + eBay + "
-            "importacion + competencia (~55 min)\n"
-            "  local_only  → Falabella/Hiraoka + MeLi PE + importacion + "
-            "competencia (~30 min)\n"   # [O20] consistente con código
-            "  historical  → Newegg + eBay + CamelCamelCamel + "
-            "PCPartPicker + importacion (~50 min)\n"
-            "  kaggle_only → solo descarga Kaggle (~30 min)\n"
-            "  full        → todo (~110 min) "
-            "⚠️ usa MAX_ELAPSED_S para merge seguro"
-        ),
-    )
-    parser.add_argument(
-        "--batch-id",
-        default=None,
-        help="Batch ID manual (default: timestamp automático)",
-    )
-    parser.add_argument(
-        "--max-elapsed",
-        type=int,
-        default=None,
-        help=(
-            f"Timeout en segundos "
-            f"(default: {MAX_ELAPSED_S}s = {MAX_ELAPSED_S//60} min)"
-        ),
-    )
-    return parser.parse_args()
-
-
-# ══════════════════════════════════════════════════════════════════════
-# ENTRY POINT
-# ══════════════════════════════════════════════════════════════════════
-
-if __name__ == "__main__":
-    args = _parse_args()
-    if args.max_elapsed:
-        MAX_ELAPSED_S = args.max_elapsed
-    # [O7] datetime con timezone explícita
-    batch_id = (
-        args.batch_id or
-        datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
-    )
-    run(mode=args.mode, batch_id=batch_id)
+                    f"
