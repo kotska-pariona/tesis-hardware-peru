@@ -1,18 +1,13 @@
 # ════════════════════════════════════════════════════════════
-# Pipeline ROI Importación PE — v2.0
-# CAMBIOS v2.0 (sobre v1.0):
-#   [P1] pip: agregado scrapy + ebaysdk
-#   [P2] pip: agregado fake-useragent + cloudscraper + pytz
-#             (consistencia con daily_agent v6.0)
-#   [P3] BATCH_ID: timestamp en hora PE (TZ='America/Lima')
-#   [P4] PYTHONPATH=agent:configuracion agregado al step 7
-#        (causa raíz de ImportError en import scrapers/config)
-#   [P5] Step 9 commit: pull PRIMERO → add → commit → push
-#   [P6] upload-artifact: ruta agent.log corregida a logs/
-#   [P7] actions/checkout@v4.2.2 + setup-python@v5.4.0 (Node 24)
-#   [P8] AMAZON_* keys: comentario aclaratorio agregado
-#   [P9] concurrency: grupo unificado con daily_agent
-#        → evita race condition en MASTER_hardware_peru.csv
+# Pipeline ROI Importación PE — v2.1
+# CAMBIOS v2.1 (sobre v2.0):
+#   [P10] ebaysdk eliminado de pip install (no usado — OAuth2 directo)
+#   [P11] tzdata agregado a pip install (ZoneInfo en ubuntu-latest)
+#   [P12] EBAY_CLIENT_SECRET agregado a env del step 6 (faltaba)
+#   [P13] git add ANTES de pull --rebase (fix bug "unstaged changes")
+#   [P14] git pull --rebase: falla explícita en lugar de || true silencioso
+#   [P15] COMPUMUNDO_ENABLED=false via env (SSL mismatch — ahorra ~12 min)
+#   [P16] batch 24h: escritura atómica con .tmp → rename (anti-corrupción)
 # ════════════════════════════════════════════════════════════
 name: Pipeline ROI Importación PE
 
@@ -90,7 +85,9 @@ jobs:
             fake-useragent \
             cloudscraper \
             pytz \
-            ebaysdk
+            tzdata
+          # [P11] tzdata necesario para ZoneInfo("America/Lima") en ubuntu-latest
+          # [P10] ebaysdk eliminado — OAuth2 se maneja directo con requests
 
       # ── 4. Crear directorios ───────────────────────────────────────
       - name: "📁 Crear directorios"
@@ -113,7 +110,7 @@ jobs:
       - name: "🚀 Ejecutar pipeline"
         env:
           # [P4] PYTHONPATH para resolver 'import scrapers' y 'import config'
-          PYTHONPATH: "agent:configuracion"
+          PYTHONPATH: "agent:agent/scrapers:configuracion"
           # ── Costos de importación (roi_calculator.py) ──────────────
           IGV:                 "0.18"
           IPM:                 "0.02"
@@ -128,8 +125,10 @@ jobs:
           MAX_PAGES:           "5"
           MAX_PAGES_IMPORT:    "5"
           OUTPUT_DIR:          "data/raw"
+          COMPUMUNDO_ENABLED:  "false"   # [P15] SSL mismatch permanente — ~12 min ahorrados
           # ── APIs ───────────────────────────────────────────────────
           EBAY_APP_ID:         ${{ secrets.EBAY_APP_ID }}
+          EBAY_CLIENT_SECRET:  ${{ secrets.EBAY_CLIENT_SECRET }}   # [P12] faltaba
           # [P8] Amazon PA API — usado por scraper_importacion.py si está configurado;
           #      el scraper también funciona con BeautifulSoup si las keys están vacías
           AMAZON_ACCESS_KEY:   ${{ secrets.AMAZON_ACCESS_KEY }}
@@ -186,17 +185,22 @@ jobs:
           [ -f "$REPORT" ] && cat "$REPORT" || echo "  Sin reporte"
 
       # ── 8. Commit y push ───────────────────────────────────────────
-      # [P5] Pull PRIMERO → evita 'uncommitted changes' en rebase
+      # [P13] Orden correcto: add PRIMERO → pull --rebase → commit → push
       - name: "💾 Commit datos al repo"
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          # [P5] Pull antes de staging
-          git pull --rebase origin main || true
-
+          # [P13] PRIMERO stagear — working tree limpio antes del rebase
           git add data/raw/
           # NO agregar data/kaggle/ — archivos >100MB rompen git push
+
+          # [P14] Pull con falla explícita — no silenciar errores reales
+          git pull --rebase origin main || {
+            echo "❌ git pull --rebase falló — abortando rebase"
+            git rebase --abort 2>/dev/null || true
+            exit 1
+          }
 
           if git diff --staged --quiet; then
             echo "ℹ️ Sin cambios nuevos"
