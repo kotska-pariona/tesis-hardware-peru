@@ -1,5 +1,5 @@
 """
-config.py  v2.3
+config.py  v2.4
 ══════════════════
 Fuente única de verdad para todas las constantes del proyecto.
 Todos los demás módulos importan desde aquí.
@@ -19,16 +19,23 @@ Estructura de directorios unificada:
       ├── models/            ← modelos ML
       └── logs/              ← logs unificados
 
-Fixes v2.3 (sobre v2.2):
-  - [C9]  SOURCES_LOCAL: +coolbox, +compumundo (scraper_competencia v4.0)
-  - [C10] SOURCES_IMPORT: "ebay" → "ebay_usa" (consistente con scraper_ebay v4.0)
-  - [C11] FLETE_BASE_USD: 25.0 → 35.0 (couriers PE 2026 reales)
-  - [C12] DE_MINIMIS_USD: 200.0 → 100.0 (SUNAT Resolución 000026-2024)
-  - [C13] validate(): check FLETE_POR_KG_USD vs FLETE_BASE_USD
-  - [C14] LSTM_LOOKBACK_DAYS: 30 → 60 (más robusto para series cortas)
-  - [C15] ML_MIN_RECORDS: 500 → 100 (realista para inicio del proyecto)
-  - [C16] validate() fatal en CI/CD (GITHUB_ACTIONS=true), warning en local
-  - [M15] VERSION = "2.3" para debugging en logs
+Fixes v2.4 (sobre v2.3):
+  [CFG1] SOURCES_LOCAL: +mercadolibre_pe ya estaba en [C4] pero faltaban
+         los aliases normalizados 'falabella_pe' y 'hiraoka_pe' que emiten
+         scraper_local v3.6 y scraper_competencia v4.1 — roi_calculator
+         los clasificaba como 'other' en lugar de 'local_pe'
+  [CFG2] SOURCES_IMPORT: +aliases Kaggle v3.1 (kaggle_amazon_2023,
+         kaggle_amazon_2020, kaggle_amazon_pc_parts, kaggle_flipkart,
+         kaggle_laptops_specs, kaggle_gpu_prices) — consistente con [ROI6]
+         de roi_calculator v3.1
+  [CFG3] DE_MINIMIS_USD: 100.0 → 200.0 — SUNAT Resolución 000026-2024
+         establece $200 CIF, no $100; [C12] en v2.3 era incorrecto.
+         roi_calculator v3.1 usa _DE_MINIMIS_USD=200 (correcto); config.py
+         debe ser consistente con él
+  [CFG4] validate(): FLETE_POR_KG_USD check corregido — en v2.3 el check
+         era FLETE_POR_KG_USD > FLETE_BASE_USD (8 > 35 = False, nunca dispara);
+         el check correcto es FLETE_POR_KG_USD <= 0
+  [CFG5] VERSION = "2.4"
 """
 
 import os
@@ -37,7 +44,7 @@ import warnings
 from pathlib import Path
 from dotenv import load_dotenv
 
-VERSION = "2.3"   # [M15]
+VERSION = "2.4"   # [CFG5]
 
 # ── Paths ──────────────────────────────────────────────────────────────
 CONFIG_DIR = Path(__file__).resolve().parent   # configuracion/
@@ -59,7 +66,8 @@ def _env_float(key: str, default: float) -> float:
         return float(val)
     except ValueError:
         warnings.warn(
-            f"config.py: {key}='{val}' no es un float válido — usando default {default}",
+            f"config.py: {key}='{val}' no es un float válido "
+            f"— usando default {default}",
             stacklevel=3,
         )
         return default
@@ -73,7 +81,8 @@ def _env_int(key: str, default: int) -> int:
         return int(val)
     except ValueError:
         warnings.warn(
-            f"config.py: {key}='{val}' no es un int válido — usando default {default}",
+            f"config.py: {key}='{val}' no es un int válido "
+            f"— usando default {default}",
             stacklevel=3,
         )
         return default
@@ -119,21 +128,36 @@ MAX_PAGES_IMPORT = _env_int("MAX_PAGES_IMPORT",   5)
 MAX_PAGES_COMP   = _env_int("MAX_PAGES_COMP",     5)
 MAX_RETRIES      = _env_int("MAX_RETRIES",        2)
 
-# [C4] + [C9] SOURCES_LOCAL — incluye competencia v4.0
+# [C4] + [C9] + [CFG1] SOURCES_LOCAL
+# Incluye aliases _pe que emiten scraper_local v3.6 y scraper_competencia v4.1
+# Sin ellos roi_calculator los clasificaba como 'other' en lugar de 'local_pe'
 SOURCES_LOCAL = [
-    "falabella", "hiraoka",          # tiendas activas (scraper_local)
-    "coolbox", "compumundo",         # [C9] scraper_competencia v4.0
-    "mercadolibre_pe",               # [C4] scraper_mercadolibre v2.0
-    # "ripley" — deshabilitado (403 Cloudflare)
+    # scraper_local v3.6
+    "falabella_pe",              # [CFG1] alias real emitido por scraper
+    "hiraoka_pe",                # [CFG1] alias real emitido por scraper
+    "falabella", "hiraoka",      # aliases legacy
+    # scraper_competencia v4.1 [C9]
+    "coolbox", "compumundo",
+    # scraper_mercadolibre v2.1 [C4]
+    "mercadolibre_pe",
+    # "ripley_pe" — deshabilitado (403 Cloudflare)
 ]
 
-# [C4] + [C10] SOURCES_IMPORT — "ebay" → "ebay_usa"
+# [C4] + [C10] + [CFG2] SOURCES_IMPORT
+# Incluye aliases Kaggle v3.1 — consistente con [ROI6] de roi_calculator v3.1
 SOURCES_IMPORT = [
     "amazon", "aliexpress",
-    "ebay_usa",                      # [C10] consistente con scraper_ebay v4.0
-    "newegg_usa",                    # [C4] scraper_newegg v2.0
-    "pcpartpicker_current",          # [C4] scraper_pcpartpicker v3.0
-    "pcpartpicker_history",          # [C4] scraper_pcpartpicker v3.0
+    "ebay_usa",                      # [C10]
+    "newegg_usa",                    # [C4]
+    "pcpartpicker_current",          # [C4]
+    "pcpartpicker_history",          # [C4]
+    # [CFG2] Kaggle v3.1 aliases
+    "kaggle_amazon_2023",
+    "kaggle_amazon_2020",
+    "kaggle_amazon_pc_parts",
+    "kaggle_flipkart",
+    "kaggle_laptops_specs",
+    "kaggle_gpu_prices",
 ]
 
 # [C6] CATEGORIES: fuente única de verdad — alineada con CATEGORY_MAP
@@ -152,15 +176,18 @@ ARANCEL_AD_VALOREM  = _env_float("ARANCEL_AD_VALOREM",  0.00)   # 0% electrónic
 IGV                 = _env_float("IGV",                  0.18)   # 18%
 IPM                 = _env_float("IPM",                  0.02)   # 2%
 FLETE_BASE_USD      = _env_float("FLETE_BASE_USD",      35.0)    # [C11] courier 2026
-FLETE_POR_KG_USD    = _env_float("FLETE_POR_KG_USD",    8.0)    # por kg adicional
+FLETE_POR_KG_USD    = _env_float("FLETE_POR_KG_USD",    8.0)     # por kg adicional
 SEGURO_PCT          = _env_float("SEGURO_PCT",           0.005)  # 0.5% del FOB
 GASTO_DESPACHO_USD  = _env_float("GASTO_DESPACHO_USD",  15.0)   # despacho aduanero
 MARGEN_GANANCIA_MIN = _env_float("MARGEN_GANANCIA_MIN",  0.15)  # 15% ROI mínimo
 
-# [C1] + [C12] Umbrales SUNAT — SUNAT Resolución 000026-2024
-DE_MINIMIS_USD          = _env_float("DE_MINIMIS_USD",          100.0)  # [C12] era 200
-LIMITE_SIMPLIFICADO_USD = _env_float("LIMITE_SIMPLIFICADO_USD", 2000.0) # IGV+IPM, sin Ad Valorem
-LIMITE_COURIER_USD      = DE_MINIMIS_USD   # alias legacy — compatibilidad v2.2
+# [C1] + [CFG3] Umbrales SUNAT — SUNAT Resolución 000026-2024
+# [CFG3] DE_MINIMIS_USD corregido a 200.0 — v2.3 tenía 100.0 (incorrecto)
+#        roi_calculator v3.1 usa _DE_MINIMIS_USD=200 (correcto); config.py
+#        debe ser consistente con él
+DE_MINIMIS_USD          = _env_float("DE_MINIMIS_USD",          200.0)  # [CFG3]
+LIMITE_SIMPLIFICADO_USD = _env_float("LIMITE_SIMPLIFICADO_USD", 2000.0)
+LIMITE_COURIER_USD      = DE_MINIMIS_USD   # alias legacy — compatibilidad v2.3
 
 # ── Tipo de cambio ─────────────────────────────────────────────────────
 USD_PEN_DEFAULT    = _env_float("USD_PEN_DEFAULT",    3.75)
@@ -178,8 +205,8 @@ KAGGLE_KEY         = os.getenv("KAGGLE_KEY",          "")
 # ── ML — Parámetros ────────────────────────────────────────────────────
 ML_TEST_SIZE       = _env_float("ML_TEST_SIZE",       0.2)
 ML_RANDOM_STATE    = _env_int("ML_RANDOM_STATE",      42)
-ML_MIN_RECORDS     = _env_int("ML_MIN_RECORDS",       100)   # [C15] era 500
-LSTM_LOOKBACK_DAYS = _env_int("LSTM_LOOKBACK_DAYS",   60)    # [C14] era 30
+ML_MIN_RECORDS     = _env_int("ML_MIN_RECORDS",       100)   # [C15]
+LSTM_LOOKBACK_DAYS = _env_int("LSTM_LOOKBACK_DAYS",   60)    # [C14]
 LSTM_FORECAST_DAYS = _env_int("LSTM_FORECAST_DAYS",   7)
 
 
@@ -194,38 +221,57 @@ def validate() -> bool:
     if IPM < 0:
         issues.append(f"IPM debe ser >= 0 (actual: {IPM})")
     if MARGEN_GANANCIA_MIN <= 0:
-        issues.append(f"MARGEN_GANANCIA_MIN debe ser > 0 (actual: {MARGEN_GANANCIA_MIN})")
+        issues.append(
+            f"MARGEN_GANANCIA_MIN debe ser > 0 "
+            f"(actual: {MARGEN_GANANCIA_MIN})"
+        )
     if FLETE_BASE_USD <= 0:
-        issues.append(f"FLETE_BASE_USD debe ser > 0 (actual: {FLETE_BASE_USD})")
+        issues.append(
+            f"FLETE_BASE_USD debe ser > 0 (actual: {FLETE_BASE_USD})"
+        )
     if USD_PEN_DEFAULT <= 0:
-        issues.append(f"USD_PEN_DEFAULT debe ser > 0 (actual: {USD_PEN_DEFAULT})")
+        issues.append(
+            f"USD_PEN_DEFAULT debe ser > 0 (actual: {USD_PEN_DEFAULT})"
+        )
 
     # [C2] Checks adicionales
     if ARANCEL_AD_VALOREM < 0:
-        issues.append(f"ARANCEL_AD_VALOREM debe ser >= 0 (actual: {ARANCEL_AD_VALOREM})")
-    if SEGURO_PCT < 0:
-        issues.append(f"SEGURO_PCT debe ser >= 0 (actual: {SEGURO_PCT})")
-    if FLETE_POR_KG_USD < 0:
-        issues.append(f"FLETE_POR_KG_USD debe ser >= 0 (actual: {FLETE_POR_KG_USD})")
-    if GASTO_DESPACHO_USD < 0:
-        issues.append(f"GASTO_DESPACHO_USD debe ser >= 0 (actual: {GASTO_DESPACHO_USD})")
-    if not (0 < ML_TEST_SIZE < 1):
-        issues.append(f"ML_TEST_SIZE debe estar en (0, 1) (actual: {ML_TEST_SIZE})")
-
-    # [C13] Coherencia flete
-    if FLETE_POR_KG_USD > FLETE_BASE_USD:
         issues.append(
-            f"FLETE_POR_KG_USD ({FLETE_POR_KG_USD}) > FLETE_BASE_USD "
-            f"({FLETE_BASE_USD}) — revisar configuración de flete"
+            f"ARANCEL_AD_VALOREM debe ser >= 0 "
+            f"(actual: {ARANCEL_AD_VALOREM})"
+        )
+    if SEGURO_PCT < 0:
+        issues.append(
+            f"SEGURO_PCT debe ser >= 0 (actual: {SEGURO_PCT})"
+        )
+    # [CFG4] Check corregido: FLETE_POR_KG_USD debe ser > 0
+    #        En v2.3 el check era FLETE_POR_KG_USD > FLETE_BASE_USD
+    #        (8 > 35 = False — nunca disparaba)
+    if FLETE_POR_KG_USD <= 0:
+        issues.append(
+            f"FLETE_POR_KG_USD debe ser > 0 "
+            f"(actual: {FLETE_POR_KG_USD})"
+        )
+    if GASTO_DESPACHO_USD < 0:
+        issues.append(
+            f"GASTO_DESPACHO_USD debe ser >= 0 "
+            f"(actual: {GASTO_DESPACHO_USD})"
+        )
+    if not (0 < ML_TEST_SIZE < 1):
+        issues.append(
+            f"ML_TEST_SIZE debe estar en (0, 1) "
+            f"(actual: {ML_TEST_SIZE})"
         )
 
-    # [C1] + [C12] Coherencia umbrales SUNAT
+    # [C1] + [CFG3] Coherencia umbrales SUNAT
     if DE_MINIMIS_USD <= 0:
-        issues.append(f"DE_MINIMIS_USD debe ser > 0 (actual: {DE_MINIMIS_USD})")
+        issues.append(
+            f"DE_MINIMIS_USD debe ser > 0 (actual: {DE_MINIMIS_USD})"
+        )
     if LIMITE_SIMPLIFICADO_USD <= DE_MINIMIS_USD:
         issues.append(
-            f"LIMITE_SIMPLIFICADO_USD ({LIMITE_SIMPLIFICADO_USD}) debe ser "
-            f"> DE_MINIMIS_USD ({DE_MINIMIS_USD})"
+            f"LIMITE_SIMPLIFICADO_USD ({LIMITE_SIMPLIFICADO_USD}) debe "
+            f"ser > DE_MINIMIS_USD ({DE_MINIMIS_USD})"
         )
 
     if issues:
@@ -264,8 +310,14 @@ if __name__ == "__main__":
     print(f"    Ad Valorem             : {ARANCEL_AD_VALOREM*100:.0f}%")
     print(f"    Flete base             : ${FLETE_BASE_USD}  ← actualizado 2026")
     print(f"    Flete por kg           : ${FLETE_POR_KG_USD}/kg")
-    print(f"    De minimis             : ${DE_MINIMIS_USD}  (SUNAT 2024, sin impuestos)")
-    print(f"    Límite simplificado    : ${LIMITE_SIMPLIFICADO_USD}  (IGV+IPM, sin Ad Valorem)")
+    print(
+        f"    De minimis             : ${DE_MINIMIS_USD}  "
+        f"(SUNAT Res. 000026-2024, sin impuestos)"
+    )
+    print(
+        f"    Límite simplificado    : ${LIMITE_SIMPLIFICADO_USD}  "
+        f"(IGV+IPM, sin Ad Valorem)"
+    )
     print(f"    Margen mínimo          : {MARGEN_GANANCIA_MIN*100:.0f}%")
     print(f"    USD/PEN default        : S/ {USD_PEN_DEFAULT}")
     print(f"    Dolar update cada      : {DOLAR_UPDATE_HOURS}h")
