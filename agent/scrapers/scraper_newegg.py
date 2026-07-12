@@ -1,23 +1,22 @@
 #!/usr/bin/env python3
 """
-scraper_newegg.py  v2.1
+scraper_newegg.py  v2.2
 Scraper Newegg USA — catálogo completo de hardware
 Método: HTML scraping (requests + BeautifulSoup)
 Precios: USD (price_usd) — sin conversión a PEN
 
-Fixes v2.1 (sobre v2.0):
-  - [N6]  NEWEGG_CATEGORIES: URLs actualizadas al sistema 2025-2026
-  - [N7]  USER_AGENTS: Chrome 125 → Chrome 136 (julio 2026)
-  - [N8]  _parse_cell precio: usa _parse_price(texto completo) — evita
-          error con <sup>.</sup><sup>99</sup> en HTML de Newegg
-  - [N9]  category: nombre interno → categoría normalizada via CAT_NORMALIZE
-          ("cpu_intel" → "CPU", "gpu_nvidia" → "GPU", etc.)
-  - [N10] timestamp: por record (no fijo al inicio del scrape)
-  - [N11] MAX_PAGES: 20 → 10 (Newegg máx 10-12 páginas reales)
-  - [N12] reviews: parser dedicado int (no _parse_price float)
-  - [N13] Log de tiempo total al finalizar
-  - [M20] EMPTY_PAGE_LIMIT: 2 → 3 (menos agresivo)
-  - [M22] _KNOWN_BRANDS: +DeepCool, +Thermalright, +Hyte, +Zephyrus
+Fixes v2.2 (sobre v2.1):
+  [N14] scrape_newegg(): parámetro mode agregado — alinea firma con main.py
+        (main.py pasa mode= a todos los scrapers)
+  [N15] scrape_newegg(): session cerrada en finally — evita TCP huérfanas
+        (consistente con [L11]/[I18]/[ML2])
+  [N16] _parse_cell(): price_usd validado con rango [PRICE_MIN_USD, PRICE_MAX_USD]
+        — evita que precios absurdos (shipping, impuestos) contaminen el MASTER
+        (consistente con [K8] de scraper_kaggle)
+  [N17] _fetch_page(): log INFO en early-stop de página vacía — visible en log
+        del batch (consistente con [E17] de scraper_ebay)
+  [N18] _KNOWN_BRANDS: +Zephyrus eliminado (es línea de producto ASUS, no marca)
+        +ADATA, +PNY, +Inno3D agregados (marcas GPU/RAM activas en Newegg 2026)
 """
 
 import re
@@ -40,9 +39,13 @@ logger = logging.getLogger(__name__)
 # ──────────────────────────────────────────────
 REQUEST_DELAY    = 2.5
 TIMEOUT          = 20
-MAX_PAGES        = 10             # [N11] era 20
-EMPTY_PAGE_LIMIT = 3              # [M20] era 2
+MAX_PAGES        = 10             # [N11]
+EMPTY_PAGE_LIMIT = 3              # [M20]
 MIN_ITEMS_PAGE   = 2
+
+# [N16] Rango de precio válido en USD
+PRICE_MIN_USD = 1.0
+PRICE_MAX_USD = 15_000.0
 
 BASE_URL = "https://www.newegg.com"
 
@@ -158,16 +161,19 @@ def _parse_price(text: str) -> Optional[float]:
 # EXTRACCIÓN DE MARCA
 # ──────────────────────────────────────────────
 # [M22] Marcas 2025-2026 agregadas
+# [N18] Zephyrus eliminado (línea ASUS, no marca) — ADATA, PNY, Inno3D agregados
 _KNOWN_BRANDS = [
     "Intel", "AMD", "NVIDIA", "ASUS", "MSI", "Gigabyte", "ASRock",
-    "Corsair", "G.Skill", "Kingston", "Crucial", "Samsung", "Western Digital",
-    "Seagate", "EVGA", "Zotac", "Sapphire", "PowerColor", "XFX",
+    "Corsair", "G.Skill", "Kingston", "Crucial", "Samsung",
+    "Western Digital", "Seagate", "EVGA", "Zotac", "Sapphire",
+    "PowerColor", "XFX",
     "be quiet!", "Noctua", "Cooler Master", "NZXT", "Fractal Design",
     "Seasonic", "Thermaltake", "Lian Li", "Phanteks",
     "Dell", "HP", "Lenovo", "Acer", "Razer", "LG",
     "BenQ", "ViewSonic", "AOC", "Logitech", "SteelSeries", "HyperX",
     "SanDisk", "Patriot", "TeamGroup", "Micron", "Toshiba", "HGST",
-    "DeepCool", "Thermalright", "Hyte", "Montech",   # [M22] nuevas
+    "DeepCool", "Thermalright", "Hyte", "Montech",   # [M22]
+    "ADATA", "PNY", "Inno3D",                        # [N18]
 ]
 
 _NEWEGG_TITLE_PREFIXES = re.compile(
@@ -208,6 +214,11 @@ def _fetch_page(session: requests.Session, path: str, page: int) -> list:
     cells = soup.select("div.item-cell")
     if not cells:
         cells = soup.select("div.item-container")
+
+    # [N17] Log INFO cuando no hay celdas — visible en log del batch
+    if not cells:
+        logger.info(f"  p{page}: 0 celdas encontradas — early-stop")
+        return []
 
     for cell in cells:
         try:
@@ -270,13 +281,23 @@ def _parse_cell(cell) -> Optional[dict]:
     if not price_usd:
         return None
 
+    # [N16] Validar rango de precio — descarta shipping/impuestos mal parseados
+    if not (PRICE_MIN_USD <= price_usd <= PRICE_MAX_USD):
+        logger.debug(
+            f"  price_usd={price_usd} fuera de rango "
+            f"[{PRICE_MIN_USD}, {PRICE_MAX_USD}] — descartado: {title[:40]}"
+        )
+        return None
+
     # ── Precio original ──
     orig_el = (
         cell.select_one(".price-was-data") or
         cell.select_one("span.price-was") or
         cell.select_one("li.price-was")
     )
-    price_orig_usd = _parse_price(orig_el.get_text(strip=True)) if orig_el else None
+    price_orig_usd = (
+        _parse_price(orig_el.get_text(strip=True)) if orig_el else None
+    )
 
     # ── Descuento ──
     discount_pct = None
@@ -323,78 +344,105 @@ def _parse_cell(cell) -> Optional[dict]:
 # ──────────────────────────────────────────────
 # SCRAPER PRINCIPAL
 # ──────────────────────────────────────────────
-def scrape_newegg(batch_id: str) -> list:
+def scrape_newegg(batch_id: str, mode: str = "normal") -> list:
+    """
+    Scraper principal Newegg USA — HTML scraping.
+    [N14] Parámetro mode agregado — main.py lo pasa a todos los scrapers.
+    [N15] Session cerrada en finally — evita TCP huérfanas.
+    [N13] Log de tiempo total al finalizar.
+    """
     t_start     = time.time()   # [N13]
     all_records = []
     session     = _make_session()
     # [N4] seen_skus GLOBAL — evita duplicados entre categorías
     seen_skus_global = set()
 
-    logger.info(f"[Newegg] Iniciando — {len(NEWEGG_CATEGORIES)} categorías")
+    logger.info(
+        f"[Newegg] Iniciando — {len(NEWEGG_CATEGORIES)} categorías"
+    )
 
-    for cat_name, path in NEWEGG_CATEGORIES.items():
-        logger.info(f"[Newegg] '{cat_name}'")
-        cat_records = []
-        empty_pages = 0
-
-        for page in range(1, MAX_PAGES + 1):
-            time.sleep(REQUEST_DELAY + random.uniform(0, 0.8))
-            raw_items = _fetch_page(session, path, page)
-
-            if len(raw_items) < MIN_ITEMS_PAGE:
-                empty_pages += 1
-                if empty_pages >= EMPTY_PAGE_LIMIT:
-                    logger.debug(f"  [{cat_name}] Early-stop p{page}")
-                    break
-                continue
-
+    try:   # [N15] session cerrada en finally
+        for cat_name, path in NEWEGG_CATEGORIES.items():
+            logger.info(f"[Newegg] '{cat_name}'")
+            cat_records = []
             empty_pages = 0
-            new_in_page = 0
 
-            for item in raw_items:
-                sku = item.get("sku", "")
-                if sku in seen_skus_global:
+            for page in range(1, MAX_PAGES + 1):
+                time.sleep(REQUEST_DELAY + random.uniform(0, 0.8))
+                raw_items = _fetch_page(session, path, page)
+
+                if len(raw_items) < MIN_ITEMS_PAGE:
+                    empty_pages += 1
+                    if empty_pages >= EMPTY_PAGE_LIMIT:
+                        # [N17] INFO en lugar de DEBUG — visible en log del batch
+                        logger.info(
+                            f"  [{cat_name}] Early-stop p{page} "
+                            f"({empty_pages} páginas vacías)"
+                        )
+                        break
                     continue
-                seen_skus_global.add(sku)
-                new_in_page += 1
 
-                # [N9] categoría normalizada
-                cat_normalized = CAT_NORMALIZE.get(cat_name, cat_name.upper())
+                empty_pages = 0
+                new_in_page = 0
 
-                # [N10] timestamp por record — no fijo al inicio
-                record = {
-                    "batch_id":       batch_id,
-                    "timestamp":      datetime.now(timezone.utc).isoformat(),
-                    "source":         "newegg_usa",
-                    "category":       cat_normalized,          # [N9]
-                    "category_raw":   cat_name,                # debug
-                    "sku":            sku,
-                    "brand":          item.get("brand", ""),
-                    "title":          item.get("title", ""),
-                    "price_usd":      item.get("price_usd"),
-                    "price_orig_usd": item.get("price_orig_usd"),
-                    "price_date":     datetime.now(timezone.utc).strftime("%Y-%m-%d"),
-                    "price_currency": "USD",
-                    "discount_pct":   item.get("discount_pct"),
-                    "rating":         item.get("rating"),
-                    "reviews":        item.get("reviews"),
-                    "retailer":       "Newegg",
-                    "url":            item.get("url", ""),
-                }
-                cat_records.append(record)
+                for item in raw_items:
+                    sku = item.get("sku", "")
+                    if sku in seen_skus_global:
+                        continue
+                    seen_skus_global.add(sku)
+                    new_in_page += 1
 
-            logger.debug(
-                f"  [{cat_name}] p{page}: +{new_in_page} "
-                f"(cat={len(cat_records)}, global={len(seen_skus_global)})"
+                    # [N9] categoría normalizada
+                    cat_normalized = CAT_NORMALIZE.get(
+                        cat_name, cat_name.upper()
+                    )
+
+                    # [N10] timestamp por record — no fijo al inicio
+                    record = {
+                        "batch_id":       batch_id,
+                        "timestamp":      datetime.now(timezone.utc).isoformat(),
+                        "source":         "newegg_usa",
+                        "category":       cat_normalized,
+                        "category_raw":   cat_name,
+                        "sku":            sku,
+                        "brand":          item.get("brand", ""),
+                        "title":          item.get("title", ""),
+                        "price_usd":      item.get("price_usd"),
+                        "price_orig_usd": item.get("price_orig_usd"),
+                        "price_date":     datetime.now(timezone.utc).strftime(
+                            "%Y-%m-%d"
+                        ),
+                        "price_currency": "USD",
+                        "discount_pct":   item.get("discount_pct"),
+                        "rating":         item.get("rating"),
+                        "reviews":        item.get("reviews"),
+                        "retailer":       "Newegg",
+                        "url":            item.get("url", ""),
+                    }
+                    cat_records.append(record)
+
+                logger.debug(
+                    f"  [{cat_name}] p{page}: +{new_in_page} "
+                    f"(cat={len(cat_records)}, "
+                    f"global={len(seen_skus_global)})"
+                )
+
+                if new_in_page == 0:
+                    empty_pages += 1
+                    if empty_pages >= EMPTY_PAGE_LIMIT:
+                        logger.info(
+                            f"  [{cat_name}] Early-stop p{page} "
+                            f"(0 nuevos × {empty_pages})"
+                        )
+                        break
+
+            logger.info(
+                f"  ✅ [{cat_name}]: {len(cat_records):,} registros"
             )
+            all_records.extend(cat_records)
 
-            if new_in_page == 0:
-                empty_pages += 1
-                if empty_pages >= EMPTY_PAGE_LIMIT:
-                    break
-
-        logger.info(f"  ✅ [{cat_name}]: {len(cat_records):,} registros")
-        all_records.extend(cat_records)
+    finally:
+        session.close()   # [N15]
 
     # [N13] Log de tiempo total
     elapsed = time.time() - t_start
