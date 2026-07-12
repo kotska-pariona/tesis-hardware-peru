@@ -1,268 +1,245 @@
 #!/usr/bin/env python3
 """
-run_pipeline.py — Orquestador Maestro del Sistema Completo v1.0
-════════════════════════════════════════════════════════════════════
-Ejecuta las 5 etapas del sistema (Fig. 4.1 del plan de tesis):
+data_quality.py v1.1
+═══════════════════════════════════════════════════════════════════
+Certifica el MASTER_hardware_peru.csv contra preprocessing/data_contract.yaml
+ANTES de que llegue a feature_engineering.py (Etapa II).
 
-  Etapa I    → agent/main.py            (recolección: MercadoLibre + Trends)
-  Etapa I.b  → preprocessing/data_quality.py  (auditoría, outliers)
-  Etapa II   → preprocessing/feature_engineering.py (MICE, rolling z-score)
-  Etapa III  → models/ (TFT+TCN ensemble, XGBoost, BERT, MAPIE)
-  Etapa IV   → optimization/nsga3_portfolio.py (NSGA-III)
-  Etapa V    → decision/decision_engine.py (BUY/WAIT/LIQUIDATE)
+CAMBIOS v1.1 (sobre v1.0):
+  [Q1] Validación dirigida por data_contract.yaml — antes las reglas
+       (completitud, rangos, duplicados) estaban hardcodeadas y podían
+       desincronizarse silenciosamente del contrato real.
+  [Q2] Fail-fast explícito: si columnas_obligatorias faltan, el script
+       termina con exit(1) y NO genera el CSV limpio — evita que
+       feature_engineering.py falle más adelante con errores confusos.
+  [Q3] Reporte JSON de auditoría (data/raw/quality_report_<batch>.json)
+       para trazabilidad del Hito H1 (completitud ≥95%, ADF/KPSS).
 
-Este script NO reemplaza a agent/main.py — lo INVOCA como Etapa I.
-Diseñado para ejecución batch nocturna (00:00-02:00 UTC-5), acorde
-a la Sección 4.7.1 del plan de tesis. Latencia estimada total:
-~8-12 min de inferencia (500 SKUs, GPU A100) + tiempo de scraping.
-
-NOTA IMPORTANTE — Entrenamiento vs. Inferencia:
-  Este orquestador ejecuta el pipeline en modo INFERENCIA (usa modelos
-  ya entrenados y serializados en ONNX/pickle). El ENTRENAMIENTO de
-  TFT, TCN, XGBoost y BERT es un proceso separado (notebooks / jobs
-  de GPU, Fase II del cronograma, semanas 5-9), ejecutado manualmente
-  o vía workflow independiente (train_models.yml), NO en este script.
+Uso:
+    python preprocessing/data_quality.py \
+        --input data/raw/MASTER_hardware_peru.csv \
+        --contract preprocessing/data_contract.yaml \
+        --output data/raw/MASTER_hardware_peru_clean.csv
 """
 
-import sys
-import subprocess
-import logging
-import logging.handlers
+import argparse
 import json
-import time
+import sys
 from pathlib import Path
 from datetime import datetime, timezone
-from zoneinfo import ZoneInfo
 
-ROOT_DIR   = Path(__file__).resolve().parent
-DATA_DIR   = ROOT_DIR / "data" / "raw"
-MODELS_DIR = ROOT_DIR / "models" / "artifacts"   # modelos entrenados (.onnx/.pkl)
-LOG_DIR    = ROOT_DIR / "data" / "logs"
-LOG_DIR.mkdir(parents=True, exist_ok=True)
+import pandas as pd
+import numpy as np
+import yaml
 
-_file_handler = logging.handlers.RotatingFileHandler(
-    str(LOG_DIR / "pipeline_master.log"),
-    maxBytes=5 * 1024 * 1024, backupCount=7, encoding="utf-8",
-)
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s — %(message)s",
-    datefmt="%H:%M:%S",
-    handlers=[logging.StreamHandler(sys.stdout), _file_handler],
-)
-log = logging.getLogger("pipeline_master")
+try:
+    from statsmodels.tsa.stattools import adfuller, kpss
+    _HAS_STATSMODELS = True
+except ImportError:
+    _HAS_STATSMODELS = False
 
 
 # ══════════════════════════════════════════════════════════════════
-# UTILIDAD: ejecutar sub-etapas como subprocesos independientes
-# (aísla fallos: si TFT falla, XGBoost y BERT igual pueden correr)
+# CARGA DEL CONTRATO
 # ══════════════════════════════════════════════════════════════════
-def _run_stage(label: str, cmd: list, critical: bool = False) -> bool:
-    log.info(f"\n{'='*60}\n▶ {label}\n{'='*60}")
-    t0 = time.time()
+def load_contract(path: Path) -> dict:
+    with open(path, encoding="utf-8") as f:
+        contract = yaml.safe_load(f)
+    return contract
+
+
+def get_required_columns(contract: dict) -> list:
+    cols = []
+    for group, items in contract.get("columnas_obligatorias", {}).items():
+        for item in items:
+            if item and item != "null":
+                cols.append(item)
+    return cols
+
+
+# ══════════════════════════════════════════════════════════════════
+# [Q2] VALIDACIÓN FAIL-FAST DE ESQUEMA
+# ══════════════════════════════════════════════════════════════════
+def validate_schema(df: pd.DataFrame, contract: dict) -> list:
+    required = get_required_columns(contract)
+    missing = [c for c in required if c not in df.columns]
+    return missing
+
+
+# ══════════════════════════════════════════════════════════════════
+# AUDITORÍA DE COMPLETITUD
+# ══════════════════════════════════════════════════════════════════
+def audit_completeness(df: pd.DataFrame, contract: dict) -> dict:
+    required = get_required_columns(contract)
+    result = {}
+    for col in required:
+        if col in df.columns:
+            non_null = df[col].notna().sum()
+            pct = round(non_null / len(df) * 100, 2) if len(df) else 0.0
+            result[col] = pct
+    overall = round(np.mean(list(result.values())), 2) if result else 0.0
+    result["_overall_pct"] = overall
+    return result
+
+
+# ══════════════════════════════════════════════════════════════════
+# DETECCIÓN DE OUTLIERS — IQR k=3.0 (rangos válidos del contrato)
+# ══════════════════════════════════════════════════════════════════
+def detect_price_outliers(df: pd.DataFrame, contract: dict) -> pd.DataFrame:
+    rules = contract.get("reglas_de_validacion", {})
+    rango = rules.get("precio_usd_rango_valido", [1.0, 5000.0])
+
+    if "price_usd" not in df.columns:
+        return df
+
+    before = len(df)
+    mask_rango = df["price_usd"].between(rango[0], rango[1])
+
+    # IQR k=3.0 adicional, por categoría (evita comparar GPU con RAM)
+    def _iqr_mask(group):
+        q1, q3 = group["price_usd"].quantile([0.25, 0.75])
+        iqr = q3 - q1
+        lo, hi = q1 - 3.0 * iqr, q3 + 3.0 * iqr
+        return group["price_usd"].between(lo, hi)
+
+    if "category" in df.columns:
+        mask_iqr = df.groupby("category", group_keys=False).apply(_iqr_mask)
+    else:
+        mask_iqr = pd.Series(True, index=df.index)
+
+    df_clean = df[mask_rango & mask_iqr].copy()
+    removed = before - len(df_clean)
+    print(f"  🔍 Outliers removidos: {removed:,} ({removed/before*100:.2f}%)")
+    return df_clean
+
+
+# ══════════════════════════════════════════════════════════════════
+# DEDUPLICACIÓN según clave del contrato
+# ══════════════════════════════════════════════════════════════════
+def deduplicate(df: pd.DataFrame, contract: dict) -> pd.DataFrame:
+    rules = contract.get("reglas_de_validacion", {})
+    if rules.get("duplicados_permitidos", False):
+        return df
+
+    key_cols = [c for c in ["source", "sku", "price_date"] if c in df.columns]
+    if not key_cols:
+        return df
+
+    before = len(df)
+    df_dedup = df.drop_duplicates(subset=key_cols, keep="last")
+    removed = before - len(df_dedup)
+    print(f"  🔍 Duplicados removidos: {removed:,} (clave: {key_cols})")
+    return df_dedup
+
+
+# ══════════════════════════════════════════════════════════════════
+# PRUEBAS DE ESTACIONARIEDAD (ADF / KPSS) — sobre serie agregada
+# ══════════════════════════════════════════════════════════════════
+def stationarity_tests(df: pd.DataFrame) -> dict:
+    if not _HAS_STATSMODELS or "price_usd" not in df.columns:
+        return {"adf_pvalue": None, "kpss_pvalue": None, "status": "omitido"}
+
     try:
-        result = subprocess.run(
-            cmd, capture_output=True, text=True, timeout=3600
-        )
-        elapsed = time.time() - t0
-        if result.returncode == 0:
-            log.info(f"  ✅ {label} completado ({elapsed:.0f}s)")
-            return True
-        else:
-            log.error(f"  ❌ {label} falló (rc={result.returncode})")
-            log.error(f"     stderr: {result.stderr[-500:]}")
-            if critical:
-                raise RuntimeError(f"Etapa crítica falló: {label}")
-            return False
-    except subprocess.TimeoutExpired:
-        log.error(f"  ⏱ {label} excedió timeout (3600s)")
-        if critical:
-            raise
-        return False
+        serie = df.groupby("price_date")["price_usd"].mean().dropna()
+        if len(serie) < 20:
+            return {"adf_pvalue": None, "kpss_pvalue": None, "status": "insuficiente"}
+
+        adf_result  = adfuller(serie, autolag="AIC")
+        kpss_result = kpss(serie, regression="c", nlags="auto")
+
+        return {
+            "adf_pvalue":  round(adf_result[1], 4),
+            "kpss_pvalue": round(kpss_result[1], 4),
+            "adf_estacionaria":  adf_result[1] < 0.05,   # H0: no estacionaria
+            "kpss_estacionaria": kpss_result[1] > 0.05,  # H0: estacionaria
+            "status": "ok",
+        }
     except Exception as e:
-        log.error(f"  ❌ {label} error inesperado: {e}")
-        if critical:
-            raise
-        return False
+        return {"adf_pvalue": None, "kpss_pvalue": None, "status": f"error: {e}"}
 
 
 # ══════════════════════════════════════════════════════════════════
-# ETAPA I — Recolección (delega en agent/main.py, YA EXISTENTE)
+# PIPELINE PRINCIPAL
 # ══════════════════════════════════════════════════════════════════
-def stage_1_collection(batch_id: str, mode: str = "normal") -> bool:
-    return _run_stage(
-        "Etapa I — Recolección de datos",
-        [
-            "python", str(ROOT_DIR / "agent" / "main.py"),
-            "--mode", mode, "--batch-id", batch_id,
-        ],
-        critical=True,   # sin datos, no hay pipeline
-    )
+def run_quality_pipeline(input_path: Path, contract_path: Path, output_path: Path):
+    print("═" * 60)
+    print("  DATA QUALITY v1.1 — Certificación Hito H1")
+    print("═" * 60)
 
+    contract = load_contract(contract_path)
+    print(f"\n📄 Contrato cargado: {contract_path.name} (v{contract.get('version')})")
 
-# ══════════════════════════════════════════════════════════════════
-# ETAPA I.b — Calidad de datos (data_quality.py, YA EXISTENTE v1.0)
-# ══════════════════════════════════════════════════════════════════
-def stage_1b_quality(batch_id: str) -> bool:
-    return _run_stage(
-        "Etapa I.b — Auditoría y limpieza de calidad",
-        [
-            "python", str(ROOT_DIR / "preprocessing" / "data_quality.py"),
-            "--input", str(DATA_DIR / "MASTER_hardware_peru.csv"),
-            "--batch-id", batch_id,
-        ],
-        critical=True,   # sin dataset limpio, los modelos fallan
-    )
+    df = pd.read_csv(input_path, low_memory=False)
+    print(f"📊 MASTER cargado: {len(df):,} registros, {len(df.columns)} columnas")
 
+    # [Q2] Fail-fast: columnas obligatorias
+    missing = validate_schema(df, contract)
+    if missing:
+        print(f"\n❌ FATAL: Columnas obligatorias faltantes: {missing}")
+        print("   El dataset NO cumple el contrato. Abortando (Etapa II bloqueada).")
+        sys.exit(1)
+    print("✅ Esquema validado — todas las columnas obligatorias presentes")
 
-# ══════════════════════════════════════════════════════════════════
-# ETAPA II — Feature Engineering (MICE + rolling z-score)
-# ══════════════════════════════════════════════════════════════════
-def stage_2_features(batch_id: str) -> bool:
-    return _run_stage(
-        "Etapa II — Ingeniería de características",
-        [
-            "python", str(ROOT_DIR / "preprocessing" / "feature_engineering.py"),
-            "--batch-id", batch_id,
-        ],
-        critical=True,
-    )
+    # Completitud
+    completeness = audit_completeness(df, contract)
+    min_required = contract["reglas_de_validacion"]["completitud_minima_pct"]
+    print(f"\n📈 Completitud general: {completeness['_overall_pct']}% "
+          f"(mínimo requerido: {min_required}%)")
+    for col, pct in completeness.items():
+        if col != "_overall_pct" and pct < min_required:
+            print(f"   ⚠️  {col}: {pct}% (por debajo del mínimo)")
 
+    # Limpieza
+    print("\n🧹 Limpieza de datos...")
+    df = deduplicate(df, contract)
+    df = detect_price_outliers(df, contract)
 
-# ══════════════════════════════════════════════════════════════════
-# ETAPA III — Inferencia de modelos (TFT+TCN, XGBoost, BERT, MAPIE)
-# Cada módulo corre en paralelo lógico (independiente entre sí);
-# si BERT falla, el sistema sigue con riesgo_obsolescencia = None
-# y el decision_engine usa la rama por defecto (WAIT).
-# ══════════════════════════════════════════════════════════════════
-def stage_3_inference(batch_id: str) -> dict:
-    results = {}
+    # Estacionariedad
+    print("\n📉 Pruebas de estacionariedad...")
+    stationarity = stationarity_tests(df)
+    if stationarity["status"] == "ok":
+        print(f"   ADF p-valor:  {stationarity['adf_pvalue']} "
+              f"({'✅ estacionaria' if stationarity['adf_estacionaria'] else '⚠️ no estacionaria'})")
+        print(f"   KPSS p-valor: {stationarity['kpss_pvalue']} "
+              f"({'✅ estacionaria' if stationarity['kpss_estacionaria'] else '⚠️ no estacionaria'})")
+    else:
+        print(f"   ⚠️ Pruebas omitidas: {stationarity['status']}")
 
-    results["demanda"] = _run_stage(
-        "Etapa III.a — Ensemble TFT+TCN (demanda)",
-        ["python", str(ROOT_DIR / "models" / "demand" / "ensemble_stacker.py"),
-         "--batch-id", batch_id, "--models-dir", str(MODELS_DIR)],
-    )
+    # Guardar dataset limpio
+    df.to_csv(output_path, index=False)
+    print(f"\n💾 Dataset limpio guardado: {output_path} ({len(df):,} registros)")
 
-    results["precio"] = _run_stage(
-        "Etapa III.b — XGBoost (precios USD)",
-        ["python", str(ROOT_DIR / "models" / "price" / "xgboost_price.py"),
-         "--batch-id", batch_id, "--models-dir", str(MODELS_DIR)],
-    )
-
-    results["obsolescencia"] = _run_stage(
-        "Etapa III.c — BERT (riesgo de obsolescencia)",
-        ["python", str(ROOT_DIR / "models" / "obsolescence" / "bert_classifier.py"),
-         "--batch-id", batch_id, "--models-dir", str(MODELS_DIR)],
-    )
-
-    results["incertidumbre"] = _run_stage(
-        "Etapa III.d — MAPIE (calibración IC 95%)",
-        ["python", str(ROOT_DIR / "models" / "uncertainty" / "mapie_calibrator.py"),
-         "--batch-id", batch_id],
-    )
-
-    return results
-
-
-# ══════════════════════════════════════════════════════════════════
-# ETAPA IV — Optimización de portafolio (NSGA-III)
-# ══════════════════════════════════════════════════════════════════
-def stage_4_optimization(batch_id: str) -> bool:
-    return _run_stage(
-        "Etapa IV — NSGA-III (frente de Pareto del portafolio)",
-        [
-            "python", str(ROOT_DIR / "optimization" / "nsga3_portfolio.py"),
-            "--batch-id", batch_id,
-            "--pop", "200", "--gen", "500",   # Ec. (3.19)-(3.20)
-        ],
-        critical=True,
-    )
-
-
-# ══════════════════════════════════════════════════════════════════
-# ETAPA V — Motor de decisión BUY/WAIT/LIQUIDATE
-# ══════════════════════════════════════════════════════════════════
-def stage_5_decision(batch_id: str) -> bool:
-    return _run_stage(
-        "Etapa V — Motor de decisión (Ec. 4.4)",
-        [
-            "python", str(ROOT_DIR / "decision" / "decision_engine.py"),
-            "--batch-id", batch_id,
-            "--delta", "0.05", "--rho-threshold", "0.65",
-        ],
-        critical=True,
-    )
-
-
-# ══════════════════════════════════════════════════════════════════
-# POST: refrescar caché de la API para que el dashboard/API sirvan
-# las señales nuevas sin reiniciar el proceso FastAPI
-# ══════════════════════════════════════════════════════════════════
-def refresh_api_cache(batch_id: str) -> bool:
-    return _run_stage(
-        "Post — Refresh de caché API/Dashboard",
-        ["curl", "-X", "POST", "http://localhost:8000/internal/refresh",
-         "-H", f"X-Batch-Id: {batch_id}"],
-    )
-
-
-# ══════════════════════════════════════════════════════════════════
-# PIPELINE PRINCIPAL — orquesta las 5 etapas end-to-end
-# ══════════════════════════════════════════════════════════════════
-def run_full_pipeline(mode: str = "normal"):
-    tz_pe    = ZoneInfo("America/Lima")
+    # [Q3] Reporte de auditoría
     batch_id = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
-    start    = time.time()
-
-    log.info("█" * 60)
-    log.info(f"  SISTEMA HÍBRIDO — Pipeline Completo v1.0")
-    log.info(f"  Batch: {batch_id} | Hora Lima: "
-              f"{datetime.now(tz_pe).strftime('%Y-%m-%d %H:%M:%S')}")
-    log.info("█" * 60)
-
-    status = {"batch_id": batch_id, "etapas": {}}
-
-    # Etapa I y I.b son críticas — si fallan, se aborta el batch completo
-    status["etapas"]["I_recoleccion"]   = stage_1_collection(batch_id, mode)
-    status["etapas"]["Ib_calidad"]      = stage_1b_quality(batch_id)
-
-    # Etapa II es crítica — los modelos necesitan features
-    status["etapas"]["II_features"]     = stage_2_features(batch_id)
-
-    # Etapa III — cada módulo es independiente (falla parcial tolerada)
-    status["etapas"]["III_inferencia"]  = stage_3_inference(batch_id)
-
-    # Etapa IV — crítica: sin frente de Pareto no hay decisión
-    status["etapas"]["IV_optimizacion"] = stage_4_optimization(batch_id)
-
-    # Etapa V — genera las señales finales BUY/WAIT/LIQUIDATE
-    status["etapas"]["V_decision"]      = stage_5_decision(batch_id)
-
-    # Post-proceso
-    status["etapas"]["refresh_api"]     = refresh_api_cache(batch_id)
-
-    elapsed = time.time() - start
-    status["elapsed_s"] = round(elapsed, 1)
-
-    report_path = DATA_DIR / f"pipeline_report_{batch_id}.json"
+    report = {
+        "batch_id": batch_id,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "registros_originales": int(len(pd.read_csv(input_path, low_memory=False))),
+        "registros_finales": int(len(df)),
+        "completitud": completeness,
+        "estacionariedad": stationarity,
+        "hito_H1_cumplido": completeness["_overall_pct"] >= min_required,
+    }
+    report_path = output_path.parent / f"quality_report_{batch_id}.json"
     with open(report_path, "w", encoding="utf-8") as f:
-        json.dump(status, f, indent=2, ensure_ascii=False)
+        json.dump(report, f, indent=2, ensure_ascii=False)
+    print(f"📋 Reporte de calidad: {report_path.name}")
 
-    log.info("\n" + "█" * 60)
-    log.info(f"  PIPELINE COMPLETO — Duración: "
-              f"{int(elapsed//60)}m {int(elapsed%60)}s")
-    log.info(f"  Reporte: {report_path.name}")
-    log.info("█" * 60)
+    print("\n" + "═" * 60)
+    if report["hito_H1_cumplido"]:
+        print("  ✅ HITO H1 CUMPLIDO — Dataset certificado para Etapa II")
+    else:
+        print("  ⚠️  HITO H1 NO CUMPLIDO — completitud insuficiente")
+    print("═" * 60)
 
-    return status
+    return report
 
 
 if __name__ == "__main__":
-    import argparse
-    parser = argparse.ArgumentParser(
-        description="Orquestador maestro del sistema híbrido completo"
-    )
-    parser.add_argument("--mode", default="normal")
+    parser = argparse.ArgumentParser(description="Certificación de calidad del MASTER (Hito H1)")
+    parser.add_argument("--input", required=True, help="Ruta al MASTER_hardware_peru.csv")
+    parser.add_argument("--contract", default="preprocessing/data_contract.yaml")
+    parser.add_argument("--output", required=True, help="Ruta de salida del dataset limpio")
     args = parser.parse_args()
-    run_full_pipeline(mode=args.mode)
+
+    run_quality_pipeline(Path(args.input), Path(args.contract), Path(args.output))
