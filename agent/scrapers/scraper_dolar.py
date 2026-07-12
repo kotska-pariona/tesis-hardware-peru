@@ -1,5 +1,5 @@
 """
-scraper_dolar.py  v3.0
+scraper_dolar.py  v3.1
 Tipo de cambio USD/PEN en tiempo real — múltiples fuentes con fallback
 
 Fuentes (en orden de prioridad):
@@ -10,14 +10,16 @@ Fuentes (en orden de prioridad):
   5. dolarpe.com              → tipo de cambio paralelo Perú
   6. Valor hardcodeado        → último recurso
 
-Fixes v3.0 (sobre v2.0):
-  - [D1] CACHE_FILE movido a /tmp para no versionarse en git
-  - [D2] _load_cache(): aware/naive datetime corregido — cache ahora funciona
-  - [D3] _fetch_sbs(): eliminado 'if rows: break' prematuro
-  - [D4] get_exchange_rate(): source '_cached' no se acumula en múltiples calls
-  - [D5] scrape_dolar(): timestamp histórico usa fecha del punto, no now()
-  - [D6] __main__: datetime.now(timezone.utc) — naive datetime corregido
-  - [D7] FALLBACK_RATE actualizado a 3.40 (tipo real log: 3.3962)
+Fixes v3.1 (sobre v3.0):
+  [D8]  scrape_dolar(): parámetro mode agregado — alinea firma con main.py
+        (main.py pasa mode= a todos los scrapers)
+  [D9]  get_exchange_rate(): session requests reutilizada en lugar de
+        requests.get() por llamada — reduce overhead TCP en cascada de fuentes
+  [D10] _fetch_sunat/_fetch_sbs/_fetch_exchangerate_api/_fetch_frankfurter/
+        _fetch_dolarpe: reciben session opcional para reutilización [D9]
+  [D11] scrape_dolar(): historial Frankfurter usa session compartida [D9]
+  [D12] FALLBACK_RATE_UPDATED: comentario aclaratorio — revisar si mid
+        del log supera ±0.05 del valor hardcodeado
 """
 
 import re
@@ -29,6 +31,8 @@ from pathlib import Path
 from typing import Optional
 
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 from bs4 import BeautifulSoup
 
 logger = logging.getLogger(__name__)
@@ -39,7 +43,8 @@ logger = logging.getLogger(__name__)
 TIMEOUT       = 15
 REQUEST_DELAY = 0.5
 
-# [D7] Actualizado al tipo real del log (Mid=3.3962). Revisar mensualmente.
+# [D7] Actualizado al tipo real del log (Mid=3.3962).
+# [D12] Revisar si el mid del log supera ±0.05 de este valor.
 FALLBACK_RATE         = 3.40
 FALLBACK_RATE_UPDATED = "2026-07-11"
 
@@ -55,6 +60,23 @@ HEADERS = {
     ),
     "Accept-Language": "es-PE,es;q=0.9",
 }
+
+
+# ──────────────────────────────────────────────
+# [D9] Session compartida con retry automático
+# ──────────────────────────────────────────────
+def _make_session() -> requests.Session:
+    """Session HTTP con reintentos automáticos en errores 429/5xx."""
+    s     = requests.Session()
+    retry = Retry(
+        total=3,
+        backoff_factor=1.0,
+        status_forcelist=[429, 500, 502, 503, 504],
+        allowed_methods=["GET"],
+    )
+    s.mount("https://", HTTPAdapter(max_retries=retry))
+    s.mount("http://",  HTTPAdapter(max_retries=retry))
+    return s
 
 
 # ──────────────────────────────────────────────
@@ -139,7 +161,7 @@ def _parse_price(text: str) -> Optional[float]:
 # ──────────────────────────────────────────────
 # FUENTE 1: SUNAT (oficial)
 # ──────────────────────────────────────────────
-def _fetch_sunat() -> Optional[dict]:
+def _fetch_sunat(session: requests.Session) -> Optional[dict]:
     """Tipo de cambio oficial SUNAT. No disponible sábado/domingo."""
     weekday = date.today().weekday()
     if weekday >= 5:
@@ -154,7 +176,7 @@ def _fetch_sunat() -> Optional[dict]:
         "fecha":  today.strftime("%d/%m/%Y"),
     }
     try:
-        resp = requests.get(url, params=params, headers=HEADERS, timeout=TIMEOUT)
+        resp = session.get(url, params=params, headers=HEADERS, timeout=TIMEOUT)  # [D10]
         resp.raise_for_status()
         soup = BeautifulSoup(resp.text, "html.parser")
         for row in soup.select("table tr"):
@@ -179,11 +201,11 @@ def _fetch_sunat() -> Optional[dict]:
 # ──────────────────────────────────────────────
 # FUENTE 2: SBS Perú
 # ──────────────────────────────────────────────
-def _fetch_sbs() -> Optional[dict]:
+def _fetch_sbs(session: requests.Session) -> Optional[dict]:
     """Tipo de cambio SBS. Selectores con fallback progresivo."""
     url = "https://www.sbs.gob.pe/app/pp/sistip_portal/paginas/publicacion/tipocambio.aspx"
     try:
-        resp = requests.get(url, headers=HEADERS, timeout=TIMEOUT)
+        resp = session.get(url, headers=HEADERS, timeout=TIMEOUT)  # [D10]
         resp.raise_for_status()
         soup = BeautifulSoup(resp.text, "html.parser")
 
@@ -221,14 +243,14 @@ def _fetch_sbs() -> Optional[dict]:
 # ──────────────────────────────────────────────
 # FUENTE 3: ExchangeRate-API
 # ──────────────────────────────────────────────
-def _fetch_exchangerate_api() -> Optional[dict]:
+def _fetch_exchangerate_api(session: requests.Session) -> Optional[dict]:
     """
     API gratuita open.er-api.com.
     Límite: 1,500 req/mes. Con cache TTL=4h: ~93 req/mes.
     """
     url = "https://open.er-api.com/v6/latest/USD"
     try:
-        resp = requests.get(url, headers=HEADERS, timeout=TIMEOUT)
+        resp = session.get(url, headers=HEADERS, timeout=TIMEOUT)  # [D10]
         resp.raise_for_status()
         data = resp.json()
         if data.get("result") == "success":
@@ -252,7 +274,7 @@ def _fetch_exchangerate_api() -> Optional[dict]:
 # ──────────────────────────────────────────────
 # FUENTE 4: Frankfurter (BCE, sin límites)
 # ──────────────────────────────────────────────
-def _fetch_frankfurter() -> Optional[dict]:
+def _fetch_frankfurter(session: requests.Session) -> Optional[dict]:
     """
     API Frankfurter — datos del BCE.
     NOTA: USD→PEN es conversión triangular (USD→EUR→PEN).
@@ -260,7 +282,7 @@ def _fetch_frankfurter() -> Optional[dict]:
     """
     url = "https://api.frankfurter.app/latest?from=USD&to=PEN"
     try:
-        resp     = requests.get(url, headers=HEADERS, timeout=TIMEOUT)
+        resp     = session.get(url, headers=HEADERS, timeout=TIMEOUT)  # [D10]
         resp.raise_for_status()
         data     = resp.json()
         pen_rate = data.get("rates", {}).get("PEN")
@@ -283,11 +305,11 @@ def _fetch_frankfurter() -> Optional[dict]:
 # ──────────────────────────────────────────────
 # FUENTE 5: dolarpe.com
 # ──────────────────────────────────────────────
-def _fetch_dolarpe() -> Optional[dict]:
+def _fetch_dolarpe(session: requests.Session) -> Optional[dict]:
     """Scraping dolarpe.com — tipo de cambio paralelo Perú."""
     url = "https://dolarpe.com/"
     try:
-        resp = requests.get(url, headers=HEADERS, timeout=TIMEOUT)
+        resp = session.get(url, headers=HEADERS, timeout=TIMEOUT)  # [D10]
         resp.raise_for_status()
         soup = BeautifulSoup(resp.text, "html.parser")
 
@@ -340,6 +362,7 @@ def get_exchange_rate(batch_id: str) -> dict:
     Obtiene el tipo de cambio USD/PEN con fallback automático.
     Usa caché si el dato tiene menos de CACHE_TTL_HOURS horas.
     Siempre retorna un dict válido — nunca falla.
+    [D9] Session compartida para toda la cascada de fuentes.
     """
     # Intentar caché primero
     cached = _load_cache()
@@ -350,27 +373,33 @@ def get_exchange_rate(batch_id: str) -> dict:
         cached["source"] = base_source + "_cached"
         return cached
 
-    for source_name, fetch_fn in SOURCES:
-        logger.info(f"[Dolar] Intentando fuente: {source_name}")
-        try:
-            result = fetch_fn()
-            if result:
-                result["batch_id"] = batch_id
-                logger.info(
-                    f"  ✅ {source_name}: "
-                    f"Compra={result['buy']} | "
-                    f"Venta={result['sell']} | "
-                    f"Mid={result['mid']}"
-                )
-                _save_cache(result)
-                return result
-            else:
-                logger.debug(f"  ⚠️ {source_name}: sin datos válidos")
-        except Exception as e:
-            logger.warning(f"  ❌ {source_name}: error inesperado — {e}")
-        time.sleep(REQUEST_DELAY)
+    # [D9] Session compartida para toda la cascada de fuentes
+    session = _make_session()
 
-    # [D7] Fallback absoluto — valor actualizado al tipo real
+    try:
+        for source_name, fetch_fn in SOURCES:
+            logger.info(f"[Dolar] Intentando fuente: {source_name}")
+            try:
+                result = fetch_fn(session)   # [D10]
+                if result:
+                    result["batch_id"] = batch_id
+                    logger.info(
+                        f"  ✅ {source_name}: "
+                        f"Compra={result['buy']} | "
+                        f"Venta={result['sell']} | "
+                        f"Mid={result['mid']}"
+                    )
+                    _save_cache(result)
+                    return result
+                else:
+                    logger.debug(f"  ⚠️ {source_name}: sin datos válidos")
+            except Exception as e:
+                logger.warning(f"  ❌ {source_name}: error inesperado — {e}")
+            time.sleep(REQUEST_DELAY)
+    finally:
+        session.close()   # [D9] Cerrar session al terminar cascada
+
+    # [D7][D12] Fallback absoluto — revisar si mid del log supera ±0.05
     logger.warning(
         f"[Dolar] Todas las fuentes fallaron. "
         f"Usando hardcoded: {FALLBACK_RATE} "
@@ -387,11 +416,14 @@ def get_exchange_rate(batch_id: str) -> dict:
     }
 
 
-def scrape_dolar(batch_id: str) -> list:
+def scrape_dolar(batch_id: str, mode: str = "normal") -> list:
     """
     Retorna lista de registros USD/PEN:
       - [0]   : tipo de cambio actual
       - [1..N]: historial 30 días (Frankfurter, ~22 puntos L-V)
+
+    [D8]  Parámetro mode agregado — main.py lo pasa a todos los scrapers.
+    [D11] Historial Frankfurter usa session compartida.
     """
     records = []
 
@@ -399,7 +431,9 @@ def scrape_dolar(batch_id: str) -> list:
     current = get_exchange_rate(batch_id)
     records.append(current)
 
-    # Historial 30 días desde Frankfurter
+    # [D11] Session compartida para historial
+    session = _make_session()
+
     try:
         end_date   = date.today()
         start_date = end_date - timedelta(days=30)
@@ -408,7 +442,7 @@ def scrape_dolar(batch_id: str) -> list:
             f"{start_date.isoformat()}..{end_date.isoformat()}"
             f"?from=USD&to=PEN"
         )
-        resp = requests.get(hist_url, headers=HEADERS, timeout=TIMEOUT)
+        resp = session.get(hist_url, headers=HEADERS, timeout=TIMEOUT)  # [D11]
         resp.raise_for_status()
         hist_data = resp.json()
 
@@ -419,15 +453,15 @@ def scrape_dolar(batch_id: str) -> list:
             pen = rates.get("PEN")
             if pen and 3.0 < pen < 5.0:
                 records.append({
-                    "batch_id":    batch_id,
-                    "source":      "frankfurter_history",
-                    "buy":         round(pen * 0.995, 4),
-                    "sell":        round(pen * 1.005, 4),
-                    "mid":         round(pen, 4),
-                    "date":        date_str,
+                    "batch_id":     batch_id,
+                    "source":       "frankfurter_history",
+                    "buy":          round(pen * 0.995, 4),
+                    "sell":         round(pen * 1.005, 4),
+                    "mid":          round(pen, 4),
+                    "date":         date_str,
                     # [D5] timestamp = fecha del punto histórico a mediodía UTC
                     #      collected_at = momento real de recolección
-                    "timestamp":   f"{date_str}T12:00:00+00:00",
+                    "timestamp":    f"{date_str}T12:00:00+00:00",
                     "collected_at": collected_at,
                 })
 
@@ -435,6 +469,8 @@ def scrape_dolar(batch_id: str) -> list:
 
     except Exception as e:
         logger.debug(f"[Dolar] Error obteniendo historial: {e}")
+    finally:
+        session.close()   # [D11]
 
     logger.info(f"[Dolar] TOTAL: {len(records)} registros")
     return records
