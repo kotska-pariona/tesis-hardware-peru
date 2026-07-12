@@ -1,0 +1,92 @@
+# ══════════════════════════════════════════════════════════════════
+# data_contract.yaml v1.0
+# Contrato de datos — Tesis: Predicción de precios hardware Perú
+# ══════════════════════════════════════════════════════════════════
+# NOTA METODOLÓGICA:
+# El MASTER_hardware_peru.csv es un merge de múltiples fuentes de
+# scraping (MercadoLibre, eBay, importación, local, competencia)
+# SIN normalización de esquema. Cada fuente llena sus propias
+# columnas específicas y deja NaN en las del resto (estructura
+# tipo sparse). Por eso 'columnas_obligatorias' se limita a las
+# columnas núcleo necesarias para la serie temporal, y el resto
+# se documenta como 'columnas_opcionales' sin bloquear el pipeline.
+
+version: 1.0
+
+columnas_obligatorias:
+  identificadores:
+    - source
+    - category
+    - sku
+    - brand
+    - title
+  temporalidad:
+    - price_date
+  precios:
+    - price_usd
+    - price_pen
+
+columnas_opcionales:
+  # Presentes en el MASTER pero no exigidas por validate_schema().
+  # Se documentan aquí solo para trazabilidad del esquema completo.
+  metadata_batch:
+    - batch_id
+    - timestamp
+  precios_extra:
+    - price_orig_pen
+    - price_orig_usd
+    - discount_pct
+    - price_currency
+    - original_price
+    - currency
+    - total_usd
+    - shipping_usd
+  calidad_producto:
+    - rating
+    - reviews
+    - reviews_count
+    - condition
+  disponibilidad:
+    - available_qty
+    - available
+    - buy
+    - sell
+    - sold_qty
+    - sold_quantity
+  envio:
+    - free_shipping
+    - shipping_free
+  vendedor:
+    - seller_nickname
+    - seller_feedback_score
+    - seller_feedback_pct
+    - seller
+    - seller_type
+    - is_official_store
+    - is_best_seller
+    - is_good_seller
+  identificadores_fuente:
+    - retailer
+    - part_id
+    - asin_sku
+    - item_id
+    - mid
+    - fingerprint
+  metadata_scraping:
+    - url
+    - image_url
+    - query
+    - category_label
+    - country
+    - location
+    - date
+    - scraped_at
+
+reglas_de_validacion:
+  # Umbral aspiracional — el script NO aborta si no se cumple,
+  # solo emite warnings por columna (diagnóstico, no bloqueante).
+  completitud_minima_pct: 95.0
+
+  precio_usd_rango_valido: [1.0, 5000.0]
+
+  duplicados_permitidos: false
