@@ -1,5 +1,13 @@
 # ════════════════════════════════════════════════════════════
-# Hardware Peru — Data Agent v6.3
+# Hardware Peru — Data Agent v6.4
+# CAMBIOS v6.4 (sobre v6.3):
+#   [W26] FIX: BATCH_ID ahora se genera en UTC (antes usaba hora PE
+#         pero el batch 24h lo interpretaba como UTC → desfase de 5h,
+#         causando que la ventana real de "últimas 24h" cubriera solo
+#         ~19h reales, excluyendo batches silenciosamente).
+#         Efecto secundario: elimina el doble prefijo "batch_batch_"
+#         en los nombres de archivo → regex del paso 7 simplificado.
+#
 # CAMBIOS v6.3 (sobre v6.2):
 #   [W23] FIX CRÍTICO: [W19] estaba incompleto — `git add` (staging)
 #         NO satisface el requisito de "working tree limpio" que exige
@@ -20,7 +28,7 @@
 #   [W21] batch 24h: escritura atómica con .tmp → rename (anti-corrupción)
 #   [W22] Compumundo: flag COMPUMUNDO_ENABLED=false via env (ahorra ~12 min)
 # ════════════════════════════════════════════════════════════
-name: Hardware Peru — Data Agent v6.3
+name: Hardware Peru — Data Agent v6.4
 
 on:
   schedule:
@@ -109,7 +117,10 @@ jobs:
           echo "  Hora PE  : $(TZ='America/Lima' date '+%Y-%m-%d %H:%M:%S')"
           echo "  Trigger  : ${{ github.event_name }}"
           echo "════════════════════════════════"
-          echo "BATCH_ID=batch_$(TZ='America/Lima' date '+%Y%m%d_%H%M%S')" >> $GITHUB_ENV
+          # [W26] BATCH_ID en UTC — evita el desfase de 5h que tenía el
+          #       cálculo del batch 24h (paso 7), y elimina el doble
+          #       prefijo "batch_batch_" en los nombres de archivo
+          echo "BATCH_ID=$(date -u '+%Y%m%d_%H%M%S')" >> $GITHUB_ENV
 
           # [W17] MAX_ELAPSED_S según modo
           if [ "$RUN_MODE" = "full" ]; then
@@ -173,7 +184,9 @@ jobs:
               if basename.startswith("batch_24h_"):
                   continue
               try:
-                  m = re.match(r"batch_(?:batch_)?(\d{8})_(\d{6})_", basename)
+                  # [W26] BATCH_ID ya nace en UTC — regex simplificado,
+                  #       sin necesidad del grupo opcional (?:batch_)?
+                  m = re.match(r"batch_(\d{8})_(\d{6})_", basename)
                   if not m:
                       continue
                   ts_str = f"{m.group(1)}_{m.group(2)}"
@@ -187,7 +200,7 @@ jobs:
           tags = {}
           for f in recent:
               basename = os.path.basename(f)
-              m2 = re.match(r"batch_(?:batch_)?\d{8}_\d{6}_(.+)\.csv", basename)
+              m2 = re.match(r"batch_\d{8}_\d{6}_(.+)\.csv", basename)
               tag = m2.group(1) if m2 else "unknown"
               tags[tag] = tags.get(tag, 0) + 1
 
