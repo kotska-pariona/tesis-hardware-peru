@@ -1,7 +1,23 @@
 #!/usr/bin/env python3
 """
-main.py — Orquestador v5.7
+main.py — Orquestador v5.8
 ════════════════════════════════════════════════════════════════════
+Fixes v5.8 (sobre v5.7):
+  [O21] from __future__ import annotations — protege contra crash en
+        Python <3.10 por el uso de sintaxis 'X | None' (PEP 604) en
+        los type hints. Sin esto, el script muere al importarse en
+        cualquier runner con Python 3.9 o inferior.
+  [O22] _make_dedup_key(): price_date RESTAURADO en la clave de dedup.
+        El fix [O11] (v5.x anterior) removió price_date por completo
+        para "evitar duplicados acumulativos", pero esto congelaba
+        cada SKU en su PRIMER precio visto para siempre — el pipeline
+        nunca volvía a registrar cambios de precio del mismo SKU en
+        días distintos. Esto destruía la dimensión temporal completa
+        que necesita el análisis de series de tiempo (TFT/TCN/XGBoost).
+        Ahora la clave es (source, sku, price_date): sigue evitando
+        duplicados si el pipeline corre 2x el mismo día, pero permite
+        1 registro por SKU por día — la serie temporal real.
+
 Fixes v5.7 (sobre v5.6):
   [O16] scrape_pcpartpicker cargado dinámicamente igual que MeLi/Newegg
         — era import directo desde scrapers/__init__.py; si falla, el
@@ -16,6 +32,8 @@ Fixes v5.7 (sobre v5.6):
   [O20] mode='local_only' incluye MeLi PE — en v5.6 estaba incluido pero
         faltaba en el help string; ahora ambos son consistentes
 """
+
+from __future__ import annotations  # [O21] Compatibilidad Python <3.10
 
 import sys
 import os
@@ -211,20 +229,33 @@ def save_batch(
 
 def _make_dedup_key(row: dict) -> tuple:
     """
-    [O11] price_date removido de la clave — evita duplicados acumulativos.
-    Clave: (source, sku) para items con SKU.
-    Clave: (source, fp_<md5>) para items sin SKU — determinístico.
+    [O22] FIX CRÍTICO: price_date RESTAURADO en la clave de dedup.
+
+    El fix anterior [O11] usaba solo (source, sku), lo cual congelaba
+    cada SKU en su primer precio visto PARA SIEMPRE — cualquier cambio
+    de precio en días posteriores era descartado silenciosamente por
+    merge_to_master(). Esto destruía la serie temporal necesaria para
+    feature_engineering.py (lags, medias móviles) y los modelos de
+    pronóstico (TFT/TCN/XGBoost).
+
+    Clave nueva: (source, sku, price_date)
+      → Permite 1 registro por SKU por DÍA (serie temporal real).
+      → Sigue evitando duplicados si el pipeline corre 2x el mismo día.
+
+    Clave para items sin SKU: (source, fp_<md5>, price_date)
+      → fingerprint determinístico por título+precio, también con fecha.
     """
-    source = row.get("source", "")
-    sku    = row.get("sku", "").strip()
+    source     = row.get("source", "")
+    sku        = row.get("sku", "").strip()
+    price_date = row.get("price_date", "").strip()
 
     if not sku:
         title = row.get("title", row.get("name", ""))[:80]
         price = str(row.get("price_pen") or row.get("price_usd") or "")
         fp    = hashlib.md5(f"{title}|{price}".encode()).hexdigest()[:12]
-        return (source, f"fp_{fp}")
+        return (source, f"fp_{fp}", price_date)
 
-    return (source, sku)
+    return (source, sku, price_date)
 
 
 def merge_to_master(batch_files: list) -> tuple[int, int]:
@@ -279,7 +310,8 @@ def merge_to_master(batch_files: list) -> tuple[int, int]:
 
     if skipped:
         log.info(
-            f"  [master] Deduplicados: {skipped:,} registros omitidos"
+            f"  [master] Deduplicados: {skipped:,} registros omitidos "
+            f"(mismo source+sku+price_date)"
         )
 
     ordered    = [f for f in FIELD_ORDER if f in all_fields]
@@ -363,7 +395,7 @@ def run(mode: str, batch_id: str):
         return False
 
     log.info("═" * 60)
-    log.info(f"  PIPELINE v5.7 — modo={mode} | batch={batch_id}")
+    log.info(f"  PIPELINE v5.8 — modo={mode} | batch={batch_id}")
     log.info(
         f"  MAX_ELAPSED_S={MAX_ELAPSED_S}s ({MAX_ELAPSED_S//60} min)"
     )
@@ -616,7 +648,7 @@ def run(mode: str, batch_id: str):
 
 def _parse_args():
     parser = argparse.ArgumentParser(
-        description="Pipeline de recolección — tesis-hardware-peru v5.7",
+        description="Pipeline de recolección — tesis-hardware-peru v5.8",
         formatter_class=argparse.RawTextHelpFormatter,
     )
     parser.add_argument(
