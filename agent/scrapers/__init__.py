@@ -1,28 +1,34 @@
 """
-agent/scrapers/__init__.py  v3.0
+agent/scrapers/__init__.py  v3.1
 Expone todos los scrapers como paquete importable desde agent/main.py
 
-Scrapers activos (confirmado en log batch_20260710_221123):
+CAMBIOS v3.1 (sobre v3.0):
+  [I7] ebaysdk eliminado de pip install en ambos workflows → comentario [I1]
+       actualizado: scrape_ebay usa OAuth2 directo con requests, no ebaysdk
+  [I8] scraper_mercadolibre + scraper_newegg movidos de importlib a try/except
+       (ambos archivos existen en el repo — importlib era innecesario)
+  [I9] _HAS_MERCADOLIBRE + _HAS_NEWEGG agregados como flags de disponibilidad
+       (consistencia con patrón _HAS_* del resto de scrapers opcionales)
+
+Scrapers activos (confirmado en log batch_20260711_160344):
   - scrape_local()          → Falabella, Hiraoka (PEN)
   - scrape_dolar()          → USD/PEN tipo de cambio (cascada 3 fuentes)
   - get_exchange_rate()     → Tipo de cambio actual (para roi_calculator.py)
   - scrape_importacion()    → Precios de importación (Amazon USA activo)
   - scrape_competencia()    → Análisis competencia local PE (Falabella activo)
+  - scrape_ebay()           → eBay Browse API USA — 14,760 registros ✅
 
 Scrapers con try/except (opcionales — 0 resultados en log):
-  - scrape_ebay()           → eBay Browse API USA (requiere EBAY_APP_ID)
+  - scrape_mercadolibre()   → MeLi PE API pública (0 resultados — revisar endpoint)
+  - scrape_newegg()         → Newegg USA HTML scraping (0 resultados — revisar HTML)
   - scrape_camel()          → CamelCamelCamel RSS + historial ASIN
   - scrape_pcpartpicker()   → PCPartPicker precios multi-tienda USA
   - scrape_kaggle()         → Datasets Kaggle (bulk histórico)
 
-Scrapers cargados via importlib en main.py (pueden no existir en el repo):
-  - scrape_mercadolibre()   → MeLi PE API pública (HTTP 403 activo)
-  - scrape_newegg()         → Newegg USA HTML scraping (archivo pendiente)
-
 Patrón de resiliencia:
   - import directo  → scraper CORE, siempre debe existir y funcionar
   - try/except      → scraper OPCIONAL, puede fallar sin romper el paquete
-  - importlib       → scraper EXPERIMENTAL, puede no existir en el repo
+  - importlib       → NO USADO — todos los scrapers conocidos usan try/except
 """
 
 # ── Scrapers CORE — siempre disponibles ────────────────────────────────────
@@ -31,8 +37,9 @@ from .scraper_local import scrape_local
 from .scraper_dolar import scrape_dolar, get_exchange_rate
 
 # ── Scrapers OPCIONALES — try/except para no romper el paquete ─────────────
-# [I1] scraper_ebay: movido a try/except — requiere ebaysdk en pip
-#      (ebaysdk agregado en daily_agent v6.0 + pipeline_roi v2.0)
+
+# [I1] scraper_ebay: usa OAuth2 directo con requests (NO requiere ebaysdk)
+#      ebaysdk fue eliminado de pip install en daily_agent v6.2 + pipeline_roi v2.1
 try:
     from .scraper_ebay import scrape_ebay
     _HAS_EBAY = True
@@ -40,7 +47,25 @@ except (ImportError, AttributeError) as e:
     scrape_ebay = None
     _HAS_EBAY   = False
 
-# [I2] scraper_camel: movido a try/except — 0 resultados en log, estado incierto
+# [I8] scraper_mercadolibre: movido de importlib a try/except
+#      (archivo existe en repo — 0 resultados en log, posible cambio de API)
+try:
+    from .scraper_mercadolibre import scrape_mercadolibre
+    _HAS_MERCADOLIBRE = True
+except (ImportError, AttributeError) as e:
+    scrape_mercadolibre = None
+    _HAS_MERCADOLIBRE   = False
+
+# [I8] scraper_newegg: movido de importlib a try/except
+#      (archivo existe en repo — 0 resultados en log, posible cambio de HTML)
+try:
+    from .scraper_newegg import scrape_newegg
+    _HAS_NEWEGG = True
+except (ImportError, AttributeError) as e:
+    scrape_newegg = None
+    _HAS_NEWEGG   = False
+
+# [I2] scraper_camel: 0 resultados en log, estado incierto
 try:
     from .scraper_camel import scrape_camel
     _HAS_CAMEL = True
@@ -48,7 +73,7 @@ except (ImportError, AttributeError) as e:
     scrape_camel = None
     _HAS_CAMEL   = False
 
-# [I3] scraper_pcpartpicker: movido a try/except — 0 resultados en log
+# [I3] scraper_pcpartpicker: 0 resultados en log
 try:
     from .scraper_pcpartpicker import scrape_pcpartpicker
     _HAS_PCPARTPICKER = True
@@ -56,7 +81,7 @@ except (ImportError, AttributeError) as e:
     scrape_pcpartpicker = None
     _HAS_PCPARTPICKER   = False
 
-# [I4] scraper_kaggle: movido a try/except — usa 'import kaggle' internamente,
+# [I4] scraper_kaggle: usa 'import kaggle' internamente,
 #      posible conflicto con kagglesdk en site-packages
 try:
     from .scraper_kaggle import scrape_kaggle
@@ -80,14 +105,6 @@ except (ImportError, AttributeError):
     scrape_competencia = None
     _HAS_COMPETENCIA   = False
 
-# ── Scrapers EXPERIMENTALES — cargados via importlib en main.py ────────────
-# [I5] Razón real: son scrapers opcionales que pueden no existir en el repo,
-#      no se importan aquí para que main.py pueda manejar su ausencia con
-#      un mensaje de advertencia explícito (en lugar de ImportError aquí).
-#
-#   scraper_mercadolibre → MeLi PE (HTTP 403 activo, archivo existe)
-#   scraper_newegg       → Newegg USA (archivo pendiente de crear)
-
 # ── [I6] Stubs para scrapers opcionales en None ────────────────────────────
 # main.py DEBE verificar el flag _HAS_* antes de llamar a cualquier scraper
 # opcional. Ejemplo correcto:
@@ -104,6 +121,8 @@ __all__ = [
     "get_exchange_rate",
     # Scrapers OPCIONALES (pueden ser None si el import falló)
     "scrape_ebay",
+    "scrape_mercadolibre",   # [I9]
+    "scrape_newegg",         # [I9]
     "scrape_camel",
     "scrape_pcpartpicker",
     "scrape_kaggle",
@@ -111,6 +130,8 @@ __all__ = [
     "scrape_competencia",
     # Flags de disponibilidad — verificar ANTES de llamar al scraper
     "_HAS_EBAY",
+    "_HAS_MERCADOLIBRE",     # [I9]
+    "_HAS_NEWEGG",           # [I9]
     "_HAS_CAMEL",
     "_HAS_PCPARTPICKER",
     "_HAS_KAGGLE",
