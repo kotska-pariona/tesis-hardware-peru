@@ -1,18 +1,12 @@
 # ════════════════════════════════════════════════════════════
-# Hardware Peru — Data Agent v6.1
-# CAMBIOS v6.1 (sobre v6.0):
-#   [W10] EBAY_CLIENT_SECRET agregado a env (faltaba — fix E1)
-#   [W11] timeout-minutes: expresión ternaria → valor fijo 90
-#   [W12] local_only description actualizada (Coolbox/Compumundo v4.0)
-#   [W13] PYTHONPATH: agregado agent/scrapers
-#   [W14] tzdata agregado a pip install (ZoneInfo en ubuntu-latest)
-#   [W15] git pull --rebase: falla explícita en lugar de || true silencioso
-#   [W16] cron: */2 → */3 (8 snapshots/día, margen 2h+ entre runs)
-#   [W17] --max-elapsed pasado a main.py según modo
-#   [W18] tag parsing en Batch 24h usa regex directo
-#   [M9]  requirements.txt generado dinámicamente para cache efectivo
+# Hardware Peru — Data Agent v6.2
+# CAMBIOS v6.2 (sobre v6.1):
+#   [W19] git add ANTES de pull --rebase (fix bug "unstaged changes")
+#   [W20] ebaysdk eliminado de pip install (no usado — OAuth2 directo)
+#   [W21] batch 24h: escritura atómica con .tmp → rename (anti-corrupción)
+#   [W22] Compumundo: flag COMPUMUNDO_ENABLED=false via env (ahorra ~12 min)
 # ════════════════════════════════════════════════════════════
-name: Hardware Peru — Data Agent v6.1
+name: Hardware Peru — Data Agent v6.2
 
 on:
   schedule:
@@ -46,13 +40,14 @@ jobs:
     timeout-minutes: 90    # [W11] valor fijo — control real via MAX_ELAPSED_S en main.py
 
     env:
-      EBAY_APP_ID:        ${{ secrets.EBAY_APP_ID }}
-      EBAY_CLIENT_SECRET: ${{ secrets.EBAY_CLIENT_SECRET }}   # [W10] faltaba
-      KAGGLE_USERNAME:    ${{ secrets.KAGGLE_USERNAME }}
-      KAGGLE_KEY:         ${{ secrets.KAGGLE_KEY }}
-      RUN_MODE:           ${{ github.event.inputs.mode || 'normal' }}
-      OUTPUT_DIR:         data/raw
-      TZ:                 America/Lima
+      EBAY_APP_ID:          ${{ secrets.EBAY_APP_ID }}
+      EBAY_CLIENT_SECRET:   ${{ secrets.EBAY_CLIENT_SECRET }}   # [W10]
+      KAGGLE_USERNAME:      ${{ secrets.KAGGLE_USERNAME }}
+      KAGGLE_KEY:           ${{ secrets.KAGGLE_KEY }}
+      RUN_MODE:             ${{ github.event.inputs.mode || 'normal' }}
+      OUTPUT_DIR:           data/raw
+      TZ:                   America/Lima
+      COMPUMUNDO_ENABLED:   "false"   # [W22] SSL mismatch permanente — ~12 min ahorrados
 
     steps:
       # ── 1. Checkout ────────────────────────────────────────────
@@ -87,9 +82,9 @@ jobs:
             fake-useragent \
             cloudscraper \
             pytz \
-            tzdata \
-            ebaysdk
+            tzdata
           # [W14] tzdata necesario para ZoneInfo("America/Lima") en ubuntu-latest
+          # [W20] ebaysdk eliminado — OAuth2 se maneja directo con requests
 
       # ── 4. Info del run ────────────────────────────────────────
       - name: "ℹ️ Info del run"
@@ -146,7 +141,7 @@ jobs:
       - name: "📊 Generar batch 24h"
         run: |
           python - <<'PYEOF'
-          import os, glob, re, pandas as pd
+          import os, glob, re, shutil, pandas as pd
           from datetime import datetime, timedelta, timezone
           from zoneinfo import ZoneInfo   # [W14] tzdata instalado arriba
 
@@ -196,7 +191,9 @@ jobs:
               if dfs:
                   combined = pd.concat(dfs, ignore_index=True)
                   out = f"{raw_dir}/batch_24h_{now_pe.strftime('%Y%m%d')}.csv"
-                  combined.to_csv(out, index=False)
+                  tmp = out + ".tmp"
+                  combined.to_csv(tmp, index=False)
+                  shutil.move(tmp, out)   # [W21] escritura atómica — anti-corrupción
                   print(f"✅ Batch 24h guardado: {out}")
                   print(f"   Registros: {len(combined):,}")
                   if "source" in combined.columns:
@@ -206,11 +203,14 @@ jobs:
           PYEOF
 
       # ── 8. Commit ──────────────────────────────────────────────
-      # [W6] Orden: pull PRIMERO → add → commit → push
+      # [W19] Orden correcto: add PRIMERO → pull --rebase → commit → push
       - name: "💾 Commit datos"
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # [W19] PRIMERO stagear — working tree limpio antes del rebase
+          git add data/raw/
 
           # [W15] Pull con falla explícita — no silenciar errores reales
           git pull --rebase origin main || {
@@ -219,13 +219,11 @@ jobs:
             exit 1
           }
 
-          git add data/raw/
-
           if git diff --staged --quiet; then
             echo "ℹ️ Sin cambios nuevos para commitear"
           else
             MASTER_LINES=$(python -c "
-          import csv, pathlib
+          import pathlib
           f = pathlib.Path('data/raw/MASTER_hardware_peru.csv')
           print(sum(1 for _ in open(f)) - 1 if f.exists() else 0)
           " 2>/dev/null || echo "0")
