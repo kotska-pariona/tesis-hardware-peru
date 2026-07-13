@@ -1,0 +1,26 @@
+{
+  "batch_id": "20260713_034904",
+  "timestamp": "2026-07-13T03:49:04.936280+00:00",
+  "registros_originales": 43000,
+  "registros_sin_fecha_removidos": 13,
+  "registros_finales": 41528,
+  "pct_retenido": 96.58,
+  "completitud": {
+    "source": 100.0,
+    "category": 60.75,
+    "sku": 80.17,
+    "brand": 41.65,
+    "title": 100.0,
+    "price_date": 99.97,
+    "price_usd": 100.0,
+    "price_pen": 100.0,
+    "_overall_pct": 85.32
+  },
+  "estacionariedad": {
+    "adf_pvalue": null,
+    "kpss_pvalue": null,
+    "status": "insuficiente"
+  },
+  "hito_H1_cumplido": true,
+  "hito_H1_fallas_criticas": {}
+}
