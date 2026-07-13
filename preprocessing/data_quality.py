@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-data_quality.py v1.2
+data_quality.py v1.3
 ═══════════════════════════════════════════════════════════════════
 Certifica el MASTER_hardware_peru.csv contra preprocessing/data_contract.yaml
 ANTES de que llegue a feature_engineering.py (Etapa II).
@@ -18,7 +18,18 @@ CAMBIOS v1.2 (sobre v1.1):
          no por string.
   [FIX5] Conversión explícita a bool/float nativos de Python antes
          de json.dump() — numpy.bool_/float64 no son serializables.
-  [Q1-Q3 de v1.1 se mantienen sin cambios]
+
+CAMBIOS v1.3 (sobre v1.2):
+  [FIX6] sku == NaN ya NO colapsa filas en drop_duplicates(). Mismo
+         problema que [FIX1] pero para sku: pandas trata NaN == NaN
+         como igual, lo que colapsaba miles de productos DISTINTOS
+         de falabella/hiraoka (benchmark, sin sku real) en 1 sola
+         fila. Se genera un fingerprint sintético (title + price_pen)
+         SOLO para la comparación de deduplicación; el sku real
+         (incluyendo NaN) se preserva sin modificar en el dataset
+         final.
+
+[Q1-Q3 de v1.1 se mantienen sin cambios]
 
 Uso:
     python preprocessing/data_quality.py \
@@ -30,6 +41,7 @@ Uso:
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import sys
 from pathlib import Path
@@ -113,6 +125,40 @@ def split_missing_date(df: pd.DataFrame) -> tuple[pd.DataFrame, int]:
 
 
 # ══════════════════════════════════════════════════════════════════
+# [FIX6] CLAVE DE DEDUP PARA sku — evita colapso por NaN
+# ══════════════════════════════════════════════════════════════════
+def _dedup_sku_series(df: pd.DataFrame) -> pd.Series:
+    """
+    Construye una versión de 'sku' segura para deduplicación.
+
+    Problema: pandas.drop_duplicates() trata NaN == NaN como igual.
+    Fuentes como falabella_benchmark/hiraoka_benchmark no capturan
+    sku real, por lo que TODOS sus productos comparten sku == NaN.
+    Sin este fix, drop_duplicates() colapsa cientos/miles de
+    productos DISTINTOS (títulos y precios diferentes) en 1 sola
+    fila por (source, price_date), destruyendo datos reales.
+
+    Solución: cuando sku está vacío, se genera un fingerprint
+    sintético 'fp_<md5>' a partir de title + price_pen, ÚNICAMENTE
+    para esta comparación. El sku real del DataFrame NO se modifica.
+    """
+    if "sku" not in df.columns:
+        return pd.Series([""] * len(df), index=df.index)
+
+    sku = df["sku"].astype(str)
+    mask_missing = df["sku"].isna() | (sku.str.strip() == "") | (sku == "nan")
+
+    if mask_missing.any():
+        title = df.get("title", pd.Series("", index=df.index)).astype(str)
+        price = df.get("price_pen", pd.Series("", index=df.index)).astype(str)
+        raw = title + "_" + price
+        fp = raw.apply(lambda x: "fp_" + hashlib.md5(x.encode("utf-8")).hexdigest()[:12])
+        sku = sku.where(~mask_missing, fp)
+
+    return sku
+
+
+# ══════════════════════════════════════════════════════════════════
 # DEDUPLICACIÓN según clave del contrato
 # ══════════════════════════════════════════════════════════════════
 def deduplicate(df: pd.DataFrame, contract: dict) -> pd.DataFrame:
@@ -125,7 +171,16 @@ def deduplicate(df: pd.DataFrame, contract: dict) -> pd.DataFrame:
         return df
 
     before = len(df)
-    df_dedup = df.drop_duplicates(subset=key_cols, keep="last")
+
+    # [FIX6] Clave temporal con fingerprint — evita colapso por sku NaN.
+    # El sku real (incluyendo sus NaN) se preserva intacto en df.
+    df = df.copy()
+    df["_dedup_sku"] = _dedup_sku_series(df)
+    key_cols_fixed = ["_dedup_sku" if c == "sku" else c for c in key_cols]
+
+    df_dedup = df.drop_duplicates(subset=key_cols_fixed, keep="last")
+    df_dedup = df_dedup.drop(columns=["_dedup_sku"])
+
     removed = before - len(df_dedup)
     print(f"  🔍 Duplicados reales removidos: {removed:,} (clave: {key_cols})")
     return df_dedup
@@ -220,7 +275,7 @@ def stationarity_tests(df: pd.DataFrame) -> dict:
 # ══════════════════════════════════════════════════════════════════
 def run_quality_pipeline(input_path: Path, contract_path: Path, output_path: Path):
     print("═" * 60)
-    print("  DATA QUALITY v1.2 — Certificación Hito H1")
+    print("  DATA QUALITY v1.3 — Certificación Hito H1")
     print("═" * 60)
 
     contract = load_contract(contract_path)
