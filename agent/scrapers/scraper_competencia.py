@@ -323,7 +323,7 @@ class FalabellaScraper:
                 if title:
                     items.append({
                         "batch_id":       batch_id,
-                        "source":         "falabella",
+                        "source":         "falabella_benchmark",
                         "category":       category,
                         "title":          str(title)[:200],
                         "price_pen":      round(price_pen, 2),
@@ -594,7 +594,7 @@ class HiraokaScraper:
 
                 items.append({
                     "batch_id":       batch_id,
-                    "source":         "hiraoka",
+                    "source":         "hiraoka_benchmark",
                     "category":       category,
                     "title":          title[:200],
                     "price_pen":      round(price_pen, 2),
