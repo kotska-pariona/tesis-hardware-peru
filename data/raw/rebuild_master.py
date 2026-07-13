@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-rebuild_master.py — Reconstrucción retroactiva del MASTER
+rebuild_master.py — Reconstrucción retroactiva del MASTER (v2 - corregido)
 ════════════════════════════════════════════════════════════════════
 Lee TODOS los batch_*.csv de data/raw/ (incluye los mal nombrados
 batch_batch_*) y reconstruye MASTER_hardware_peru.csv aplicando la
@@ -11,6 +11,16 @@ lógica de identidad CORREGIDA:
                                       para buscar el rate_mid por fecha)
   - _make_dedup_key()   [O27]       (source, sku|url|title, price_date)
                                       -> price NUNCA es parte de la identidad
+
+CHANGELOG v2:
+  [FIX-1] convert_currency ahora reporta fechas sin rate_mid (silencioso -> visible)
+          y también rellena el par price_orig_pen / price_orig_usd.
+  [FIX-2] Lectura de CSV con utf-8-sig + errors="replace" (evita descartar
+          archivos completos por 1 caracter mal codificado) + log por archivo.
+  [FIX-3] Dedup ahora conserva la ÚLTIMA observación cronológica del día
+          (antes se quedaba con la primera según orden alfabético de archivo).
+  [FIX-4] Reporte de completitud de price_usd / price_orig_usd ANTES vs
+          DESPUÉS del rebuild (la métrica que bloqueaba el Hito H1).
 
 No sobreescribe el MASTER original. Genera:
   data/raw/MASTER_hardware_peru_REBUILT.csv
@@ -23,7 +33,6 @@ import argparse
 import csv
 import glob
 import hashlib
-import re
 from pathlib import Path
 from collections import defaultdict
 
@@ -50,6 +59,12 @@ _ALIAS_GROUPS = {
     "price_currency": ["price_currency", "currency"],
 }
 
+# [FIX-1] Pares moneda a reparar: (campo_pen, campo_usd)
+_CURRENCY_PAIRS = [
+    ("price_pen", "price_usd"),
+    ("price_orig_pen", "price_orig_usd"),
+]
+
 
 def normalize_schema(records: list) -> list:
     for row in records:
@@ -68,22 +83,63 @@ def normalize_schema(records: list) -> list:
     return records
 
 
+def _completeness_report(records: list, label: str):
+    """[FIX-4] Reporta % de completitud de los campos de precio en USD."""
+    total = len(records)
+    if total == 0:
+        print(f"   ({label}) sin registros")
+        return
+    for _, usd_field in _CURRENCY_PAIRS:
+        ok = sum(1 for r in records if r.get(usd_field) not in (None, ""))
+        print(f"   ({label}) {usd_field}: {ok:,}/{total:,} ({ok/total:.2%})")
+
+
 def convert_currency(records: list, rate_lookup: dict) -> list:
-    """rate_lookup: dict fecha(YYYY-MM-DD) -> rate_mid (float)."""
+    """
+    [FIX-1] rate_lookup: dict fecha(YYYY-MM-DD) -> rate_mid (float).
+    Ahora repara AMBOS pares de moneda (precio actual y precio original)
+    y reporta explícitamente qué fechas no se pudieron reparar por falta
+    de tipo de cambio (antes era un `continue` totalmente silencioso).
+    """
+    filled_counts = defaultdict(int)
+    missing_dates_by_field = defaultdict(set)
+
     for row in records:
         date_key = (row.get("price_date") or "")[:10]
         rate_mid = rate_lookup.get(date_key)
-        if not rate_mid:
-            continue
-        usd = row.get("price_usd")
-        pen = row.get("price_pen")
-        try:
-            if (usd is None or usd == "") and pen not in (None, ""):
-                row["price_usd"] = round(float(pen) / rate_mid, 2)
-            elif (pen is None or pen == "") and usd not in (None, ""):
-                row["price_pen"] = round(float(usd) * rate_mid, 2)
-        except (ValueError, TypeError):
-            continue
+
+        for pen_field, usd_field in _CURRENCY_PAIRS:
+            usd = row.get(usd_field)
+            pen = row.get(pen_field)
+
+            needs_fill = (usd is None or usd == "") and pen not in (None, "")
+            needs_fill_rev = (pen is None or pen == "") and usd not in (None, "")
+
+            if not rate_mid:
+                # Había algo que reparar pero no hay tipo de cambio para esa fecha
+                if date_key and (needs_fill or needs_fill_rev):
+                    missing_dates_by_field[usd_field].add(date_key)
+                continue
+
+            try:
+                if needs_fill:
+                    row[usd_field] = round(float(pen) / rate_mid, 2)
+                    filled_counts[usd_field] += 1
+                elif needs_fill_rev:
+                    row[pen_field] = round(float(usd) * rate_mid, 2)
+                    filled_counts[pen_field] += 1
+            except (ValueError, TypeError):
+                continue
+
+    print("\n💱 Resultado de conversión de moneda:")
+    for field, count in filled_counts.items():
+        print(f"   ✅ {field}: {count:,} valores rellenados")
+    for field, dates in missing_dates_by_field.items():
+        print(f"   ⚠️  {field}: {len(dates)} fecha(s) SIN tipo de cambio "
+              f"-> {sorted(dates)}")
+    if not missing_dates_by_field:
+        print("   ✅ Todas las fechas con datos faltantes tenían tipo de cambio disponible.")
+
     return records
 
 
@@ -101,6 +157,12 @@ def _make_dedup_key(row: dict) -> tuple:
     identity_source = url if url else title
     fp = hashlib.md5(identity_source.encode()).hexdigest()[:12]
     return (source, f"fp_{fp}", price_date)
+
+
+def _sort_ts_key(row: dict) -> str:
+    """[FIX-3] Clave de orden cronológico. Usa timestamp completo si existe,
+    si no cae a price_date. Filas sin ninguno quedan al inicio (orden estable)."""
+    return row.get("timestamp") or row.get("price_date") or ""
 
 
 # ── Selección de archivos a procesar ───────────────────────────────────
@@ -121,7 +183,7 @@ def _discover_batch_files(data_dir: Path) -> list:
             continue
         if name.endswith("_dolar.csv"):
             continue
-        if not (name.startswith("batch_") ):
+        if not (name.startswith("batch_")):
             continue
         selected.append(Path(f))
     return sorted(selected)
@@ -132,8 +194,10 @@ def _load_exchange_rate_lookup(data_dir: Path) -> dict:
     path = data_dir / "MASTER_exchange_rate.csv"
     lookup = {}
     if not path.exists():
+        print(f"⚠️  ATENCIÓN: no existe {path.name}, no se podrá convertir moneda.")
         return lookup
-    with open(path, encoding="utf-8") as fh:
+    # [FIX-2] encoding robusto también aquí
+    with open(path, encoding="utf-8-sig", errors="replace") as fh:
         for row in csv.DictReader(fh):
             date = (row.get("date") or "")[:10]
             mid  = row.get("mid")
@@ -153,40 +217,56 @@ def rebuild(data_dir: Path):
         print(f"   - {f.name}")
 
     rate_lookup = _load_exchange_rate_lookup(data_dir)
-    print(f"\n💱 Tipos de cambio cargados: {len(rate_lookup)} fechas")
+    print(f"\n💱 Tipos de cambio cargados: {len(rate_lookup)} fechas -> "
+          f"{sorted(rate_lookup.keys())}")
 
+    # [FIX-2] Lectura robusta: nunca se descarta un archivo completo por un
+    # error de encoding puntual, y se loguea cuántas filas aportó cada uno.
     raw_rows = []
     for f in files:
         try:
-            with open(f, encoding="utf-8") as fh:
+            with open(f, encoding="utf-8-sig", errors="replace", newline="") as fh:
                 rows = list(csv.DictReader(fh))
                 raw_rows.extend(rows)
+                print(f"   ✔ {f.name}: {len(rows):,} filas")
         except Exception as e:
-            print(f"⚠️  Error leyendo {f.name}: {e}")
+            print(f"   ❌ ERROR leyendo {f.name}: {e} (archivo OMITIDO por completo)")
 
     print(f"\n📊 Total filas RAW leídas: {len(raw_rows):,}")
 
     raw_rows = normalize_schema(raw_rows)
+
+    # [FIX-4] Completitud ANTES de la conversión de moneda
+    print("\n📈 Completitud ANTES del rebuild (post-normalize, pre-convert):")
+    _completeness_report(raw_rows, "ANTES")
+
     raw_rows = convert_currency(raw_rows, rate_lookup)
 
-    # Dedup global con la clave corregida
-    seen = set()
-    final_rows = []
+    # [FIX-3] Orden cronológico ascendente para que, al deduplicar,
+    # la ÚLTIMA observación del día sea la que sobreviva (no la primera
+    # según orden alfabético de archivo, que era arbitrario).
+    raw_rows.sort(key=_sort_ts_key)
+
+    # Dedup global con la clave corregida — conserva la ÚLTIMA ocurrencia
+    dedup_map = {}
     skipped = 0
     for row in raw_rows:
         key = _make_dedup_key(row)
-        if key not in seen:
-            seen.add(key)
-            final_rows.append(row)
-        else:
+        if key in dedup_map:
             skipped += 1
+        dedup_map[key] = row  # overwrite -> se queda con la más reciente
 
-    print(f"✅ Filas únicas tras dedup corregido: {len(final_rows):,}")
-    print(f"🗑️  Duplicados reales eliminados: {skipped:,}")
+    final_rows = list(dedup_map.values())
+
+    print(f"\n✅ Filas únicas tras dedup corregido: {len(final_rows):,}")
+    print(f"🗑️  Duplicados reales eliminados: {skipped:,} "
+          f"(se conservó la observación más reciente de cada día)")
+
+    # [FIX-4] Completitud DESPUÉS del rebuild
+    print("\n📈 Completitud DESPUÉS del rebuild:")
+    _completeness_report(final_rows, "DESPUÉS")
 
     # ── Prueba de continuidad temporal ──────────────────────────────────
-    # Agrupa por identidad (sin fecha) y cuenta cuántos días distintos
-    # tiene cada producto -> demuestra si la serie temporal ya funciona.
     identity_dates = defaultdict(set)
     for row in final_rows:
         source = (row.get("source") or "").strip()
