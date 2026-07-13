@@ -1,64 +1,96 @@
 #!/usr/bin/env python3
 """
-main.py — Orquestador v5.9
+main.py — Orquestador v5.10
 ════════════════════════════════════════════════════════════════════
+Fixes v5.10 (sobre v5.9):
+  [O28] merge_to_master(): mensaje de log "Deduplicados" corregido.
+        Decía de forma fija "(mismo source+sku+price_date)", pero
+        desde [O27] el fallback sin sku identifica por url/title
+        (sin price) — el mensaje no reflejaba ese caso. Ahora es
+        genérico y describe ambas ramas de identidad.
+  [O29] normalize_schema(): el parámetro source_tag se recibía en
+        cada llamada desde save_batch() pero nunca se usaba dentro
+        de la función. Ahora se usa en logging DEBUG por fuente,
+        permitiendo auditar qué alias se rellenó y en qué SKU, sin
+        cambiar el comportamiento ni la firma de la función.
+
 Fixes v5.9 (sobre v5.8):
   [O23] normalize_schema(): consolida columnas alias detectadas por
         análisis del MASTER real (sku/asin_sku/item_id/part_id,
         available_qty/available, free_shipping/shipping_free,
         price_currency/currency, price_orig_pen/original_price).
         Se ejecuta dentro de save_batch() para las 10 fuentes, en
-        UN solo punto de entrada — no se tocó ningún scraper individual.
+        UN solo punto de entrada — no se tocó ningún scraper
+        individual.
   [O24] normalize_schema() también deriva price_date desde timestamp
         cuando price_date llega vacío. Esto corrige el bug confirmado
-        por diagnóstico: ebay_usa, falabella_pe, hiraoka_pe (25,421 de
-        40,040 filas del MASTER) tenían la fecha en timestamp pero
-        nunca la copiaban a price_date — inflando artificialmente el
-        % de "datos faltantes" en esa columna crítica.
-  [O25] convert_currency(): rellena price_usd/price_pen cruzado usando
-        el 'mid' del tipo de cambio del batch actual. Corrige el bug
-        confirmado: fuentes USD (ebay_usa, amazon_usa, aliexpress) solo
-        llenaban price_usd; fuentes PEN (falabella*, hiraoka*) solo
-        llenaban price_pen. Ninguna hacía la conversión cruzada, dejando
-        43.93% de price_usd (columna objetivo) vacío sin necesidad —
-        el dato es 100% derivable matemáticamente con el rate del batch.
+        por diagnóstico: ebay_usa, falabella_pe, hiraoka_pe (25,421
+        de 40,040 filas del MASTER) tenían la fecha en timestamp
+        pero nunca la copiaban a price_date — inflando
+        artificialmente el % de "datos faltantes" en esa columna
+        crítica.
+  [O25] convert_currency(): rellena price_usd/price_pen cruzado
+        usando el 'mid' del tipo de cambio del batch actual. Corrige
+        el bug confirmado: fuentes USD (ebay_usa, amazon_usa,
+        aliexpress) solo llenaban price_usd; fuentes PEN
+        (falabella*, hiraoka*) solo llenaban price_pen. Ninguna
+        hacía la conversión cruzada, dejando 43.93% de price_usd
+        (columna objetivo) vacío sin necesidad — el dato es 100%
+        derivable matemáticamente con el rate del batch.
   [O26] El tipo de cambio (scrape_dolar) YA NO se mezcla en
         MASTER_hardware_peru.csv vía merge_to_master(). Antes, sus
-        registros (sin sku, con date en vez de price_date) colisionaban
-        con la dedup key (source, sku, price_date) y se perdían
-        silenciosamente (por eso exchangerate_api solo tenía 2 filas
-        en 40,040). Ahora tiene su propio archivo MASTER_exchange_rate.csv
-        vía save_dolar_batch(), con dedup propia por (source, date).
+        registros (sin sku, con date en vez de price_date)
+        colisionaban con la dedup key (source, sku, price_date) y
+        se perdían silenciosamente (por eso exchangerate_api solo
+        tenía 2 filas en 40,040). Ahora tiene su propio archivo
+        MASTER_exchange_rate.csv vía save_dolar_batch(), con dedup
+        propia por (source, date).
+  [O27] _make_dedup_key(): FIX CRÍTICO — el fallback SIN sku ya NO
+        usa price en el fingerprint. Antes (fix [O11], versión
+        anterior a v5.7), cuando un registro no tenía sku, el
+        fingerprint MD5 se calculaba sobre (title + price),
+        generando una clave DISTINTA cada vez que el precio cambiaba
+        de un día a otro para el MISMO producto sin sku — esto
+        derrotaba la deduplicación y generaba filas acumulativas
+        duplicadas para toda fuente sin sku (competencia,
+        importación). Ahora la prioridad de identidad es:
+        sku > url > title (SIN price); el precio se sigue
+        diferenciando correctamente por price_date en la tupla
+        final (source, identidad, price_date).
 
 Fixes v5.8 (sobre v5.7):
   [O21] from __future__ import annotations — protege contra crash en
         Python <3.10 por el uso de sintaxis 'X | None' (PEP 604) en
         los type hints. Sin esto, el script muere al importarse en
         cualquier runner con Python 3.9 o inferior.
-  [O22] _make_dedup_key(): price_date RESTAURADO en la clave de dedup.
-        El fix [O11] (v5.x anterior) removió price_date por completo
-        para "evitar duplicados acumulativos", pero esto congelaba
-        cada SKU en su PRIMER precio visto para siempre — el pipeline
-        nunca volvía a registrar cambios de precio del mismo SKU en
-        días distintos. Esto destruía la dimensión temporal completa
-        que necesita el análisis de series de tiempo (TFT/TCN/XGBoost).
-        Ahora la clave es (source, sku, price_date): sigue evitando
-        duplicados si el pipeline corre 2x el mismo día, pero permite
-        1 registro por SKU por día — la serie temporal real.
+  [O22] _make_dedup_key(): price_date RESTAURADO en la clave de
+        dedup. El fix [O11] (v5.x anterior a v5.7) removió
+        price_date por completo para "evitar duplicados
+        acumulativos", pero esto congelaba cada SKU en su PRIMER
+        precio visto para siempre — el pipeline nunca volvía a
+        registrar cambios de precio del mismo SKU en días distintos.
+        Esto destruía la dimensión temporal completa que necesita
+        el análisis de series de tiempo (TFT/TCN/XGBoost). Ahora la
+        clave es (source, sku, price_date): sigue evitando
+        duplicados si el pipeline corre 2x el mismo día, pero
+        permite 1 registro por SKU por día — la serie temporal real.
 
 Fixes v5.7 (sobre v5.6):
-  [O16] scrape_pcpartpicker cargado dinámicamente igual que MeLi/Newegg
-        — era import directo desde scrapers/__init__.py; si falla, el
-        pipeline entero muere. Ahora es opcional con _HAS_PCP flag.
-  [O17] Todos los scrapers llamados con mode= explícito — en v5.6 solo
-        scrape_local/scrape_dolar lo recibían; el resto ignoraba el parámetro
-  [O18] scrape_kaggle / scrape_camel / scrape_pcpartpicker agregados a
-        _HAS_* guards — si el módulo no carga, el paso se omite con warning
-        en lugar de KeyError en import
-  [O19] _near_timeout(): log solo una vez por invocación — en v5.6 podía
-        loguear el warning en cada paso si el pipeline ya estaba cerca del límite
-  [O20] mode='local_only' incluye MeLi PE — en v5.6 estaba incluido pero
-        faltaba en el help string; ahora ambos son consistentes
+  [O16] scrape_pcpartpicker cargado dinámicamente igual que
+        MeLi/Newegg — era import directo desde scrapers/__init__.py;
+        si falla, el pipeline entero muere. Ahora es opcional con
+        _HAS_PCP flag.
+  [O17] Todos los scrapers llamados con mode= explícito — en v5.6
+        solo scrape_local/scrape_dolar lo recibían; el resto
+        ignoraba el parámetro
+  [O18] scrape_kaggle / scrape_camel / scrape_pcpartpicker agregados
+        a _HAS_* guards — si el módulo no carga, el paso se omite
+        con warning en lugar de KeyError en import
+  [O19] _near_timeout(): log solo una vez por invocación — en v5.6
+        podía loguear el warning en cada paso si el pipeline ya
+        estaba cerca del límite
+  [O20] mode='local_only' incluye MeLi PE — en v5.6 estaba incluido
+        pero faltaba en el help string; ahora ambos son consistentes
 """
 
 from __future__ import annotations  # [O21] Compatibilidad Python <3.10
@@ -229,13 +261,17 @@ _ALIAS_GROUPS = {
 
 
 # ══════════════════════════════════════════════════════════════════════
-# [O23][O24] NORMALIZACIÓN DE ESQUEMA
+# [O23][O24][O29] NORMALIZACIÓN DE ESQUEMA
 # ══════════════════════════════════════════════════════════════════════
 
 def normalize_schema(records: list, source_tag: str) -> list:
     """
     [O23] Consolida columnas alias en su columna canónica del contrato.
     [O24] Deriva price_date desde timestamp cuando price_date está vacío.
+    [O29] source_tag ahora se usa en logging DEBUG por fuente — antes
+          se recibía como parámetro pero nunca se usaba dentro de la
+          función, perdiendo trazabilidad de qué fuente disparó cada
+          relleno de alias.
 
     Ejecutado dentro de save_batch() — un solo punto de entrada para
     las 10 fuentes, sin modificar ningún scraper individual.
@@ -249,6 +285,13 @@ def normalize_schema(records: list, source_tag: str) -> list:
                     val = row.get(alt)
                     if val is not None and val != "":
                         row[canon] = val
+                        # ── [O29] AÑADIDO v5.10 ──────────────────────
+                        log.debug(
+                            f"  [normalize:{source_tag}] "
+                            f"{alt} -> {canon} = {val!r} "
+                            f"(sku={row.get('sku', '?')})"
+                        )
+                        # ── FIN [O29] ─────────────────────────────────
                         break
 
         # [O24] price_date derivado de timestamp — corrige el bug
@@ -311,7 +354,7 @@ def save_batch(
         log.warning(f"  [save] Sin registros para {source_tag}")
         return None
 
-    records = normalize_schema(records, source_tag)          # [O23][O24]
+    records = normalize_schema(records, source_tag)          # [O23][O24][O29]
     if rate_mid:
         records = convert_currency(records, rate_mid)        # [O25]
 
@@ -416,9 +459,15 @@ def save_dolar_batch(records: list, batch_id: str) -> Path | None:
 
 def _make_dedup_key(row: dict) -> tuple:
     """
-    [O22] price_date en la clave de dedup (sin cambios).
+    [O22] price_date RESTAURADO en la clave de dedup.
     [O27] FIX CRÍTICO: el fallback SIN sku ya NO usa price en el
     fingerprint. Prioridad de identidad: sku > url > title.
+
+    Antes ([O11], versión anterior a v5.7), el fallback sin sku
+    usaba (title + price) para el fingerprint — esto generaba una
+    clave DISTINTA cada vez que el precio cambiaba de un día a otro
+    para el MISMO producto sin sku, derrotando la deduplicación.
+    Ahora la identidad NUNCA depende del precio: sku > url > title.
     """
     source     = row.get("source", "") or ""
     sku        = (row.get("sku") or "").strip()
@@ -486,10 +535,13 @@ def merge_to_master(batch_files: list) -> tuple[int, int]:
             skipped += 1
 
     if skipped:
+        # ── [O28] CORREGIDO v5.10 — mensaje genérico, ya no asume sku ──
         log.info(
             f"  [master] Deduplicados: {skipped:,} registros omitidos "
-            f"(mismo source+sku+price_date)"
+            f"(mismo source+identidad+price_date; identidad = sku, "
+            f"o fingerprint url/title si no hay sku — ver [O27])"
         )
+        # ── FIN [O28] ─────────────────────────────────────────────────
 
     ordered    = [f for f in FIELD_ORDER if f in all_fields]
     remainder  = sorted(all_fields - set(ordered))
@@ -572,7 +624,7 @@ def run(mode: str, batch_id: str):
         return False
 
     log.info("═" * 60)
-    log.info(f"  PIPELINE v5.9 — modo={mode} | batch={batch_id}")
+    log.info(f"  PIPELINE v5.10 — modo={mode} | batch={batch_id}")
     log.info(
         f"  MAX_ELAPSED_S={MAX_ELAPSED_S}s ({MAX_ELAPSED_S//60} min)"
     )
@@ -627,7 +679,8 @@ def run(mode: str, batch_id: str):
                     batch_id, mode=mode   # [O17]
                 )
                 p = save_batch(
-                    meli_records, batch_id, "mercadolibre", rate_mid=rate_mid
+                    meli_records, batch_id, "mercadolibre",
+                    rate_mid=rate_mid
                 )
                 if p: batches.append(p)
                 stats["mercadolibre_pe"] = len(meli_records)
@@ -723,7 +776,8 @@ def run(mode: str, batch_id: str):
                     batch_id, mode=mode   # [O17]
                 )
                 p = save_batch(
-                    pcp_records, batch_id, "pcpartpicker", rate_mid=rate_mid
+                    pcp_records, batch_id, "pcpartpicker",
+                    rate_mid=rate_mid
                 )
                 if p: batches.append(p)
                 stats["pcpartpicker"] = len(pcp_records)
@@ -779,7 +833,8 @@ def run(mode: str, batch_id: str):
                     batch_id, mode=mode   # [O17]
                 )
                 p = save_batch(
-                    imp_records, batch_id, "importacion", rate_mid=rate_mid
+                    imp_records, batch_id, "importacion",
+                    rate_mid=rate_mid
                 )
                 if p: batches.append(p)
                 stats["importacion"] = len(imp_records)
@@ -802,7 +857,8 @@ def run(mode: str, batch_id: str):
                     batch_id, mode=mode   # [O17]
                 )
                 p = save_batch(
-                    comp_records, batch_id, "competencia", rate_mid=rate_mid
+                    comp_records, batch_id, "competencia",
+                    rate_mid=rate_mid
                 )
                 if p: batches.append(p)
                 stats["competencia"] = len(comp_records)
@@ -851,7 +907,7 @@ def run(mode: str, batch_id: str):
 
 def _parse_args():
     parser = argparse.ArgumentParser(
-        description="Pipeline de recolección — tesis-hardware-peru v5.9",
+        description="Pipeline de recolección — tesis-hardware-peru v5.10",
         formatter_class=argparse.RawTextHelpFormatter,
     )
     parser.add_argument(
@@ -883,4 +939,24 @@ def _parse_args():
         type=int,
         default=None,
         help=(
-            f"
+            f"Timeout en segundos "
+            f"(default: {MAX_ELAPSED_S}s = {MAX_ELAPSED_S//60} min)"
+        ),
+    )
+    return parser.parse_args()
+
+
+# ══════════════════════════════════════════════════════════════════════
+# ENTRY POINT
+# ══════════════════════════════════════════════════════════════════════
+
+if __name__ == "__main__":
+    args = _parse_args()
+    if args.max_elapsed:
+        MAX_ELAPSED_S = args.max_elapsed
+    # [O7] datetime con timezone explícita
+    batch_id = (
+        args.batch_id or
+        datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+    )
+    run(mode=args.mode, batch_id=batch_id)
