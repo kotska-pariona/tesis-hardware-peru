@@ -1,0 +1,21 @@
+{
+  "generated_at": "2026-07-13T01:00:56.155522+00:00",
+  "rate_mid_used": 3.3993,
+  "rows_before": 43002,
+  "rows_after_product_master": 43000,
+  "rows_moved_to_exchange_rate": 2,
+  "price_usd_filled_by_conversion": 18121,
+  "price_pen_filled_by_conversion": 24879,
+  "completeness_pct_before": {
+    "price_usd": 57.86,
+    "price_date": 18.61,
+    "sku": 40.9,
+    "available_qty": 0.03
+  },
+  "completeness_pct_after": {
+    "price_usd": 100.0,
+    "price_date": 99.97,
+    "sku": 80.17,
+    "available_qty": 19.86
+  }
+}
