@@ -416,33 +416,22 @@ def save_dolar_batch(records: list, batch_id: str) -> Path | None:
 
 def _make_dedup_key(row: dict) -> tuple:
     """
-    [O22] FIX CRÍTICO: price_date RESTAURADO en la clave de dedup.
-
-    El fix anterior [O11] usaba solo (source, sku), lo cual congelaba
-    cada SKU en su primer precio visto PARA SIEMPRE — cualquier cambio
-    de precio en días posteriores era descartado silenciosamente por
-    merge_to_master(). Esto destruía la serie temporal necesaria para
-    feature_engineering.py (lags, medias móviles) y los modelos de
-    pronóstico (TFT/TCN/XGBoost).
-
-    Clave nueva: (source, sku, price_date)
-      → Permite 1 registro por SKU por DÍA (serie temporal real).
-      → Sigue evitando duplicados si el pipeline corre 2x el mismo día.
-
-    Clave para items sin SKU: (source, fp_<md5>, price_date)
-      → fingerprint determinístico por título+precio, también con fecha.
+    [O22] price_date en la clave de dedup (sin cambios).
+    [O27] FIX CRÍTICO: el fallback SIN sku ya NO usa price en el
+    fingerprint. Prioridad de identidad: sku > url > title.
     """
-    source     = row.get("source", "")
-    sku        = row.get("sku", "").strip()
-    price_date = row.get("price_date", "").strip()
+    source     = row.get("source", "") or ""
+    sku        = (row.get("sku") or "").strip()
+    price_date = (row.get("price_date") or "").strip()
 
-    if not sku:
-        title = row.get("title", row.get("name", ""))[:80]
-        price = str(row.get("price_pen") or row.get("price_usd") or "")
-        fp    = hashlib.md5(f"{title}|{price}".encode()).hexdigest()[:12]
-        return (source, f"fp_{fp}", price_date)
+    if sku:
+        return (source, sku, price_date)
 
-    return (source, sku, price_date)
+    url   = (row.get("url") or "").strip()
+    title = (row.get("title") or row.get("name") or "")[:120].strip().lower()
+    identity_source = url if url else title
+    fp = hashlib.md5(identity_source.encode()).hexdigest()[:12]
+    return (source, f"fp_{fp}", price_date)
 
 
 def merge_to_master(batch_files: list) -> tuple[int, int]:
