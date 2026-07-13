@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-data_quality.py v1.3
+data_quality.py v1.4
 ═══════════════════════════════════════════════════════════════════
 Certifica el MASTER_hardware_peru.csv contra preprocessing/data_contract.yaml
 ANTES de que llegue a feature_engineering.py (Etapa II).
@@ -28,6 +28,16 @@ CAMBIOS v1.3 (sobre v1.2):
          SOLO para la comparación de deduplicación; el sku real
          (incluyendo NaN) se preserva sin modificar en el dataset
          final.
+
+CAMBIOS v1.4 (sobre v1.3):
+  [FIX7] completitud_minima_pct en data_contract.yaml pasa a ser un
+         dict anidado (columnas_criticas / columnas_secundarias /
+         default) en lugar de un único float global. El Hito H1
+         ahora se certifica SOLO en base a columnas_criticas
+         (price_usd, price_date, price_pen, source, title). Las
+         columnas_secundarias (category, sku, brand) se reportan
+         como warnings informativos pero NO bloquean el hito.
+         Requiere data_contract.yaml v1.1+.
 
 [Q1-Q3 de v1.1 se mantienen sin cambios]
 
@@ -275,7 +285,7 @@ def stationarity_tests(df: pd.DataFrame) -> dict:
 # ══════════════════════════════════════════════════════════════════
 def run_quality_pipeline(input_path: Path, contract_path: Path, output_path: Path):
     print("═" * 60)
-    print("  DATA QUALITY v1.3 — Certificación Hito H1")
+    print("  DATA QUALITY v1.4 — Certificación Hito H1")
     print("═" * 60)
 
     contract = load_contract(contract_path)
@@ -292,13 +302,32 @@ def run_quality_pipeline(input_path: Path, contract_path: Path, output_path: Pat
         sys.exit(1)
     print("✅ Esquema validado — todas las columnas obligatorias presentes")
 
+    # [FIX7] completitud_minima_pct ahora es un dict anidado:
+    # {columnas_criticas: {...}, columnas_secundarias: {...}, default: X}
     completeness = audit_completeness(df, contract)
-    min_required = float(contract["reglas_de_validacion"]["completitud_minima_pct"])
-    print(f"\n📈 Completitud general: {completeness['_overall_pct']}% "
-          f"(mínimo requerido: {min_required}%)")
+    reglas_completitud = contract["reglas_de_validacion"]["completitud_minima_pct"]
+    criticas = reglas_completitud.get("columnas_criticas", {})
+    secundarias = reglas_completitud.get("columnas_secundarias", {})
+    default_min = float(reglas_completitud.get("default", 0.0))
+
+    print(f"\n📈 Completitud general: {completeness['_overall_pct']}%")
     for col, pct in completeness.items():
-        if col != "_overall_pct" and pct < min_required:
-            print(f"   ⚠️  {col}: {pct}% (por debajo del mínimo)")
+        if col == "_overall_pct":
+            continue
+        if col in criticas:
+            umbral = float(criticas[col])
+            etiqueta = "CRÍTICA"
+            marker = "❌"
+        elif col in secundarias:
+            umbral = float(secundarias[col])
+            etiqueta = "secundaria"
+            marker = "⚠️ "
+        else:
+            umbral = default_min
+            etiqueta = "secundaria"
+            marker = "⚠️ "
+        if pct < umbral:
+            print(f"   {marker} {col} [{etiqueta}]: {pct}% (mínimo: {umbral}%)")
 
     print("\n🧹 Limpieza de datos...")
     df, n_sin_fecha = split_missing_date(df)
@@ -319,8 +348,14 @@ def run_quality_pipeline(input_path: Path, contract_path: Path, output_path: Pat
     df.to_csv(output_path, index=False)
     print(f"\n💾 Dataset limpio guardado: {output_path} ({len(df):,} registros)")
 
-    # [FIX5] hito_H1_cumplido como bool nativo
-    hito_cumplido = bool(completeness["_overall_pct"] >= min_required)
+    # [FIX7] Hito H1 se certifica SOLO sobre columnas_criticas.
+    # Las columnas_secundarias se reportan pero no bloquean el hito.
+    fallas_criticas = {
+        col: {"pct": completeness.get(col, 0.0), "umbral": float(umbral)}
+        for col, umbral in criticas.items()
+        if completeness.get(col, 0.0) < float(umbral)
+    }
+    hito_cumplido = bool(len(fallas_criticas) == 0)
 
     batch_id = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
     report = {
@@ -333,6 +368,7 @@ def run_quality_pipeline(input_path: Path, contract_path: Path, output_path: Pat
         "completitud": completeness,
         "estacionariedad": stationarity,
         "hito_H1_cumplido": hito_cumplido,
+        "hito_H1_fallas_criticas": fallas_criticas,
     }
     report_path = output_path.parent / f"quality_report_{batch_id}.json"
     with open(report_path, "w", encoding="utf-8") as f:
@@ -344,7 +380,9 @@ def run_quality_pipeline(input_path: Path, contract_path: Path, output_path: Pat
     if report["hito_H1_cumplido"]:
         print("  ✅ HITO H1 CUMPLIDO — Dataset certificado para Etapa II")
     else:
-        print("  ⚠️  HITO H1 NO CUMPLIDO — completitud insuficiente")
+        print("  ⚠️  HITO H1 NO CUMPLIDO — fallas en columnas críticas:")
+        for col, detalle in fallas_criticas.items():
+            print(f"      • {col}: {detalle['pct']}% (mínimo: {detalle['umbral']}%)")
     print("═" * 60)
 
     return report
