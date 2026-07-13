@@ -1,5 +1,11 @@
+# ✅ Archivo completo corregido — `scraper_competencia.py` v4.2
+
+Aplico los 5 parches (`[SC26]`-`[SC30]`) más un bug adicional que encontré al escribir el código completo (`[SC31]`, explicado abajo). Aquí está el archivo íntegro, listo para reemplazar el actual:
+
+```python
+#!/usr/bin/env python3
 """
-scraper_competencia.py  v4.1
+scraper_competencia.py  v4.2
 ════════════════════════════
 Fuentes de PRECIO DE COMPETENCIA (referencia precio techo PE):
   - Falabella PE   (API JSON v2 + fallback HTML)
@@ -7,6 +13,33 @@ Fuentes de PRECIO DE COMPETENCIA (referencia precio techo PE):
   - Coolbox PE     (HTML — tienda especializada hardware/gaming)
   - Compumundo PE  (HTML Magento 2 — DESHABILITADO por SSL mismatch)
   - Ripley PE      (PENDIENTE — 403 Cloudflare, requiere playwright)
+
+Fixes v4.2 (sobre v4.1):
+  [SC26] _extract_sku_from_url(): nuevo helper — deriva un identificador
+         estable desde la URL del producto cuando la fuente no expone un
+         ID explícito en el HTML/JSON. Usado como fallback en las 4 fuentes.
+  [SC27] FalabellaScraper._parse_api()/_fetch_html(): el 'pid' que la API
+         YA devolvía (productId/id/skuId) se usaba solo para dedup interno
+         de página y se DESCARTABA antes de construir el registro final.
+         Ahora se propaga como campo 'sku'. Sin esto, cada cambio de precio
+         de un mismo producto Falabella se veía como producto nuevo en
+         main.py._make_dedup_key() (fallback title+price).
+  [SC28] HiraokaScraper / CoolboxScraper / CompumundoScraper._parse_html():
+         se agrega extracción de 'sku' desde el atributo data-product-id
+         del card (ya usado como selector, nunca leído) con fallback a
+         _extract_sku_from_url(). Mismo problema que [SC27], mismo fix.
+  [SC29] COMP_FIELDS_PUBLIC: se agrega 'sku' — sin esto, aunque los 4
+         scrapers ya generaran el campo, este filtro final lo eliminaba
+         antes de llegar a main.py/save_batch().
+  [SC30] _dedup(): la identidad ya NO incluye price_pen. Antes,
+         f"{source}|{title}|{price}" rompía la deduplicación intra-batch
+         apenas el precio cambiaba entre dos queries que traían el mismo
+         producto. Ahora usa sku > url > title, en ese orden.
+  [SC31] FalabellaScraper._parse_api(): guard `if pid and pid in seen_ids`
+         — el bug original `if pid in seen_ids` trataba TODOS los
+         productos sin id (pid="") como si fueran el MISMO producto
+         (colisión en el set por string vacío), descartando productos
+         válidos que Falabella no expone con productId/id/skuId.
 
 Fixes v4.1 (sobre v4.0):
   [SC21] COMPUMUNDO_ENABLED: leído desde env — deshabilita CompumundoScraper
@@ -132,6 +165,33 @@ def _valid_price(price: float) -> bool:
     return PRICE_MIN <= price <= PRICE_MAX
 
 
+# ── [SC26] Extractor de SKU/ID estable desde URL ──────────────────────────
+_FALABELLA_URL_ID_RE = re.compile(r"/product/(\d+)")
+
+def _extract_sku_from_url(url: str) -> str:
+    """
+    [SC26] Deriva un identificador estable desde la URL del producto.
+    Usado como FALLBACK cuando la fuente no expone un id explícito
+    (data-product-id, productId, etc.) en el HTML/JSON.
+
+    Los slugs de producto (Falabella /product/<id>/, o el último
+    segmento en Magento tipo /nombre-producto-12345.html) se mantienen
+    ESTABLES entre scrapes de días distintos — a diferencia del título
+    (puede llevar prefijos promocionales variables como "¡OFERTA!") o
+    el precio (cambia constantemente y NUNCA debe formar parte de la
+    identidad de un producto — ver bug corregido en [SC27]/[SC30]).
+    """
+    if not url:
+        return ""
+    m = _FALABELLA_URL_ID_RE.search(url)
+    if m:
+        return f"fal_{m.group(1)}"
+    tail = url.rstrip("/").split("/")[-1]
+    tail = re.sub(r"\.html?$", "", tail, flags=re.I)
+    tail = re.sub(r"\?.*$", "", tail)
+    return tail[:80] if tail else ""
+
+
 # ── Queries por categoría ─────────────────────────────────────────────────
 CATEGORY_QUERIES_PE = {
     "CPU": [
@@ -170,8 +230,10 @@ CATEGORY_QUERIES_PE = {
     ],
 }
 
+# [SC29] 'sku' agregado — sin esto, el campo se descartaba antes de
+# llegar a main.py aunque los scrapers ya lo generaran.
 COMP_FIELDS_PUBLIC = [
-    "batch_id", "source", "category", "title",
+    "batch_id", "source", "category", "sku", "title",
     "price_pen", "price_orig_pen",
     "discount_pct", "url", "brand",
     "available", "rating", "timestamp",
@@ -258,9 +320,14 @@ class FalabellaScraper:
         for p in products:
             try:
                 pid = p.get("productId") or p.get("id") or p.get("skuId") or ""
-                if pid in seen_ids:
+
+                # [SC31] Guard 'if pid and ...' — antes, TODOS los productos
+                # sin id (pid="") colisionaban en seen_ids y se descartaban
+                # entre sí como si fueran el mismo producto duplicado.
+                if pid and pid in seen_ids:
                     continue
-                seen_ids.add(pid)
+                if pid:
+                    seen_ids.add(pid)
 
                 title = (p.get("displayName") or p.get("productName") or
                          p.get("name") or p.get("title") or "")
@@ -320,11 +387,16 @@ class FalabellaScraper:
                 rating    = float(p.get("rating") or p.get("averageRating") or 0)
                 available = bool(p.get("available") or p.get("isAvailable") or p.get("stock"))
 
+                # [SC27] SKU real desde la API — antes se descartaba tras
+                # usarse solo para el dedup local de página (seen_ids).
+                sku = f"fal_{pid}" if pid else _extract_sku_from_url(str(url))
+
                 if title:
                     items.append({
                         "batch_id":       batch_id,
                         "source":         "falabella_benchmark",
                         "category":       category,
+                        "sku":            sku,                    # [SC27]
                         "title":          str(title)[:200],
                         "price_pen":      round(price_pen, 2),
                         "price_orig_pen": round(price_orig, 2),
@@ -383,7 +455,9 @@ class FalabellaScraper:
                     if _valid_price(price) and title:  # [SC16]
                         items.append({
                             "batch_id": batch_id, "source": "falabella",
-                            "category": category, "title": title[:200],
+                            "category": category,
+                            "sku": _extract_sku_from_url(url),      # [SC27]
+                            "title": title[:200],
                             "price_pen": price, "price_orig_pen": 0.0,
                             "discount_pct": 0.0, "url": url[:300],
                             "brand": "", "available": True,
@@ -592,10 +666,15 @@ class HiraokaScraper:
                     if m:
                         rating = round(float(m.group(1)) / 20, 1)
 
+                # [SC28] SKU desde data-product-id del card, o desde URL
+                sku_attr = card.get("data-product-id") or card.get("data-id") or ""
+                sku = f"hir_{sku_attr}" if sku_attr else _extract_sku_from_url(item_url)
+
                 items.append({
                     "batch_id":       batch_id,
                     "source":         "hiraoka_benchmark",
                     "category":       category,
+                    "sku":            sku,                        # [SC28]
                     "title":          title[:200],
                     "price_pen":      round(price_pen, 2),
                     "price_orig_pen": round(price_orig, 2),
@@ -777,10 +856,15 @@ class CoolboxScraper:
                     txt = stock_el.get_text(strip=True).lower()
                     available = not any(x in txt for x in ["agotado", "sin stock", "out of stock"])
 
+                # [SC28] SKU desde data-product-id del card, o desde URL
+                sku_attr = card.get("data-product-id") or card.get("data-id") or ""
+                sku = f"cbx_{sku_attr}" if sku_attr else _extract_sku_from_url(item_url)
+
                 items.append({
                     "batch_id":       batch_id,
                     "source":         "coolbox",
                     "category":       category,
+                    "sku":            sku,                        # [SC28]
                     "title":          title[:200],
                     "price_pen":      round(price_pen, 2),
                     "price_orig_pen": round(price_orig, 2),
@@ -968,10 +1052,15 @@ class CompumundoScraper:
                 if stock_el:
                     available = "unavailable" not in stock_el.get("class", [])
 
+                # [SC28] SKU desde data-product-id del card, o desde URL
+                sku_attr = card.get("data-product-id") or card.get("data-id") or ""
+                sku = f"cmp_{sku_attr}" if sku_attr else _extract_sku_from_url(item_url)
+
                 items.append({
                     "batch_id":       batch_id,
                     "source":         "compumundo",
                     "category":       category,
+                    "sku":            sku,                        # [SC28]
                     "title":          title[:200],
                     "price_pen":      round(price_pen, 2),
                     "price_orig_pen": round(price_orig, 2),
@@ -993,16 +1082,31 @@ class CompumundoScraper:
 # DEDUPLICACIÓN EN MEMORIA
 # ══════════════════════════════════════════════════════════════════════════
 def _dedup(records: list) -> list:
+    """
+    [SC24] float() con fallback 0.0 (sin cambios).
+    [SC30] La clave de identidad ya NO incluye price_pen. Antes:
+        key = f"{source}|{title[:100]}|{price}"
+    rompía la deduplicación intra-batch apenas el precio cambiaba entre
+    dos queries que traían el mismo producto (ej. "procesador intel core
+    i5" y "procesador intel core i7" ambas devolviendo el mismo SKU con
+    precio ligeramente distinto por timing de captura). El precio NUNCA
+    debe formar parte de la identidad de un producto — mismo principio
+    aplicado en main.py._make_dedup_key() [O27].
+
+    Nueva prioridad de identidad: sku > url > title.
+    """
     seen = set()
     out  = []
     for r in records:
-        # [SC24] float() con fallback 0.0 — evita ValueError en price_pen no numérico
         try:
             price = float(r.get("price_pen", 0) or 0)
         except (ValueError, TypeError):
             price = 0.0
-        key = f"{r.get('source')}|{r.get('title','')[:100]}|{price}"
+
+        identity = r.get("sku") or r.get("url") or r.get("title", "")[:100]  # [SC30]
+        key = f"{r.get('source')}|{identity}"
         fp  = hashlib.md5(key.encode()).hexdigest()[:12]
+
         if fp not in seen and _valid_price(price):
             seen.add(fp)
             out.append(r)
@@ -1024,6 +1128,10 @@ def scrape_competencia(
 
     [SC21] Compumundo excluido por defecto si COMPUMUNDO_ENABLED=false.
     [SC23] Parámetro mode agregado — main.py lo pasa a todos los scrapers.
+    [SC27][SC28] Todos los productos ahora incluyen 'sku' derivado del
+    ID real de la fuente (Falabella API) o del atributo data-product-id
+    del card (Hiraoka/Coolbox/Compumundo), con fallback a un ID derivado
+    de la URL — nunca del título+precio.
 
     sources disponibles: falabella, hiraoka, coolbox, compumundo
     (ripley: PENDIENTE — requiere playwright)
