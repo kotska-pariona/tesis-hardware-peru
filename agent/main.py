@@ -1,7 +1,35 @@
 #!/usr/bin/env python3
 """
-main.py — Orquestador v5.8
+main.py — Orquestador v5.9
 ════════════════════════════════════════════════════════════════════
+Fixes v5.9 (sobre v5.8):
+  [O23] normalize_schema(): consolida columnas alias detectadas por
+        análisis del MASTER real (sku/asin_sku/item_id/part_id,
+        available_qty/available, free_shipping/shipping_free,
+        price_currency/currency, price_orig_pen/original_price).
+        Se ejecuta dentro de save_batch() para las 10 fuentes, en
+        UN solo punto de entrada — no se tocó ningún scraper individual.
+  [O24] normalize_schema() también deriva price_date desde timestamp
+        cuando price_date llega vacío. Esto corrige el bug confirmado
+        por diagnóstico: ebay_usa, falabella_pe, hiraoka_pe (25,421 de
+        40,040 filas del MASTER) tenían la fecha en timestamp pero
+        nunca la copiaban a price_date — inflando artificialmente el
+        % de "datos faltantes" en esa columna crítica.
+  [O25] convert_currency(): rellena price_usd/price_pen cruzado usando
+        el 'mid' del tipo de cambio del batch actual. Corrige el bug
+        confirmado: fuentes USD (ebay_usa, amazon_usa, aliexpress) solo
+        llenaban price_usd; fuentes PEN (falabella*, hiraoka*) solo
+        llenaban price_pen. Ninguna hacía la conversión cruzada, dejando
+        43.93% de price_usd (columna objetivo) vacío sin necesidad —
+        el dato es 100% derivable matemáticamente con el rate del batch.
+  [O26] El tipo de cambio (scrape_dolar) YA NO se mezcla en
+        MASTER_hardware_peru.csv vía merge_to_master(). Antes, sus
+        registros (sin sku, con date en vez de price_date) colisionaban
+        con la dedup key (source, sku, price_date) y se perdían
+        silenciosamente (por eso exchangerate_api solo tenía 2 filas
+        en 40,040). Ahora tiene su propio archivo MASTER_exchange_rate.csv
+        vía save_dolar_batch(), con dedup propia por (source, date).
+
 Fixes v5.8 (sobre v5.7):
   [O21] from __future__ import annotations — protege contra crash en
         Python <3.10 por el uso de sintaxis 'X | None' (PEP 604) en
@@ -187,21 +215,105 @@ FIELD_ORDER = [
     "retailer", "part_id", "url",
 ]
 
+# ── [O23] Grupos de columnas alias → canónica (contrato data_contract.yaml) ──
+# Basado en diagnóstico real del MASTER (12-jul-2026): primer valor no
+# vacío de la lista gana y se copia a la columna canónica (primer elemento).
+# NO se borra la columna alias original — solo se rellena la canónica.
+_ALIAS_GROUPS = {
+    "sku":            ["sku", "asin_sku", "item_id", "part_id"],
+    "available_qty":  ["available_qty", "available"],
+    "price_orig_pen": ["price_orig_pen", "original_price"],
+    "free_shipping":  ["free_shipping", "shipping_free"],
+    "price_currency": ["price_currency", "currency"],
+}
+
+
+# ══════════════════════════════════════════════════════════════════════
+# [O23][O24] NORMALIZACIÓN DE ESQUEMA
+# ══════════════════════════════════════════════════════════════════════
+
+def normalize_schema(records: list, source_tag: str) -> list:
+    """
+    [O23] Consolida columnas alias en su columna canónica del contrato.
+    [O24] Deriva price_date desde timestamp cuando price_date está vacío.
+
+    Ejecutado dentro de save_batch() — un solo punto de entrada para
+    las 10 fuentes, sin modificar ningún scraper individual.
+    """
+    for row in records:
+        # [O23] Alias genéricos: primer valor no vacío gana
+        for canon, aliases in _ALIAS_GROUPS.items():
+            current = row.get(canon)
+            if current is None or current == "":
+                for alt in aliases:
+                    val = row.get(alt)
+                    if val is not None and val != "":
+                        row[canon] = val
+                        break
+
+        # [O24] price_date derivado de timestamp — corrige el bug
+        # confirmado en ebay_usa/falabella_pe/hiraoka_pe (25,421 filas)
+        pd_val = row.get("price_date")
+        ts_val = row.get("timestamp")
+        if (pd_val is None or pd_val == "") and ts_val:
+            row["price_date"] = str(ts_val)[:10]  # ISO8601 → YYYY-MM-DD
+
+    return records
+
+
+# ══════════════════════════════════════════════════════════════════════
+# [O25] CONVERSIÓN DE MONEDA CRUZADA
+# ══════════════════════════════════════════════════════════════════════
+
+def convert_currency(records: list, rate_mid: float | None) -> list:
+    """
+    [O25] Rellena price_usd/price_pen cruzado usando el 'mid' del tipo
+    de cambio del batch actual. Nunca sobreescribe un valor ya presente.
+
+    Corrige el bug confirmado: fuentes USD (ebay_usa, amazon_usa,
+    aliexpress) solo llenaban price_usd; fuentes PEN (falabella*,
+    hiraoka*) solo llenaban price_pen — 43.93% de price_usd (columna
+    objetivo, ec. 3.31) estaba vacío sin necesidad, siendo 100%
+    derivable matemáticamente.
+    """
+    if not rate_mid:
+        return records
+    for row in records:
+        usd = row.get("price_usd")
+        pen = row.get("price_pen")
+        try:
+            if (usd is None or usd == "") and pen not in (None, ""):
+                row["price_usd"] = round(float(pen) / rate_mid, 2)
+            elif (pen is None or pen == "") and usd not in (None, ""):
+                row["price_pen"] = round(float(usd) * rate_mid, 2)
+        except (ValueError, TypeError):
+            continue
+    return records
+
 
 # ══════════════════════════════════════════════════════════════════════
 # GUARDAR REGISTROS EN CSV
 # ══════════════════════════════════════════════════════════════════════
 
 def save_batch(
-    records: list, batch_id: str, source_tag: str
+    records: list,
+    batch_id: str,
+    source_tag: str,
+    rate_mid: float | None = None,   # [O25] propagado desde run()
 ) -> Path | None:
     """
     [O10] IOError se propaga — no retorna None silencioso en caso de error.
     Retorna None SOLO cuando records está vacío (sin datos, no error).
+    [O23][O25] normalize_schema() y convert_currency() aplicados aquí —
+    un solo punto de entrada para las 10 fuentes de producto.
     """
     if not records:
         log.warning(f"  [save] Sin registros para {source_tag}")
         return None
+
+    records = normalize_schema(records, source_tag)          # [O23][O24]
+    if rate_mid:
+        records = convert_currency(records, rate_mid)        # [O25]
 
     out_path   = DATA_DIR / f"batch_{batch_id}_{source_tag}.csv"
     all_keys   = set(k for r in records for k in r.keys())
@@ -221,6 +333,81 @@ def save_batch(
         f"  💾 Guardado: {out_path.name} ({len(records):,} registros)"
     )
     return out_path
+
+
+# ══════════════════════════════════════════════════════════════════════
+# [O26] TIPO DE CAMBIO — ARCHIVO SEPARADO DEL MASTER DE PRODUCTOS
+# ══════════════════════════════════════════════════════════════════════
+
+def save_dolar_batch(records: list, batch_id: str) -> Path | None:
+    """
+    [O26] Guarda el tipo de cambio en MASTER_exchange_rate.csv, separado
+    de MASTER_hardware_peru.csv. Dedup por (source, date) — NO por sku,
+    ya que estos registros nunca tienen sku.
+
+    Antes, estos registros pasaban por merge_to_master() con la dedup
+    key (source, sku, price_date). Como no tienen sku ni price_date,
+    caían en la rama de fingerprint (title+price) que colisionaba entre
+    corridas del mismo día → se perdían silenciosamente. Por eso
+    exchangerate_api solo tenía 2 filas en 40,040 registros del MASTER.
+    """
+    if not records:
+        log.warning("  [save] Sin registros de tipo de cambio")
+        return None
+
+    for r in records:
+        if not r.get("date") and r.get("timestamp"):
+            r["date"] = str(r["timestamp"])[:10]
+
+    exch_path = DATA_DIR / "MASTER_exchange_rate.csv"
+    existing: list = []
+    seen: set = set()
+
+    if exch_path.exists():
+        try:
+            with open(exch_path, encoding="utf-8") as fh:
+                for row in csv.DictReader(fh):
+                    existing.append(row)
+                    seen.add((row.get("source", ""), row.get("date", "")))
+        except Exception as e:
+            log.warning(f"  Error leyendo MASTER_exchange_rate: {e}")
+
+    added = 0
+    for r in records:
+        key = (r.get("source", ""), r.get("date", ""))
+        if key not in seen:
+            existing.append(r)
+            seen.add(key)
+            added += 1
+
+    if not existing:
+        return None
+
+    all_fields = set()
+    for r in existing:
+        all_fields.update(r.keys())
+    fieldnames = sorted(all_fields)
+
+    tmp_path = exch_path.with_suffix(".tmp")
+    try:
+        with open(tmp_path, "w", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(
+                f, fieldnames=fieldnames, extrasaction="ignore"
+            )
+            writer.writeheader()
+            writer.writerows(existing)
+        tmp_path.replace(exch_path)
+    except Exception as e:
+        log.error(f"  [exchange] Error escribiendo MASTER_exchange_rate: {e}")
+        if tmp_path.exists():
+            tmp_path.unlink()
+        raise
+
+    log.info(
+        f"  💾 MASTER_exchange_rate.csv: +{added:,} nuevos "
+        f"({len(existing):,} total)"
+    )
+    return exch_path
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -262,6 +449,7 @@ def merge_to_master(batch_files: list) -> tuple[int, int]:
     """
     Retorna (total_records, added_records).
     [O5] Escritura atómica: tmp → rename.
+    [O26] batch_files ya NO incluye el batch de dólar — ver save_dolar_batch().
     """
     master_path = DATA_DIR / "MASTER_hardware_peru.csv"
     new_records = []
@@ -395,20 +583,27 @@ def run(mode: str, batch_id: str):
         return False
 
     log.info("═" * 60)
-    log.info(f"  PIPELINE v5.8 — modo={mode} | batch={batch_id}")
+    log.info(f"  PIPELINE v5.9 — modo={mode} | batch={batch_id}")
     log.info(
         f"  MAX_ELAPSED_S={MAX_ELAPSED_S}s ({MAX_ELAPSED_S//60} min)"
     )
     log.info("═" * 60)
 
     # ── 1. Tipo de cambio (siempre) ──────────────────────────────
+    # [O26] Ya NO se agrega a `batches` — tiene su propio MASTER.
     log.info(_step("💱 Tipo de cambio USD/PEN"))
+    rate_mid = None
     try:
         dolar_records = scrape_dolar(batch_id, mode=mode)   # [O17]
-        p = save_batch(dolar_records, batch_id, "dolar")
-        if p: batches.append(p)                              # [O15]
+        rate_mid = (
+            dolar_records[0].get("mid") if dolar_records else None
+        )
+        save_dolar_batch(dolar_records, batch_id)            # [O26]
         stats["dolar"] = len(dolar_records)
-        log.info(f"  ✅ Dolar: {len(dolar_records)} registros")
+        log.info(
+            f"  ✅ Dolar: {len(dolar_records)} registros "
+            f"(rate_mid={rate_mid})"
+        )
     except Exception as e:
         log.error(f"  ❌ Dolar: {e}")
         stats["dolar"] = 0
@@ -419,7 +614,9 @@ def run(mode: str, batch_id: str):
         if not _near_timeout():
             try:
                 local_records = scrape_local(batch_id, mode=mode)   # [O17]
-                p = save_batch(local_records, batch_id, "local")
+                p = save_batch(
+                    local_records, batch_id, "local", rate_mid=rate_mid
+                )
                 if p: batches.append(p)
                 stats["local"] = len(local_records)
                 log.info(
@@ -440,7 +637,9 @@ def run(mode: str, batch_id: str):
                 meli_records = scrape_mercadolibre(
                     batch_id, mode=mode   # [O17]
                 )
-                p = save_batch(meli_records, batch_id, "mercadolibre")
+                p = save_batch(
+                    meli_records, batch_id, "mercadolibre", rate_mid=rate_mid
+                )
                 if p: batches.append(p)
                 stats["mercadolibre_pe"] = len(meli_records)
                 log.info(
@@ -462,7 +661,9 @@ def run(mode: str, batch_id: str):
                 newegg_records = scrape_newegg(
                     batch_id, mode=mode   # [O17]
                 )
-                p = save_batch(newegg_records, batch_id, "newegg")
+                p = save_batch(
+                    newegg_records, batch_id, "newegg", rate_mid=rate_mid
+                )
                 if p: batches.append(p)
                 stats["newegg_usa"] = len(newegg_records)
                 log.info(
@@ -484,7 +685,9 @@ def run(mode: str, batch_id: str):
         if not _near_timeout():
             try:
                 ebay_records = scrape_ebay(batch_id, mode=mode)   # [O17]
-                p = save_batch(ebay_records, batch_id, "ebay")
+                p = save_batch(
+                    ebay_records, batch_id, "ebay", rate_mid=rate_mid
+                )
                 if p: batches.append(p)
                 stats["ebay"] = len(ebay_records)
                 log.info(
@@ -503,7 +706,9 @@ def run(mode: str, batch_id: str):
         if not _near_timeout():
             try:
                 camel_records = scrape_camel(batch_id, mode=mode)   # [O17]
-                p = save_batch(camel_records, batch_id, "camel")
+                p = save_batch(
+                    camel_records, batch_id, "camel", rate_mid=rate_mid
+                )
                 if p: batches.append(p)
                 stats["camel"] = len(camel_records)
                 log.info(
@@ -528,7 +733,9 @@ def run(mode: str, batch_id: str):
                 pcp_records = scrape_pcpartpicker(
                     batch_id, mode=mode   # [O17]
                 )
-                p = save_batch(pcp_records, batch_id, "pcpartpicker")
+                p = save_batch(
+                    pcp_records, batch_id, "pcpartpicker", rate_mid=rate_mid
+                )
                 if p: batches.append(p)
                 stats["pcpartpicker"] = len(pcp_records)
                 log.info(
@@ -553,7 +760,9 @@ def run(mode: str, batch_id: str):
                 kaggle_records = scrape_kaggle(
                     batch_id, mode=mode   # [O17]
                 )
-                p = save_batch(kaggle_records, batch_id, "kaggle")
+                p = save_batch(
+                    kaggle_records, batch_id, "kaggle", rate_mid=rate_mid
+                )
                 if p: batches.append(p)
                 stats["kaggle"] = len(kaggle_records)
                 log.info(
@@ -580,7 +789,9 @@ def run(mode: str, batch_id: str):
                 imp_records = scrape_importacion(
                     batch_id, mode=mode   # [O17]
                 )
-                p = save_batch(imp_records, batch_id, "importacion")
+                p = save_batch(
+                    imp_records, batch_id, "importacion", rate_mid=rate_mid
+                )
                 if p: batches.append(p)
                 stats["importacion"] = len(imp_records)
                 log.info(
@@ -601,7 +812,9 @@ def run(mode: str, batch_id: str):
                 comp_records = scrape_competencia(
                     batch_id, mode=mode   # [O17]
                 )
-                p = save_batch(comp_records, batch_id, "competencia")
+                p = save_batch(
+                    comp_records, batch_id, "competencia", rate_mid=rate_mid
+                )
                 if p: batches.append(p)
                 stats["competencia"] = len(comp_records)
                 log.info(
@@ -614,6 +827,7 @@ def run(mode: str, batch_id: str):
         stats["competencia"] = 0
 
     # ── Merge al MASTER ──────────────────────────────────────────
+    # [O26] `batches` ya no incluye el batch de dólar (guardado aparte)
     log.info("\n[MERGE] Actualizando MASTER_hardware_peru.csv...")
     master_total, new_added = merge_to_master(batches)
     stats["master_total"] = master_total
@@ -648,7 +862,7 @@ def run(mode: str, batch_id: str):
 
 def _parse_args():
     parser = argparse.ArgumentParser(
-        description="Pipeline de recolección — tesis-hardware-peru v5.8",
+        description="Pipeline de recolección — tesis-hardware-peru v5.9",
         formatter_class=argparse.RawTextHelpFormatter,
     )
     parser.add_argument(
@@ -680,24 +894,4 @@ def _parse_args():
         type=int,
         default=None,
         help=(
-            f"Timeout en segundos "
-            f"(default: {MAX_ELAPSED_S}s = {MAX_ELAPSED_S//60} min)"
-        ),
-    )
-    return parser.parse_args()
-
-
-# ══════════════════════════════════════════════════════════════════════
-# ENTRY POINT
-# ══════════════════════════════════════════════════════════════════════
-
-if __name__ == "__main__":
-    args = _parse_args()
-    if args.max_elapsed:
-        MAX_ELAPSED_S = args.max_elapsed
-    # [O7] datetime con timezone explícita
-    batch_id = (
-        args.batch_id or
-        datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
-    )
-    run(mode=args.mode, batch_id=batch_id)
+            f"
