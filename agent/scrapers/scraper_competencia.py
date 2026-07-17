@@ -639,7 +639,7 @@ class HiraokaScraper:
         return records
 
 # ══════════════════════════════════════════════════════════════════════════
-# COOLBOX SCRAPER  v4.7
+# COOLBOX SCRAPER  v4.8
 # [SC43] Migrado de VTEX GraphQL a Intelligent Search REST API
 # [SC45] Fix: slugs URL no funcionan — VTEX requiere nombres exactos
 # [SC46] Fix: usar categoryId numérico en selectedFacets (más robusto)
@@ -647,11 +647,11 @@ class HiraokaScraper:
 # ══════════════════════════════════════════════════════════════════════════
 class CoolboxScraper:
     """
-    Coolbox PE — VTEX Intelligent Search REST API v4.7
-    [SC46] selectedFacets usa categoryId numérico, no slug de texto.
+    Coolbox PE — VTEX Intelligent Search REST API v4.8
+    [SC48] Catalog API como primario para componentes; IS como fallback.
     Árbol real validado 2026-07-17:
-      /47/ = Cómputo
-      /47/258/ = Componentes de Cómputo
+      /47/         = Cómputo
+      /47/258/     = Componentes de Cómputo
       /47/258/399/ = Tarjetas de vídeo
       /47/258/260/ = Memorias RAM
       /47/258/259/ = Discos Internos y SSD
@@ -668,51 +668,33 @@ class CoolboxScraper:
 
     # [SC46] categoryId validados 2026-07-17 — formato: "categoryId,<id>"
     # CPU y COOLER comparten /591/ → se diferencian con query_filter
-    CATEGORY_CONFIG: Dict[str, Dict] = {
-        "GPU": {
-            "facets":       "categoryId,399",
-            "query_filter": "",
-        },
-        "RAM": {
-            "facets":       "categoryId,260",
-            "query_filter": "",
-        },
-        "SSD": {
-            "facets":       "categoryId,259",
-            "query_filter": "",
-        },
-        "MOTHERBOARD": {
-            "facets":       "categoryId,396",
-            "query_filter": "",
-        },
-        "PSU": {
-            "facets":       "categoryId,298",
-            "query_filter": "",
-        },
-        "COOLER": {
-            "facets":       "categoryId,591",
-            "query_filter": "",
-        },
-        "CPU": {
-            # [SC46] Comparte /591/ con COOLER — filtrar por query
-            "facets":       "categoryId,591",
-            "query_filter": "procesador",
-        },
-        "CASE": {
-            "facets":       "categoryId,397",
-            "query_filter": "",
-        },
+    CATEGORY_CONFIG = {
+        "GPU":         {"facets": "categoryId,399", "query_filter": ""},
+        "RAM":         {"facets": "categoryId,260", "query_filter": ""},
+        "SSD":         {"facets": "categoryId,259", "query_filter": ""},
+        "MOTHERBOARD": {"facets": "categoryId,396", "query_filter": ""},
+        "PSU":         {"facets": "categoryId,298", "query_filter": ""},
+        "COOLER":      {"facets": "categoryId,591", "query_filter": ""},
+        "CPU":         {"facets": "categoryId,591", "query_filter": "procesador"},
+        "CASE":        {"facets": "categoryId,397", "query_filter": ""},
     }
 
+    # [SC48] Catalog API es PRIMARIO para estas categorías.
+    # IS (Intelligent Search) no filtra por categoryId de forma fiable.
+    # Umbral: si IS devuelve más de esto, se considera sin filtro real.
+    _IS_MAX_RECORDS = 500
+
     # [SC44] Fallback Catalog API — paths reales validados
-    _CATALOG_MAP: Dict[str, str] = {
-        "399": "computo/componentes-de-computo/tarjetas-de-video",
-        "260": "computo/componentes-de-computo/memorias-ram",
-        "259": "computo/componentes-de-computo/discos-internos-y-ssd",
-        "396": "computo/componentes-de-computo/placas-madres",
-        "298": "computo/componentes-de-computo/fuentes-de-poder",
-        "591": "computo/componentes-de-computo/sistemas-de-enfriamiento",
-        "397": "computo/componentes-de-computo/cases-de-pc",
+    _CATALOG_MAP = {
+        # Paths validados con catalog_system API 2026-07-17
+        # Formato: nombre exacto de categoría separado por "/"
+        "399": "Cómputo/Componentes de Cómputo/Tarjetas de vídeo",
+        "260": "Cómputo/Componentes de Cómputo/Memorias RAM",
+        "259": "Cómputo/Componentes de Cómputo/Discos Internos y SSD",
+        "396": "Cómputo/Componentes de Cómputo/Placas Madres",
+        "298": "Cómputo/Componentes de Cómputo/Fuentes de poder",
+        "591": "Cómputo/Componentes de Cómputo/Sistemas de enfriamiento y ventiladores",
+        "397": "Cómputo/Componentes de Cómputo/Cases de PC",
     }
 
     def __init__(self):
@@ -721,7 +703,7 @@ class CoolboxScraper:
     def close(self):
         self.session.close()
 
-    def _search_headers(self) -> dict:
+    def _search_headers(self):
         return {
             "User-Agent":       _get_ua(),
             "Accept":           "application/json, text/plain, */*",
@@ -733,18 +715,21 @@ class CoolboxScraper:
             "x-forwarded-host": "www.coolbox.pe",
         }
 
-    def _fetch_page(
-        self,
-        facets_str: str,
-        query_filter: str,
-        from_idx: int,
-        cat_id: str,         # solo para fallback
-    ) -> Optional[Dict]:
+    def _fetch_page(self, facets_str, query_filter, from_idx, cat_id):
         """
-        [SC43/SC46] GET al endpoint Intelligent Search REST.
-        selectedFacets = "categoryId,<id>" — más robusto que nombres/slugs.
-        Si falla → fallback Catalog API [SC44].
+        [SC48] Catalog API como PRIMARIO para componentes.
+        IS (Intelligent Search) ignora selectedFacets=categoryId en esta
+        instancia de VTEX — devuelve el catálogo completo (>9000 items).
+        Si Catalog API falla o devuelve 0 → intenta IS como fallback.
         """
+        # ── Primario: Catalog API ─────────────────────────────────────────
+        if cat_id in self._CATALOG_MAP:
+            result = self._fetch_page_catalog(cat_id, from_idx)
+            if result and result.get("products"):
+                return result
+            log.warning(f"[Coolbox] Catalog API vacío catId={cat_id} from={from_idx} — intentando IS")
+
+        # ── Fallback: Intelligent Search ──────────────────────────────────
         to_idx = from_idx + self.PAGE_SIZE - 1
         params = {
             "query":           query_filter,
@@ -762,40 +747,28 @@ class CoolboxScraper:
                 timeout=25,
             )
             if resp.status_code != 200:
-                log.error(
-                    f"[Coolbox] REST HTTP {resp.status_code} "
-                    f"catId={cat_id} from={from_idx}"
-                )
-                return self._fetch_page_catalog(cat_id, from_idx)
-            return resp.json()
+                log.error(f"[Coolbox] IS HTTP {resp.status_code} catId={cat_id} from={from_idx}")
+                return None
+            data = resp.json()
+            # Sanity check: si IS devuelve demasiados records, no está filtrando
+            total = int(data.get("recordsFiltered") or 0)
+            if total > self._IS_MAX_RECORDS and not query_filter:
+                log.warning(f"[Coolbox] IS sin filtro real (recordsFiltered={total}) catId={cat_id} — descartando")
+                return None
+            return data
         except Exception:
             import traceback
-            log.error(
-                f"[Coolbox] REST fetch error catId={cat_id} from={from_idx}:\n"
-                f"{traceback.format_exc()}"
-            )
+            log.error(f"[Coolbox] IS fetch error catId={cat_id} from={from_idx}:\n{traceback.format_exc()}")
             return None
 
-    def _fetch_page_catalog(
-        self,
-        cat_id: str,
-        from_idx: int,
-    ) -> Optional[Dict]:
-        """
-        [SC44] Fallback: VTEX Catalog Search API (muy estable).
-        GET /api/catalog_system/pub/products/search/<path>/
-        """
+    def _fetch_page_catalog(self, cat_id, from_idx):
+        """[SC44] Fallback: VTEX Catalog Search API."""
         to_idx   = from_idx + self.PAGE_SIZE - 1
         cat_path = self._CATALOG_MAP.get(cat_id, cat_id)
         url      = f"{self.BASE_URL}/api/catalog_system/pub/products/search/{cat_path}/"
         params   = {"_from": from_idx, "_to": to_idx}
         try:
-            resp = self.session.get(
-                url,
-                headers=self._search_headers(),
-                params=params,
-                timeout=25,
-            )
+            resp = self.session.get(url, headers=self._search_headers(), params=params, timeout=25)
             if resp.status_code != 200:
                 log.error(f"[Coolbox] Catalog fallback HTTP {resp.status_code} catId={cat_id}")
                 return None
@@ -812,8 +785,7 @@ class CoolboxScraper:
             log.error(f"[Coolbox] Catalog fallback error catId={cat_id}:\n{traceback.format_exc()}")
             return None
 
-    def _normalize_catalog_products(self, products_raw: list) -> list:
-        """Convierte formato Catalog API al formato Intelligent Search."""
+    def _normalize_catalog_products(self, products_raw):
         normalized = []
         for p in products_raw:
             items = []
@@ -821,17 +793,12 @@ class CoolboxScraper:
                 sellers = []
                 for seller in (sku_item.get("sellers") or []):
                     offer = seller.get("commertialOffer") or {}
-                    sellers.append({
-                        "commertialOffer": {
-                            "Price":             offer.get("Price", 0),
-                            "ListPrice":         offer.get("ListPrice", 0),
-                            "AvailableQuantity": offer.get("AvailableQuantity", 0),
-                        }
-                    })
-                items.append({
-                    "itemId":  sku_item.get("itemId", ""),
-                    "sellers": sellers,
-                })
+                    sellers.append({"commertialOffer": {
+                        "Price":             offer.get("Price", 0),
+                        "ListPrice":         offer.get("ListPrice", 0),
+                        "AvailableQuantity": offer.get("AvailableQuantity", 0),
+                    }})
+                items.append({"itemId": sku_item.get("itemId", ""), "sellers": sellers})
             normalized.append({
                 "productId":   str(p.get("productId", "")),
                 "productName": p.get("productName", ""),
@@ -841,29 +808,19 @@ class CoolboxScraper:
             })
         return normalized
 
-    def _parse_product(
-        self,
-        product: Dict,
-        category: str,
-        batch_id: str,
-    ) -> Optional[Dict]:
-        """[SC38/SC43] Convierte producto VTEX al schema público."""
+    def _parse_product(self, product, category, batch_id):
         try:
             product_id = str(product.get("productId") or "").strip()
             title      = (product.get("productName") or "").strip()
             brand      = (product.get("brand") or "").strip() or None
             link_text  = (product.get("linkText") or "").strip()
-
             if not title:
                 return None
-
-            url_full = f"{self.BASE_URL}/{link_text}/p" if link_text else self.BASE_URL
-
+            url_full       = f"{self.BASE_URL}/{link_text}/p" if link_text else self.BASE_URL
             price_pen      = None
             price_orig_pen = None
             available      = False
             sku            = None
-
             for item in (product.get("items") or []):
                 item_id = str(item.get("itemId") or "").strip()
                 for seller in (item.get("sellers") or []):
@@ -871,7 +828,6 @@ class CoolboxScraper:
                     qty        = offer.get("AvailableQuantity", 0)
                     price      = offer.get("Price")
                     list_price = offer.get("ListPrice")
-
                     if price and float(price) > 0:
                         candidate = float(price)
                         if price_pen is None or candidate < price_pen:
@@ -880,17 +836,13 @@ class CoolboxScraper:
                             available = int(qty) > 0
                             if list_price and float(list_price) > candidate:
                                 price_orig_pen = float(list_price)
-
             if not _valid_price(price_pen):
                 return None
-
             if not sku:
                 sku = product_id or _extract_sku_from_url(url_full)
-
             discount_pct = None
             if price_pen and price_orig_pen and price_orig_pen > price_pen:
                 discount_pct = round((1 - price_pen / price_orig_pen) * 100, 1)
-
             return {
                 "batch_id":       batch_id,
                 "source":         self.SOURCE,
@@ -911,10 +863,10 @@ class CoolboxScraper:
             log.error(f"[Coolbox] _parse_product error:\n{traceback.format_exc()}")
             return None
 
-    def scrape(self, category: str, queries: List[str], batch_id: str) -> List[Dict]:
-        """[SC43/SC46] Scrape con categoryId numérico + fallback Catalog API."""
-        records:  List[Dict] = []
-        seen_ids: set        = set()
+    def scrape(self, category, queries, batch_id):
+        """[SC48] Scrape: Catalog API primario + IS como fallback."""
+        records  = []
+        seen_ids = set()
 
         config = self.CATEGORY_CONFIG.get(category)
         if not config:
@@ -923,29 +875,22 @@ class CoolboxScraper:
 
         facets_str   = config["facets"]
         query_filter = config["query_filter"]
-        cat_id       = facets_str.split(",")[-1]   # "categoryId,399" → "399"
+        cat_id       = facets_str.split(",")[-1]
 
-        log.info(
-            f"  [Coolbox] {category} | catId={cat_id} "
-            f"query='{query_filter}' (REST v4.7)"
-        )
+        log.info(f"  [Coolbox] {category} | catId={cat_id} query='{query_filter}' (Catalog-primary v4.8)")
 
         page = 0
         while page < MAX_PAGES:
             from_idx = page * self.PAGE_SIZE
             result   = self._fetch_page(facets_str, query_filter, from_idx, cat_id)
-
             if not result:
                 log.debug(f"    [Coolbox] p{page+1}: sin resultado — stop")
                 break
-
             products         = result.get("products") or []
             records_filtered = int(result.get("recordsFiltered") or 0)
-
             if not products:
                 log.debug(f"    [Coolbox] p{page+1}: lista vacía — stop")
                 break
-
             new_in_page = 0
             for prod in products:
                 rec = self._parse_product(prod, category, batch_id)
@@ -958,15 +903,9 @@ class CoolboxScraper:
                     seen_ids.add(pid)
                 records.append(rec)
                 new_in_page += 1
-
             fetched_so_far = from_idx + len(products)
             has_next       = fetched_so_far < records_filtered
-
-            log.info(
-                f"    [Coolbox] p{page+1}: +{new_in_page} "
-                f"(acum {fetched_so_far}/{records_filtered})"
-            )
-
+            log.info(f"    [Coolbox] p{page+1}: +{new_in_page} (acum {fetched_so_far}/{records_filtered})")
             page += 1
             if not has_next or new_in_page == 0:
                 break
@@ -975,10 +914,6 @@ class CoolboxScraper:
         log.info(f"  [Coolbox] {category}: {len(records)} registros raw")
         return records
 
-
-# ══════════════════════════════════════════════════════════════════════════
-# COMPUMUNDO SCRAPER (deshabilitado por defecto — SSL mismatch)
-# ══════════════════════════════════════════════════════════════════════════
 class CompumundoScraper:
     """
     Compumundo PE — Magento 2 HTML.
