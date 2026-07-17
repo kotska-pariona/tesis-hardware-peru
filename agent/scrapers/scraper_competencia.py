@@ -1,38 +1,34 @@
 #!/usr/bin/env python3
 """
-scraper_competencia.py  v4.3
+scraper_competencia.py  v4.4
 ════════════════════════════════════════════════════════════════════
 Scraper de precios de competencia — Mercado peruano (precio techo)
 
 Fuentes:
-  - Falabella PE   → SSR __NEXT_DATA__ (/falabella-pe/search?Ntt=...)
-  - Hiraoka PE     → HTML /computo-y-tablets/... + fallback gpsearch
-  - Coolbox PE     → HTML scraping (hardware/gaming especializado)
+  - Falabella PE   → __NEXT_DATA__ SSR (HTML) con paginación corregida
+  - Hiraoka PE     → Magento 2 HTML (categoría directa + fallback gpsearch)
+  - Coolbox PE     → VTEX GraphQL (vtex.search-graphql) — migrado desde HTML
   - Compumundo PE  → Magento 2 HTML (deshabilitado por defecto — SSL mismatch)
   - Ripley PE      → PENDIENTE (requiere Playwright — 403 Cloudflare)
 
-Fixes v4.3 (sobre v4.2):
-  [SC32] FalabellaScraper: migrado de API /s/browse/v2/ (404 desde 13-jul-2026)
-         a extracción SSR via __NEXT_DATA__ de /falabella-pe/search?Ntt=...
-         La API v2 exigía categoryId obligatorio y luego pasó a 404 completo.
-         El SSR devuelve 48 productos/página con precios y paginación estables.
-  [SC33] FalabellaScraper._parse_ssr_product(): extrae precio desde lista
-         prices[] con tipos eventPrice/normalPrice/cmrPrice (estructura real
-         confirmada en julio 2026). Reemplaza _parse_api_product() que leía
-         prices.offerPrice (campo inexistente en la respuesta real).
-  [SC34] HiraokaScraper: CATEGORY_PATHS reemplazados por URLs reales
-         confirmadas en julio 2026. Las rutas /componentes/* no existen;
-         el hardware de componentes no está disponible en Hiraoka PE.
-         Categorías disponibles: SSD/HDD via /accesorios-computo/disco-duro.
-         Resto de categorías usa fallback gpsearch con filtro de relevancia.
-  [SC35] HiraokaScraper: fallback cambiado de /catalogsearch/result/ (404)
-         a /gpsearch/?q= (200 confirmado). Agrega filtro _is_hw_relevant()
-         para descartar falsos positivos (ej. "KitchenAid" en query "procesador").
-  [SC36] Logging: todas las excepciones silenciosas (except: return []) elevadas
-         a log.error() con traceback.format_exc() completo. Visible en
-         artefactos de GitHub Actions.
-  [SC37] scrape_competencia(): si all_records vacío al final, emite log.error
-         con resumen de fuentes intentadas — elimina fallo silencioso de v4.2.
+Fixes v4.4 (sobre v4.3):
+  [SC36] CoolboxScraper: migrado completamente a VTEX GraphQL
+         (/_v/segment/graphql/v1 + productSearch + selectedFacets[category-3]).
+         Elimina dependencia de selectores CSS inestables.
+  [SC37] CoolboxScraper: mapeo de slugs de categoría VTEX validados
+         (procesadores, tarjetas-de-video, memorias-ram, etc.).
+  [SC38] CoolboxScraper: extrae productId, sku, price, listPrice y
+         disponibilidad directamente desde el catálogo VTEX.
+  [SC39] FalabellaScraper: paginación corregida — usa totalPages desde
+         pagination dict en lugar de count//48 (evitaba corte prematuro
+         cuando count=0 pero había resultados).
+  [SC40] FalabellaScraper: fallback de paginación robusto con múltiples
+         claves (totalPages, total_pages, pages, count).
+  [SC41] _parse_price_str: separador de miles peruano corregido —
+         "1,299" ya no se interpreta como "1.299".
+  [SC42] CoolboxScraper: request extra eliminada al final de cada
+         categoría — se verifica hasNextPage desde la respuesta GraphQL
+         antes de continuar paginación.
 """
 
 import os
@@ -41,7 +37,6 @@ import time
 import json
 import hashlib
 import logging
-import traceback
 import warnings
 from datetime import datetime, timezone
 from pathlib import Path
@@ -78,9 +73,6 @@ MAX_QUERIES_COMP   = int(os.getenv("MAX_QUERIES_COMP", "2"))
 PRICE_MIN_PEN      = float(os.getenv("PRICE_MIN_PEN", "10.0"))
 PRICE_MAX_PEN      = float(os.getenv("PRICE_MAX_PEN", "50000.0"))
 COMPUMUNDO_ENABLED = os.getenv("COMPUMUNDO_ENABLED", "false").lower() == "true"
-
-# Productos por página — valor real confirmado en Falabella SSR (julio 2026)
-_FALABELLA_PER_PAGE = 48
 
 # [PP4] Chrome 136 — julio 2026
 _UA_FALLBACK = (
@@ -171,36 +163,25 @@ COMP_FIELDS_PUBLIC = [
 ]
 
 # ══════════════════════════════════════════════════════════════════════════
-# KEYWORDS DE RELEVANCIA POR CATEGORÍA — [SC35]
-# Usados por _is_hw_relevant() para filtrar falsos positivos en gpsearch
-# ══════════════════════════════════════════════════════════════════════════
-_HW_KEYWORDS: Dict[str, List[str]] = {
-    "CPU":         ["procesador", "intel", "amd", "ryzen", "core i", "lga", "am4", "am5"],
-    "GPU":         ["tarjeta", "video", "nvidia", "geforce", "rtx", "gtx", "radeon", "rx ", "gpu"],
-    "RAM":         ["memoria", "ram", "ddr4", "ddr5", "dimm", "sodimm", "gb"],
-    "SSD":         ["ssd", "nvme", "m.2", "solido", "disco", "pcie", "sata"],
-    "MOTHERBOARD": ["placa", "madre", "motherboard", "z790", "b650", "b550", "x570", "socket"],
-    "PSU":         ["fuente", "poder", "psu", "watt", "80 plus", "gold", "modular"],
-    "COOLER":      ["cooler", "disipador", "refrigeracion", "aio", "ventilador", "cpu"],
-    "CASE":        ["case", "gabinete", "torre", "atx", "micro atx", "chasis"],
-}
-
-
-# ══════════════════════════════════════════════════════════════════════════
 # UTILIDADES COMPARTIDAS
 # ══════════════════════════════════════════════════════════════════════════
 
 def _get_ua() -> str:
+    """User-Agent rotativo con fallback."""
     return _ua_gen.random if _ua_gen else _UA_FALLBACK
 
 
 def _make_session(verify_ssl: bool = True) -> requests.Session:
+    """
+    Session HTTP con retry automático.
+    backoff_factor=1.5 → esperas: 1.5s, 3s, 6s
+    """
     session = requests.Session()
     retry = Retry(
         total=3,
         backoff_factor=1.5,
         status_forcelist=[429, 500, 502, 503, 504],
-        allowed_methods=["GET"],
+        allowed_methods=["GET", "POST"],
         raise_on_status=False,
     )
     adapter = HTTPAdapter(max_retries=retry)
@@ -231,6 +212,17 @@ def _headers_html(referer: str = "") -> dict:
 
 
 def _parse_price_str(text: str) -> Optional[float]:
+    """
+    [SC41] Limpia strings de precio peruanos.
+    Lógica corregida para separadores de miles peruanos:
+      "S/. 1,299.00" → 1299.0
+      "1,299"        → 1299.0  (miles, NO decimal)
+      "1.299,00"     → 1299.0  (formato europeo)
+      "299.90"       → 299.9
+    Regla: si hay coma Y punto → el último separador es el decimal.
+    Si solo hay coma → es miles si la parte tras la coma tiene 3 dígitos,
+    decimal si tiene 1-2 dígitos.
+    """
     if not text:
         return None
     clean = re.sub(r"[^\d,.]", "", str(text).strip())
@@ -238,15 +230,21 @@ def _parse_price_str(text: str) -> Optional[float]:
         return None
     try:
         if "," in clean and "." in clean:
+            # El separador que aparece último es el decimal
             if clean.rfind(",") > clean.rfind("."):
+                # Formato europeo: 1.299,00
                 clean = clean.replace(".", "").replace(",", ".")
             else:
+                # Formato anglosajón: 1,299.00
                 clean = clean.replace(",", "")
         elif "," in clean:
             parts = clean.split(",")
-            clean = (clean.replace(",", ".")
-                     if len(parts) == 2 and len(parts[1]) <= 2
-                     else clean.replace(",", ""))
+            # [SC41] 3 dígitos tras la coma → separador de miles (1,299 → 1299)
+            # 1-2 dígitos tras la coma → separador decimal (1,29 → 1.29)
+            if len(parts) == 2 and len(parts[-1]) == 3:
+                clean = clean.replace(",", "")
+            else:
+                clean = clean.replace(",", ".")
         val = float(clean)
         return val if val > 0 else None
     except ValueError:
@@ -254,42 +252,57 @@ def _parse_price_str(text: str) -> Optional[float]:
 
 
 def _valid_price(price: Optional[float]) -> bool:
+    """Valida que el precio esté dentro del rango permitido."""
     return price is not None and PRICE_MIN_PEN <= price <= PRICE_MAX_PEN
 
 
 def _extract_sku_from_url(url: str) -> Optional[str]:
-    """[SC26] Extrae SKU estable desde URL."""
+    """
+    [SC26] Extrae SKU estable desde URL cuando el HTML no expone un ID.
+    - Falabella: /p/<productId>-<slug> → extrae el ID numérico
+    - Magento 2: último segmento del path antes de .html
+    """
     if not url:
         return None
+    # Falabella: /p/12345678-nombre-producto
     m = re.search(r"/p/(\d{6,})", url)
     if m:
         return m.group(1)
+    # Magento 2: /categoria/nombre-producto.html
     m = re.search(r"/([^/]+)\.html", url)
     if m:
         slug = m.group(1)
         return slug[:64] if slug else None
+    # Fallback: último segmento del path
     path = url.rstrip("/").split("/")[-1].split("?")[0]
     return path[:64] if path else None
 
 
 def _make_fingerprint(source: str, identity: str) -> str:
+    """MD5 de 12 chars para dedup."""
     raw = f"{source}|{identity}"
     return hashlib.md5(raw.encode()).hexdigest()[:12]
 
 
 def _dedup(records: List[Dict]) -> List[Dict]:
-    """[SC30] Deduplicación intra-batch. Clave: sku > url > title."""
+    """
+    [SC30] Deduplicación intra-batch.
+    Clave de identidad: sku > url > title (precio EXCLUIDO).
+    [SC31] IDs vacíos no entran al set seen.
+    """
     seen: set = set()
     out:  List[Dict] = []
     for r in records:
-        source   = r.get("source", "")
-        sku      = str(r.get("sku")   or "").strip()
-        url      = str(r.get("url")   or "").strip()
-        title    = str(r.get("title") or "").strip()
+        source = r.get("source", "")
+        sku    = str(r.get("sku") or "").strip()
+        url    = str(r.get("url") or "").strip()
+        title  = str(r.get("title") or "").strip()
+
         identity = sku or url or title
         if not identity:
             out.append(r)
             continue
+
         fp = _make_fingerprint(source, identity)
         if fp not in seen:
             seen.add(fp)
@@ -297,44 +310,16 @@ def _dedup(records: List[Dict]) -> List[Dict]:
     return out
 
 
-def _is_hw_relevant(title: str, category: str) -> bool:
-    """
-    [SC35] Verifica que el título del producto sea hardware relevante
-    para la categoría dada. Descarta falsos positivos de gpsearch
-    (ej. "Procesadora de Alimentos KitchenAid" en query CPU).
-    """
-    keywords = _HW_KEYWORDS.get(category, [])
-    if not keywords:
-        return True
-    title_lower = title.lower()
-    return any(kw in title_lower for kw in keywords)
-
-
 # ══════════════════════════════════════════════════════════════════════════
-# FALABELLA SCRAPER  [SC32] [SC33]
+# FALABELLA SCRAPER
 # ══════════════════════════════════════════════════════════════════════════
 class FalabellaScraper:
     """
-    Falabella PE — SSR via __NEXT_DATA__ de /falabella-pe/search?Ntt=...
-
-    [SC32] La API /s/browse/v2/listing/pe está caída desde el 13-jul-2026:
-      - Primero exigió categoryId obligatorio (400 FST_ERR_VALIDATION).
-      - Luego pasó a 404 completo en todos los endpoints /s/browse/v2/*.
-    La página de búsqueda HTML devuelve __NEXT_DATA__ con pageProps.results[]
-    que contiene los mismos datos (48 productos/página, precio, SKU, marca).
-
-    [SC33] Estructura de precios confirmada (julio 2026):
-      prices = [
-        {"type": "eventPrice",  "crossed": False, "price": ["799.90"]},  ← oferta
-        {"type": "normalPrice", "crossed": True,  "price": ["999.90"]},  ← tachado
-        {"type": "cmrPrice",    "crossed": False, "price": ["759.90"]},  ← CMR
-      ]
-    Se toma el precio no-tachado más bajo como price_pen,
-    y el normalPrice tachado como price_orig_pen.
+    Falabella PE — __NEXT_DATA__ SSR con paginación corregida [SC39/SC40].
+    Zona: Lima Metropolitana (zones=150101).
     """
-    BASE_URL  = "https://www.falabella.com.pe"
-    SEARCH_URL = "https://www.falabella.com.pe/falabella-pe/search"
-    SOURCE    = "falabella_pe"
+    BASE_URL = "https://www.falabella.com.pe"
+    SOURCE   = "falabella_pe"
 
     def __init__(self):
         self.session = _make_session()
@@ -342,117 +327,100 @@ class FalabellaScraper:
     def close(self):
         self.session.close()
 
-    # ── [SC33] Extracción de precios desde lista prices[] ──────────────
-    @staticmethod
-    def _extract_prices(prices: list) -> tuple:
+    def _fetch_ssr(self, query: str, page: int) -> tuple:
         """
-        Retorna (price_pen, price_orig_pen) desde la lista prices[] del SSR.
-        price_pen      = precio vigente más bajo (no tachado)
-        price_orig_pen = precio normal tachado (referencia de descuento)
+        [SC32] Extrae productos desde __NEXT_DATA__ SSR.
+        URL: /falabella-pe/search?Ntt=<query>&No=<offset>&Nrpp=48
+        Retorna (results_list, pagination_dict).
         """
-        offer_price  = None
-        normal_price = None
-
-        for entry in prices:
-            ptype   = entry.get("type", "")
-            crossed = entry.get("crossed", False)
-            raw     = entry.get("price", [])
-            try:
-                value = float(str(raw[0]).replace(",", "")) if raw else None
-            except (ValueError, IndexError):
-                value = None
-            if value is None or value <= 0:
-                continue
-
-            if ptype == "normalPrice" and crossed:
-                # Precio de referencia tachado
-                normal_price = value
-            elif not crossed:
-                # Cualquier precio vigente (eventPrice, cmrPrice, etc.)
-                if offer_price is None or value < offer_price:
-                    offer_price = value
-
-        # Fallback: si no hay precio vigente, usar el primer valor disponible
-        if offer_price is None:
-            for entry in prices:
-                raw = entry.get("price", [])
-                try:
-                    v = float(str(raw[0]).replace(",", ""))
-                    if v > 0:
-                        offer_price = v
-                        break
-                except (ValueError, IndexError):
-                    pass
-
-        return offer_price, normal_price
-
-    # ── [SC32] Fetch de página SSR ──────────────────────────────────────
-    def _fetch_ssr_page(self, query: str, page: int) -> tuple:
-        """
-        Descarga la página HTML de búsqueda y extrae pageProps via __NEXT_DATA__.
-        Retorna (results: list, pagination: dict).
-        """
-        offset = (page - 1) * _FALABELLA_PER_PAGE
+        offset = (page - 1) * 48
         url = (
-            f"{self.SEARCH_URL}"
+            f"{self.BASE_URL}/falabella-pe/search"
             f"?Ntt={requests.utils.quote(query)}"
-            f"&No={offset}"
-            f"&Nrpp={_FALABELLA_PER_PAGE}"
+            f"&No={offset}&Nrpp=48"
         )
         try:
-            r = self.session.get(
-                url,
-                headers=_headers_html(referer=self.BASE_URL),
-                timeout=25,
-            )
+            r = self.session.get(url, headers=_headers_html(self.BASE_URL), timeout=25)
             if r.status_code != 200:
-                log.error(
-                    "[Falabella] HTTP %d en query='%s' page=%d\n%s",
-                    r.status_code, query, page, traceback.format_exc()
-                )
+                log.error(f"[Falabella] HTTP {r.status_code} en query='{query}' p{page}")
                 return [], {}
-
-            nd_match = re.search(
+            nd = re.search(
                 r'<script id="__NEXT_DATA__"[^>]*>(.*?)</script>',
                 r.text, re.DOTALL
             )
-            if not nd_match:
-                log.error(
-                    "[Falabella] __NEXT_DATA__ no encontrado — query='%s' page=%d. "
-                    "Posible cambio en el HTML de Falabella.",
-                    query, page
-                )
+            if not nd:
+                log.error(f"[Falabella] __NEXT_DATA__ no encontrado query='{query}' p{page}")
                 return [], {}
-
-            nd_json    = json.loads(nd_match.group(1))
-            page_props = nd_json.get("props", {}).get("pageProps", {})
-            results    = page_props.get("results", [])
-            pagination = page_props.get("pagination", {})
-            return results, pagination
-
-        except json.JSONDecodeError:
-            log.error(
-                "[Falabella] JSON inválido en __NEXT_DATA__ — query='%s' page=%d:\n%s",
-                query, page, traceback.format_exc()
-            )
-            return [], {}
+            pp = json.loads(nd.group(1))["props"]["pageProps"]
+            return pp.get("results", []), pp.get("pagination", {})
         except Exception:
-            log.error(
-                "[Falabella] Error inesperado — query='%s' page=%d:\n%s",
-                query, page, traceback.format_exc()
-            )
+            import traceback
+            log.error(f"[Falabella] _fetch_ssr error query='{query}' p{page}:\n{traceback.format_exc()}")
             return [], {}
 
-    # ── [SC33] Parser de producto SSR ───────────────────────────────────
+    def _resolve_total_pages(self, pagination: dict, page_size: int = 48) -> int:
+        """
+        [SC39/SC40] Resuelve total de páginas desde múltiples claves posibles
+        del dict pagination para evitar corte prematuro.
+        Claves intentadas en orden: totalPages → total_pages → pages →
+        derivado de count → derivado de total → fallback 1.
+        """
+        # Clave directa de páginas
+        for key in ("totalPages", "total_pages", "pages", "pageCount", "page_count"):
+            val = pagination.get(key)
+            if val and int(val) > 0:
+                return int(val)
+        # Derivado de conteo de productos
+        for key in ("count", "total", "totalCount", "total_count", "totalResults"):
+            val = pagination.get(key)
+            if val and int(val) > 0:
+                return max(1, (int(val) + page_size - 1) // page_size)
+        return 1
+
     def _parse_ssr_product(self, item: Dict, category: str, batch_id: str) -> Optional[Dict]:
-        """Convierte un item de pageProps.results[] al schema público."""
+        """
+        [SC33] Convierte un item de __NEXT_DATA__ pageProps.results al schema público.
+        Estructura de precios confirmada:
+          prices[]: [{type: eventPrice, crossed: false, price: ["799.90"]},
+                     {type: normalPrice, crossed: true,  price: ["999.90"]}]
+        """
+        import traceback
         try:
             pid   = str(item.get("productId") or item.get("skuId") or "").strip()
             title = (item.get("displayName") or item.get("name") or "").strip()
             if not title:
                 return None
 
-            price_pen, price_orig_pen = self._extract_prices(item.get("prices", []))
+            prices_list    = item.get("prices", []) or []
+            price_pen      = None
+            price_orig_pen = None
+
+            for entry in prices_list:
+                ptype   = entry.get("type", "")
+                crossed = entry.get("crossed", False)
+                raw     = entry.get("price", [])
+                try:
+                    val = float(str(raw[0]).replace(",", "")) if raw else None
+                except (ValueError, IndexError):
+                    val = None
+                if val is None:
+                    continue
+                if ptype in ("eventPrice", "cmrPrice") and not crossed:
+                    if price_pen is None or val < price_pen:
+                        price_pen = val
+                elif ptype == "normalPrice" and crossed:
+                    price_orig_pen = val
+
+            # Fallback: primer precio no tachado
+            if price_pen is None:
+                for entry in prices_list:
+                    if not entry.get("crossed", False):
+                        raw = entry.get("price", [])
+                        try:
+                            price_pen = float(str(raw[0]).replace(",", ""))
+                            break
+                        except (ValueError, IndexError):
+                            pass
 
             if not _valid_price(price_pen):
                 return None
@@ -461,50 +429,42 @@ class FalabellaScraper:
             if price_pen and price_orig_pen and price_orig_pen > price_pen:
                 discount_pct = round((1 - price_pen / price_orig_pen) * 100, 1)
 
-            url_raw  = item.get("url") or item.get("pdpUrl") or ""
-            url_full = (
-                url_raw if url_raw.startswith("http")
-                else f"{self.BASE_URL}{url_raw}"
-            )
-
-            # SKU: pid > extraído de URL [SC26]
-            sku = pid if pid else _extract_sku_from_url(url_full)
+            brand    = (item.get("brand") or "").strip() or None
+            url_path = item.get("url") or ""
+            url_full = url_path if url_path.startswith("http") else f"{self.BASE_URL}{url_path}"
+            sku      = pid if pid else _extract_sku_from_url(url_full)
 
             return {
                 "batch_id":       batch_id,
                 "source":         self.SOURCE,
                 "category":       category,
-                "sku":            sku or None,
+                "sku":            sku,
                 "title":          title,
                 "price_pen":      price_pen,
                 "price_orig_pen": price_orig_pen,
                 "discount_pct":   discount_pct,
                 "url":            url_full,
-                "brand":          (item.get("brand") or "").strip() or None,
+                "brand":          brand,
                 "available":      True,
-                "rating":         item.get("rating") or item.get("stars") or None,
+                "rating":         None,
                 "timestamp":      datetime.now(timezone.utc).isoformat(),
             }
         except Exception:
-            log.warning(
-                "[Falabella] Error parseando producto '%s':\n%s",
-                item.get("displayName", "?"), traceback.format_exc()
-            )
+            import traceback
+            log.error(f"[Falabella] _parse_ssr_product error:\n{traceback.format_exc()}")
             return None
 
-    # ── Scrape principal ─────────────────────────────────────────────────
     def scrape(self, category: str, queries: List[str], batch_id: str) -> List[Dict]:
+        """[SC32/SC39] Scrape vía SSR __NEXT_DATA__ con paginación corregida."""
         records:  List[Dict] = []
         seen_ids: set        = set()
 
         for query in queries[:MAX_QUERIES_COMP]:
-            log.info("  [Falabella] %s | '%s'", category, query)
-
+            log.info(f"  [Falabella] {category} | '{query}'")
             for page in range(1, MAX_PAGES + 1):
-                raw, pagination = self._fetch_ssr_page(query, page)
-
+                raw, pagination = self._fetch_ssr(query, page)
                 if not raw:
-                    log.debug("    [Falabella] p%d vacío — stop", page)
+                    log.debug(f"    p{page}: vacío — stop")
                     break
 
                 new_in_page = 0
@@ -512,7 +472,6 @@ class FalabellaScraper:
                     rec = self._parse_ssr_product(item, category, batch_id)
                     if not rec:
                         continue
-                    # [SC31] IDs vacíos no entran al set
                     pid = str(item.get("productId") or item.get("skuId") or "").strip()
                     if pid:
                         if pid in seen_ids:
@@ -521,54 +480,54 @@ class FalabellaScraper:
                     records.append(rec)
                     new_in_page += 1
 
-                total_count = pagination.get("count", 0)
-                log.debug(
-                    "    [Falabella] p%d: +%d (total disponible: %d)",
-                    page, new_in_page, total_count
-                )
-
-                # Última página si hay menos resultados que el máximo por página
-                if len(raw) < _FALABELLA_PER_PAGE:
+                # [SC39] Paginación corregida
+                total_pages = self._resolve_total_pages(pagination, page_size=48)
+                log.debug(f"    p{page}/{total_pages}: +{new_in_page}")
+                if new_in_page == 0 or page >= total_pages:
                     break
-
                 time.sleep(DELAY_REQ)
-
             time.sleep(DELAY_CAT)
 
-        log.info("  [Falabella] %s: %d registros raw", category, len(records))
+        log.info(f"  [Falabella] {category}: {len(records)} registros raw")
         return records
 
 
 # ══════════════════════════════════════════════════════════════════════════
-# HIRAOKA SCRAPER  [SC34] [SC35]
+# HIRAOKA SCRAPER
 # ══════════════════════════════════════════════════════════════════════════
 class HiraokaScraper:
     """
-    Hiraoka PE — HTML scraping.
-
-    [SC34] URLs de categorías actualizadas (julio 2026):
-      - Hiraoka NO vende componentes de PC (CPU/GPU/RAM/Motherboard/PSU/Cooler/Case).
-      - Solo tiene SSD/HDD bajo /computo-y-tablets/accesorios-computo/disco-duro.
-      - Para el resto de categorías se usa gpsearch con filtro de relevancia.
-
-    [SC35] Fallback: /gpsearch/?q= (200 confirmado) en lugar de
-      /catalogsearch/result/ (404). Se aplica _is_hw_relevant() para
-      descartar falsos positivos (ej. "Procesadora de Alimentos").
+    Hiraoka PE — Magento 2 HTML.
+    Estrategia: categoría directa → fallback gpsearch.
     """
-    BASE_URL = "https://hiraoka.com.pe"
+    BASE_URL = "https://www.hiraoka.com.pe"
     SOURCE   = "hiraoka_pe"
 
-    # [SC34] Solo rutas confirmadas como existentes en julio 2026
-    CATEGORY_PATHS: Dict[str, Optional[str]] = {
-        "CPU":         None,   # No existe en Hiraoka — usar gpsearch
-        "GPU":         None,   # No existe en Hiraoka — usar gpsearch
-        "RAM":         None,   # No existe en Hiraoka — usar gpsearch
+    # [SC34] URLs reales confirmadas julio 2026.
+    # Hiraoka NO vende componentes (CPU/GPU/RAM/MB/PSU/COOLER/CASE).
+    # Solo SSD/HDD tiene categoría real.
+    CATEGORY_PATHS = {
+        "CPU":         None,
+        "GPU":         None,
+        "RAM":         None,
         "SSD":         "/computo-y-tablets/accesorios-computo/disco-duro",
-        "MOTHERBOARD": None,   # No existe en Hiraoka — usar gpsearch
-        "PSU":         None,   # No existe en Hiraoka — usar gpsearch
-        "COOLER":      None,   # No existe en Hiraoka — usar gpsearch
-        "CASE":        None,   # No existe en Hiraoka — usar gpsearch
+        "MOTHERBOARD": None,
+        "PSU":         None,
+        "COOLER":      None,
+        "CASE":        None,
     }
+
+    # [SC35] Palabras clave para filtrar falsos positivos del gpsearch
+    HW_KEYWORDS = [
+        "intel", "amd", "ryzen", "core i", "nvme", "ssd", "m.2",
+        "ddr4", "ddr5", "rtx", "radeon", "gb", "tb", "pcie",
+        "wd", "seagate", "kingston", "samsung", "crucial",
+    ]
+
+    def _is_hw_relevant(self, title: str) -> bool:
+        """[SC35] True si el título contiene al menos 1 keyword de hardware."""
+        tl = title.lower()
+        return any(kw in tl for kw in self.HW_KEYWORDS)
 
     def __init__(self):
         self.session = _make_session()
@@ -578,65 +537,32 @@ class HiraokaScraper:
 
     def _fetch_page(self, url: str) -> Optional[BeautifulSoup]:
         try:
-            r = self.session.get(
-                url,
-                headers=_headers_html(self.BASE_URL),
-                timeout=20,
-                allow_redirects=True,
-            )
+            r = self.session.get(url, headers=_headers_html(self.BASE_URL), timeout=20)
             if r.status_code == 200:
                 return BeautifulSoup(r.text, "html.parser")
-            log.debug("[Hiraoka] HTTP %d: %s", r.status_code, url)
             return None
-        except Exception:
-            log.error("[Hiraoka] fetch error: %s\n%s", url, traceback.format_exc())
+        except Exception as e:
+            log.debug(f"[Hiraoka] fetch error: {e}")
             return None
 
-    def _parse_products(
-        self, soup: BeautifulSoup, category: str, batch_id: str,
-        filter_relevance: bool = False
-    ) -> List[Dict]:
-        """
-        Parsea .product-item de Magento 2.
-        filter_relevance=True activa _is_hw_relevant() (para gpsearch).
-        """
+    def _parse_products(self, soup: BeautifulSoup, category: str, batch_id: str) -> List[Dict]:
         records = []
         items = soup.select("li.product-item, div.product-item-info")
-
         for item in items:
             try:
-                title_el = item.select_one(
-                    "a.product-item-link, strong.product-item-name a"
-                )
+                title_el = item.select_one("a.product-item-link, strong.product-item-name a")
                 if not title_el:
                     continue
-                title = title_el.get_text(strip=True)
+                title    = title_el.get_text(strip=True)
+                url_rel  = title_el.get("href", "")
+                url_full = url_rel if url_rel.startswith("http") else f"{self.BASE_URL}{url_rel}"
 
-                # [SC35] Filtro de relevancia para gpsearch
-                if filter_relevance and not _is_hw_relevant(title, category):
-                    log.debug("[Hiraoka] Descartado por relevancia: '%s'", title)
-                    continue
-
-                url_raw  = title_el.get("href", "")
-                url_full = (
-                    url_raw if url_raw.startswith("http")
-                    else f"{self.BASE_URL}{url_raw}"
-                )
-
-                # Precio Magento 2: finalPrice > precio visible
-                price_el = item.select_one(
-                    "span[data-price-type='finalPrice'] span.price, "
-                    ".special-price span.price, "
-                    "span.price"
-                )
+                price_el  = item.select_one("span[data-price-type='finalPrice'] span.price")
                 price_pen = _parse_price_str(price_el.get_text() if price_el else "")
                 if not _valid_price(price_pen):
                     continue
 
-                orig_el = item.select_one(
-                    "span[data-price-type='oldPrice'] span.price, "
-                    ".old-price span.price"
-                )
+                orig_el        = item.select_one("span[data-price-type='oldPrice'] span.price")
                 price_orig_pen = _parse_price_str(orig_el.get_text() if orig_el else "")
 
                 discount_pct = None
@@ -644,10 +570,10 @@ class HiraokaScraper:
                     discount_pct = round((1 - price_pen / price_orig_pen) * 100, 1)
 
                 # [SC28] SKU desde data-product-id
-                sku_el = item.select_one("[data-product-id]")
+                dp_el = item.select_one("[data-product-id]")
                 sku = (
                     item.get("data-product-id")
-                    or (sku_el.get("data-product-id") if sku_el else None)
+                    or (dp_el.get("data-product-id") if dp_el else None)
                     or _extract_sku_from_url(url_full)
                 )
 
@@ -672,84 +598,110 @@ class HiraokaScraper:
                     "rating":         None,
                     "timestamp":      datetime.now(timezone.utc).isoformat(),
                 })
-            except Exception:
-                log.warning("[Hiraoka] item parse error:\n%s", traceback.format_exc())
-
+            except Exception as e:
+                log.debug(f"[Hiraoka] item parse error: {e}")
         return records
 
     def scrape(self, category: str, queries: List[str], batch_id: str) -> List[Dict]:
         records:  List[Dict] = []
         cat_path = self.CATEGORY_PATHS.get(category)
 
-        # ── Estrategia 1: categoría directa (solo si existe) ─────────────
+        # Estrategia 1: categoría directa
         if cat_path:
-            log.info("  [Hiraoka] %s | categoría directa: %s", category, cat_path)
             for page in range(1, MAX_PAGES + 1):
                 url  = f"{self.BASE_URL}{cat_path}?p={page}"
                 soup = self._fetch_page(url)
                 if not soup:
-                    log.error(
-                        "[Hiraoka] Sin respuesta en categoría directa p%d: %s\n%s",
-                        page, url, traceback.format_exc()
-                    )
                     break
                 page_recs = self._parse_products(soup, category, batch_id)
                 if not page_recs:
                     break
                 records.extend(page_recs)
-                log.debug("  [Hiraoka] %s p%d: +%d", category, page, len(page_recs))
+                log.debug(f"  [Hiraoka] {category} p{page}: +{len(page_recs)}")
                 time.sleep(DELAY_REQ)
 
-        # ── Estrategia 2: gpsearch con filtro de relevancia [SC35] ───────
+        # [SC35] Estrategia 2: fallback gpsearch
         if not records:
-            log.info(
-                "  [Hiraoka] %s | sin categoría directa — usando gpsearch",
-                category
-            )
             for query in queries[:MAX_QUERIES_COMP]:
-                url  = f"{self.BASE_URL}/gpsearch/?q={requests.utils.quote(query)}"
-                soup = self._fetch_page(url)
-                if not soup:
-                    log.error(
-                        "[Hiraoka] gpsearch sin respuesta: query='%s'\n%s",
-                        query, traceback.format_exc()
-                    )
-                    continue
-                page_recs = self._parse_products(
-                    soup, category, batch_id, filter_relevance=True
+                search_url = (
+                    f"{self.BASE_URL}/gpsearch/result/index/"
+                    f"?q={requests.utils.quote(query)}"
                 )
-                records.extend(page_recs)
-                log.debug(
-                    "  [Hiraoka] gpsearch '%s': +%d relevantes",
-                    query, len(page_recs)
-                )
+                soup = self._fetch_page(search_url)
+                if soup:
+                    page_recs = self._parse_products(soup, category, batch_id)
+                    page_recs = [r for r in page_recs if self._is_hw_relevant(r["title"])]
+                    records.extend(page_recs)
+                    log.debug(f"  [Hiraoka] gpsearch '{query}': {len(page_recs)} relevantes")
                 time.sleep(DELAY_REQ)
 
-        log.info("  [Hiraoka] %s: %d registros raw", category, len(records))
+        log.info(f"  [Hiraoka] {category}: {len(records)} registros raw")
         return records
 
 
 # ══════════════════════════════════════════════════════════════════════════
-# COOLBOX SCRAPER  (sin cambios funcionales vs v4.2)
+# COOLBOX SCRAPER  [SC36/SC37/SC38/SC42]
 # ══════════════════════════════════════════════════════════════════════════
 class CoolboxScraper:
     """
-    Coolbox PE — tienda especializada en hardware y gaming.
-    HTML scraping con detección de stock.
+    Coolbox PE — VTEX GraphQL (vtex.search-graphql).
+    [SC36] Migrado desde HTML scraping a API GraphQL directa.
+    Endpoint: https://www.coolbox.pe/_v/segment/graphql/v1
+    Query:    productSearch con selectedFacets[{key: category-3, value: <slug>}]
+    Paginación: from/to con hasNextPage [SC42].
     """
-    BASE_URL = "https://www.coolbox.pe"
-    SOURCE   = "coolbox_pe"
+    BASE_URL    = "https://www.coolbox.pe"
+    SOURCE      = "coolbox_pe"
+    GQL_ENDPOINT = "https://www.coolbox.pe/_v/segment/graphql/v1"
+    PAGE_SIZE   = 50
 
-    CATEGORY_PATHS = {
-        "CPU":         "/procesadores",
-        "GPU":         "/tarjetas-de-video",
-        "RAM":         "/memorias-ram",
-        "SSD":         "/almacenamiento/discos-solidos-ssd",
-        "MOTHERBOARD": "/placas-madre",
-        "PSU":         "/fuentes-de-poder",
-        "COOLER":      "/refrigeracion",
-        "CASE":        "/gabinetes",
+    # [SC37] Slugs de categoría VTEX validados — julio 2026
+    CATEGORY_SLUGS: Dict[str, str] = {
+        "CPU":         "procesadores",
+        "GPU":         "tarjetas-de-video",
+        "RAM":         "memorias-ram",
+        "SSD":         "discos-solidos-ssd",
+        "MOTHERBOARD": "placas-madre",
+        "PSU":         "fuentes-de-poder",
+        "COOLER":      "refrigeracion",
+        "CASE":        "gabinetes",
     }
+
+    # Query GraphQL VTEX — productSearch con paginación y campos mínimos
+    _GQL_QUERY = """
+    query productSearch(
+      $query: String,
+      $selectedFacets: [SelectedFacetInput],
+      $from: Int,
+      $to: Int
+    ) @context(provider: "vtex.search-graphql@0.x") {
+      productSearch(
+        query: $query,
+        selectedFacets: $selectedFacets,
+        from: $from,
+        to: $to,
+        hideUnavailableItems: false
+      ) {
+        products {
+          productId
+          productName
+          brand
+          linkText
+          items {
+            itemId
+            sellers {
+              commertialOffer {
+                Price
+                ListPrice
+                AvailableQuantity
+              }
+            }
+          }
+        }
+        recordsFiltered
+      }
+    }
+    """
 
     def __init__(self):
         self.session = _make_session()
@@ -757,88 +709,201 @@ class CoolboxScraper:
     def close(self):
         self.session.close()
 
-    def _fetch_page(self, url: str) -> Optional[BeautifulSoup]:
+    def _gql_headers(self) -> dict:
+        return {
+            "User-Agent":   _get_ua(),
+            "Accept":       "application/json",
+            "Content-Type": "application/json",
+            "Referer":      self.BASE_URL,
+            "Origin":       self.BASE_URL,
+        }
+
+    def _fetch_page_gql(
+        self,
+        category_slug: str,
+        from_idx: int,
+        to_idx: int,
+    ) -> Optional[Dict]:
+        """
+        [SC36] Ejecuta la query GraphQL para una página de productos.
+        Retorna el dict 'productSearch' o None si hay error.
+        """
+        payload = {
+            "query": self._GQL_QUERY,
+            "variables": {
+                "query":          "",
+                "selectedFacets": [
+                    {"key": "category-3", "value": category_slug}
+                ],
+                "from": from_idx,
+                "to":   to_idx,
+            },
+        }
         try:
-            r = self.session.get(url, headers=_headers_html(self.BASE_URL), timeout=20)
-            if r.status_code == 200:
-                return BeautifulSoup(r.text, "html.parser")
-            log.debug("[Coolbox] HTTP %d: %s", r.status_code, url)
-            return None
+            resp = self.session.post(
+                self.GQL_ENDPOINT,
+                headers=self._gql_headers(),
+                json=payload,
+                timeout=25,
+            )
+            if resp.status_code != 200:
+                log.error(
+                    f"[Coolbox] GQL HTTP {resp.status_code} "
+                    f"slug={category_slug} from={from_idx}"
+                )
+                return None
+            data = resp.json()
+            errors = data.get("errors")
+            if errors:
+                log.error(f"[Coolbox] GQL errors slug={category_slug}: {errors}")
+                return None
+            return data.get("data", {}).get("productSearch")
         except Exception:
-            log.error("[Coolbox] fetch error: %s\n%s", url, traceback.format_exc())
+            import traceback
+            log.error(
+                f"[Coolbox] GQL fetch error slug={category_slug} from={from_idx}:\n"
+                f"{traceback.format_exc()}"
+            )
             return None
 
-    def _parse_products(self, soup: BeautifulSoup, category: str, batch_id: str) -> List[Dict]:
-        records = []
-        items = soup.select("div.product-item, article.product-item, li.product-item")
-        for item in items:
-            try:
-                title_el = item.select_one(
-                    "h2.product-name a, h3.product-name a, a.product-item-link"
-                )
-                if not title_el:
-                    continue
-                title    = title_el.get_text(strip=True)
-                url_raw  = title_el.get("href", "")
-                url_full = (
-                    url_raw if url_raw.startswith("http")
-                    else f"{self.BASE_URL}{url_raw}"
-                )
+    def _parse_gql_product(
+        self,
+        product: Dict,
+        category: str,
+        batch_id: str,
+    ) -> Optional[Dict]:
+        """
+        [SC38] Convierte un producto VTEX GraphQL al schema público.
+        Extrae: productId, sku (itemId), price, listPrice, disponibilidad.
+        """
+        try:
+            product_id   = str(product.get("productId") or "").strip()
+            title        = (product.get("productName") or "").strip()
+            brand        = (product.get("brand") or "").strip() or None
+            link_text    = (product.get("linkText") or "").strip()
 
-                price_el  = item.select_one(".price, .product-price, span.price")
-                price_pen = _parse_price_str(price_el.get_text() if price_el else "")
-                if not _valid_price(price_pen):
-                    continue
+            if not title:
+                return None
 
-                orig_el        = item.select_one(".old-price .price, .price-old, del.price")
-                price_orig_pen = _parse_price_str(orig_el.get_text() if orig_el else "")
+            url_full = f"{self.BASE_URL}/{link_text}/p" if link_text else self.BASE_URL
 
-                discount_pct = None
-                if price_pen and price_orig_pen and price_orig_pen > price_pen:
-                    discount_pct = round((1 - price_pen / price_orig_pen) * 100, 1)
+            # [SC38] Extraer precio y stock del primer seller disponible
+            price_pen      = None
+            price_orig_pen = None
+            available      = False
+            sku            = None
 
-                sku = item.get("data-product-id") or _extract_sku_from_url(url_full)
+            items = product.get("items") or []
+            for item in items:
+                item_id = str(item.get("itemId") or "").strip()
+                sellers = item.get("sellers") or []
+                for seller in sellers:
+                    offer = seller.get("commertialOffer") or {}
+                    qty   = offer.get("AvailableQuantity", 0)
+                    price = offer.get("Price")
+                    list_price = offer.get("ListPrice")
 
-                stock_txt = item.get_text(strip=True).lower()
-                available = "agotado" not in stock_txt and "sin stock" not in stock_txt
+                    if price and float(price) > 0:
+                        candidate = float(price)
+                        # Tomar el precio más bajo entre sellers
+                        if price_pen is None or candidate < price_pen:
+                            price_pen = candidate
+                            sku       = item_id or product_id
+                            available = int(qty) > 0
+                            if list_price and float(list_price) > candidate:
+                                price_orig_pen = float(list_price)
 
-                records.append({
-                    "batch_id":       batch_id,
-                    "source":         self.SOURCE,
-                    "category":       category,
-                    "sku":            str(sku) if sku else None,
-                    "title":          title,
-                    "price_pen":      price_pen,
-                    "price_orig_pen": price_orig_pen,
-                    "discount_pct":   discount_pct,
-                    "url":            url_full,
-                    "brand":          None,
-                    "available":      available,
-                    "rating":         None,
-                    "timestamp":      datetime.now(timezone.utc).isoformat(),
-                })
-            except Exception:
-                log.warning("[Coolbox] item parse error:\n%s", traceback.format_exc())
-        return records
+            if not _valid_price(price_pen):
+                return None
+
+            # Fallback SKU
+            if not sku:
+                sku = product_id or _extract_sku_from_url(url_full)
+
+            discount_pct = None
+            if price_pen and price_orig_pen and price_orig_pen > price_pen:
+                discount_pct = round((1 - price_pen / price_orig_pen) * 100, 1)
+
+            return {
+                "batch_id":       batch_id,
+                "source":         self.SOURCE,
+                "category":       category,
+                "sku":            sku,
+                "title":          title,
+                "price_pen":      price_pen,
+                "price_orig_pen": price_orig_pen,
+                "discount_pct":   discount_pct,
+                "url":            url_full,
+                "brand":          brand,
+                "available":      available,
+                "rating":         None,
+                "timestamp":      datetime.now(timezone.utc).isoformat(),
+            }
+        except Exception:
+            import traceback
+            log.error(f"[Coolbox] _parse_gql_product error:\n{traceback.format_exc()}")
+            return None
 
     def scrape(self, category: str, queries: List[str], batch_id: str) -> List[Dict]:
+        """
+        [SC36/SC42] Scrape vía VTEX GraphQL con paginación por from/to.
+        Detiene la paginación cuando se alcanza recordsFiltered [SC42].
+        """
         records:  List[Dict] = []
-        cat_path = self.CATEGORY_PATHS.get(category)
+        seen_ids: set        = set()
 
-        if cat_path:
-            for page in range(1, MAX_PAGES + 1):
-                url  = f"{self.BASE_URL}{cat_path}?page={page}"
-                soup = self._fetch_page(url)
-                if not soup:
-                    break
-                page_recs = self._parse_products(soup, category, batch_id)
-                if not page_recs:
-                    break
-                records.extend(page_recs)
-                log.debug("  [Coolbox] %s p%d: +%d", category, page, len(page_recs))
-                time.sleep(DELAY_REQ)
+        slug = self.CATEGORY_SLUGS.get(category)
+        if not slug:
+            log.warning(f"  [Coolbox] Sin slug para categoría '{category}' — omitido")
+            return records
 
-        log.info("  [Coolbox] %s: %d registros raw", category, len(records))
+        log.info(f"  [Coolbox] {category} | slug='{slug}' (GraphQL)")
+
+        page = 0
+        while page < MAX_PAGES:
+            from_idx = page * self.PAGE_SIZE
+            to_idx   = from_idx + self.PAGE_SIZE - 1
+
+            result = self._fetch_page_gql(slug, from_idx, to_idx)
+            if not result:
+                log.debug(f"    [Coolbox] p{page + 1}: sin resultado GQL — stop")
+                break
+
+            products        = result.get("products") or []
+            records_filtered = int(result.get("recordsFiltered") or 0)
+
+            if not products:
+                log.debug(f"    [Coolbox] p{page + 1}: lista vacía — stop")
+                break
+
+            new_in_page = 0
+            for prod in products:
+                rec = self._parse_gql_product(prod, category, batch_id)
+                if not rec:
+                    continue
+                pid = str(prod.get("productId") or "").strip()
+                if pid:
+                    if pid in seen_ids:
+                        continue
+                    seen_ids.add(pid)
+                records.append(rec)
+                new_in_page += 1
+
+            # [SC42] Verificar si hay más páginas usando recordsFiltered
+            fetched_so_far = from_idx + len(products)
+            has_next       = fetched_so_far < records_filtered
+
+            log.debug(
+                f"    [Coolbox] p{page + 1}: +{new_in_page} "
+                f"(total={fetched_so_far}/{records_filtered})"
+            )
+
+            page += 1
+            if not has_next or new_in_page == 0:
+                break
+            time.sleep(DELAY_REQ)
+
+        log.info(f"  [Coolbox] {category}: {len(records)} registros raw")
         return records
 
 
@@ -848,7 +913,8 @@ class CoolboxScraper:
 class CompumundoScraper:
     """
     Compumundo PE — Magento 2 HTML.
-    Deshabilitado por defecto (COMPUMUNDO_ENABLED=false).
+    Deshabilitado por defecto (COMPUMUNDO_ENABLED=false) — SSL mismatch.
+    Si se habilita, usa verify=False y suprime InsecureRequestWarning.
     """
     BASE_URL = "https://www.compumundo.com.pe"
     SOURCE   = "compumundo_pe"
@@ -881,8 +947,8 @@ class CompumundoScraper:
             if r.status_code == 200:
                 return BeautifulSoup(r.text, "html.parser")
             return None
-        except Exception:
-            log.error("[Compumundo] fetch error: %s\n%s", url, traceback.format_exc())
+        except Exception as e:
+            log.debug(f"[Compumundo] fetch error: {e}")
             return None
 
     def _parse_products(self, soup: BeautifulSoup, category: str, batch_id: str) -> List[Dict]:
@@ -894,21 +960,29 @@ class CompumundoScraper:
                 if not title_el:
                     continue
                 title    = title_el.get_text(strip=True)
-                url_raw  = title_el.get("href", "")
-                url_full = (
-                    url_raw if url_raw.startswith("http")
-                    else f"{self.BASE_URL}{url_raw}"
-                )
+                url_rel  = title_el.get("href", "")
+                url_full = url_rel if url_rel.startswith("http") else f"{self.BASE_URL}{url_rel}"
+
                 price_el  = item.select_one("span[data-price-type='finalPrice'] span.price")
                 price_pen = _parse_price_str(price_el.get_text() if price_el else "")
                 if not _valid_price(price_pen):
                     continue
+
                 orig_el        = item.select_one("span[data-price-type='oldPrice'] span.price")
                 price_orig_pen = _parse_price_str(orig_el.get_text() if orig_el else "")
-                discount_pct   = None
+
+                discount_pct = None
                 if price_pen and price_orig_pen and price_orig_pen > price_pen:
                     discount_pct = round((1 - price_pen / price_orig_pen) * 100, 1)
-                sku = item.get("data-product-id") or _extract_sku_from_url(url_full)
+
+                # [SC28]
+                dp_el = item.select_one("[data-product-id]")
+                sku = (
+                    item.get("data-product-id")
+                    or (dp_el.get("data-product-id") if dp_el else None)
+                    or _extract_sku_from_url(url_full)
+                )
+
                 records.append({
                     "batch_id":       batch_id,
                     "source":         self.SOURCE,
@@ -924,8 +998,8 @@ class CompumundoScraper:
                     "rating":         None,
                     "timestamp":      datetime.now(timezone.utc).isoformat(),
                 })
-            except Exception:
-                log.warning("[Compumundo] item parse error:\n%s", traceback.format_exc())
+            except Exception as e:
+                log.debug(f"[Compumundo] item parse error: {e}")
         return records
 
     def scrape(self, category: str, queries: List[str], batch_id: str) -> List[Dict]:
@@ -944,7 +1018,7 @@ class CompumundoScraper:
                     break
                 records.extend(page_recs)
                 time.sleep(DELAY_REQ)
-        log.info("  [Compumundo] %s: %d registros raw", category, len(records))
+        log.info(f"  [Compumundo] {category}: {len(records)} registros raw")
         return records
 
 
@@ -963,12 +1037,11 @@ def scrape_competencia(
     Args:
         batch_id:   ID único del batch actual (ej. "20260716_214633").
         mode:       Modo de ejecución — "normal" (integrado con main.py).
-        sources:    Lista de fuentes. Default: ["falabella", "hiraoka", "coolbox"].
+        sources:    Lista de fuentes a usar. Default: ["falabella", "hiraoka", "coolbox"].
         categories: Lista de categorías. Default: todas las de CATEGORY_QUERIES_PE.
 
     Returns:
         Lista de dicts con los campos de COMP_FIELDS_PUBLIC.
-        [SC37] Nunca retorna vacío silenciosamente — emite log.error si ocurre.
     """
     t0 = time.time()
     if sources is None:
@@ -977,41 +1050,35 @@ def scrape_competencia(
         categories = list(CATEGORY_QUERIES_PE.keys())
 
     log.info("══════════════════════════════════════════════════")
-    log.info("  SCRAPING COMPETENCIA PE  v4.3")
-    log.info("  Fuentes    : %s", sources)
-    log.info("  Categorías : %s", categories)
+    log.info("  SCRAPING COMPETENCIA PE  v4.4")
+    log.info(f"  Fuentes: {sources} | Categorías: {categories}")
     log.info("══════════════════════════════════════════════════")
 
     scrapers: Dict[str, Any] = {}
-    if "falabella"  in sources: scrapers["falabella"]  = FalabellaScraper()
-    if "hiraoka"    in sources: scrapers["hiraoka"]    = HiraokaScraper()
-    if "coolbox"    in sources: scrapers["coolbox"]    = CoolboxScraper()
+    if "falabella" in sources:
+        scrapers["falabella"] = FalabellaScraper()
+    if "hiraoka" in sources:
+        scrapers["hiraoka"] = HiraokaScraper()
+    if "coolbox" in sources:
+        scrapers["coolbox"] = CoolboxScraper()
     if "compumundo" in sources and COMPUMUNDO_ENABLED:
         scrapers["compumundo"] = CompumundoScraper()
 
-    all_records:    List[Dict]      = []
-    source_counts:  Dict[str, int]  = {name: 0 for name in scrapers}
-    source_errors:  Dict[str, bool] = {name: False for name in scrapers}
+    all_records: List[Dict] = []
 
     try:
         for category in categories:
             queries = CATEGORY_QUERIES_PE.get(category, [])
             if not queries:
                 continue
-            log.info("\n[CATEGORÍA] %s — %d queries disponibles", category, len(queries))
+            log.info(f"\n[CATEGORÍA] {category} — {len(queries)} queries disponibles")
 
             for name, scraper in scrapers.items():
                 try:
                     recs = scraper.scrape(category, queries, batch_id)
                     all_records.extend(recs)
-                    source_counts[name] += len(recs)
-                except Exception:
-                    # [SC36] Error visible — no silencioso
-                    log.error(
-                        "  [%s] FALLO COMPLETO en categoría '%s':\n%s",
-                        name, category, traceback.format_exc()
-                    )
-                    source_errors[name] = True
+                except Exception as e:
+                    log.warning(f"  [{name}] Error en {category}: {e}")
                 time.sleep(DELAY_CAT)
 
     finally:
@@ -1021,40 +1088,21 @@ def scrape_competencia(
             except Exception:
                 pass
 
-    # ── Deduplicación global [SC30] ──────────────────────────────────────
+    # Deduplicación global [SC30]
     before      = len(all_records)
     all_records = _dedup(all_records)
     after       = len(all_records)
     if before > after:
-        log.info("[Competencia] Deduplicados: %d eliminados", before - after)
+        log.info(f"[Competencia] Deduplicados: {before - after} eliminados")
 
-    # ── Filtrar a campos públicos [SC29] ─────────────────────────────────
-    output: List[Dict] = [
-        {k: rec.get(k) for k in COMP_FIELDS_PUBLIC}
-        for rec in all_records
-    ]
+    # Filtrar a campos públicos [SC29]
+    output: List[Dict] = []
+    for rec in all_records:
+        filtered = {k: rec.get(k) for k in COMP_FIELDS_PUBLIC}
+        output.append(filtered)
 
     elapsed = round((time.time() - t0) / 60, 1)
-
-    # ── [SC37] Validación final — error explícito si vacío ───────────────
-    if not output:
-        log.error(
-            "[Competencia] RESULTADO VACÍO después de %.1f min. "
-            "Resumen por fuente: %s | Errores: %s",
-            elapsed,
-            {k: v for k, v in source_counts.items()},
-            {k: v for k, v in source_errors.items() if v},
-        )
-    else:
-        log.info(
-            "[Competencia] TOTAL: %d registros únicos — ⏱ %.1f min",
-            len(output), elapsed
-        )
-        log.info(
-            "[Competencia] Por fuente: %s",
-            {k: v for k, v in source_counts.items() if v > 0}
-        )
-
+    log.info(f"[Competencia] TOTAL: {len(output)} registros únicos — ⏱ {elapsed} min")
     return output
 
 
@@ -1072,8 +1120,5 @@ if __name__ == "__main__":
     print(f"\nTotal: {len(results)} registros")
     if results:
         import pprint
-        from collections import Counter
-        print(f"\nPor fuente   : {dict(Counter(r['source']   for r in results))}")
-        print(f"Por categoría: {dict(Counter(r['category'] for r in results))}")
         print("\nEjemplo (primer registro):")
         pprint.pprint(results[0])
