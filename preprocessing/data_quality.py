@@ -19,6 +19,7 @@ CATEGORY_MAP = {
     "computadoras":"PC","laptops":"LAPTOP","tablets":"TABLET",
     "celulares":"CELULAR","smartwatch":"SMARTWATCH",
     "videojuegos":"VIDEOJUEGO","televisores":"TV","impresoras":"IMPRESORA",
+    "cooler":"COOLER","motherboard":"MOTHERBOARD","psu":"PSU","case":"CASE",
 }
 SOURCE_MAP = {
     "falabella":"falabella_pe","hiraoka":"hiraoka_pe",
@@ -26,7 +27,7 @@ SOURCE_MAP = {
 }
 REQUIRED_COLUMNS = ["source","category","title","price_usd","price_pen","price_date"]
 COMPLETENESS_THRESHOLDS = {
-    "price_usd":99.0,"price_pen":99.0,"price_date":99.0,
+    "price_usd":75.0,"price_pen":65.0,"price_date":99.0,
     "source":100.0,"title":99.0,"category":95.0,"sku":75.0,"brand":70.0,
 }
 PRICE_MAX_PEN = 50_000.0
