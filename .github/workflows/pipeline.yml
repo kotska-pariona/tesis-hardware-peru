@@ -1,13 +1,29 @@
 # ════════════════════════════════════════════════════════════
-# Pipeline ROI Importación PE — v2.1
-# CAMBIOS v2.1 (sobre v2.0):
-#   [P10] ebaysdk eliminado de pip install (no usado — OAuth2 directo)
-#   [P11] tzdata agregado a pip install (ZoneInfo en ubuntu-latest)
-#   [P12] EBAY_CLIENT_SECRET agregado a env del step 6 (faltaba)
-#   [P13] git add ANTES de pull --rebase (fix bug "unstaged changes")
-#   [P14] git pull --rebase: falla explícita en lugar de || true silencioso
-#   [P15] COMPUMUNDO_ENABLED=false via env (SSL mismatch — ahorra ~12 min)
-#   [P16] batch 24h: escritura atómica con .tmp → rename (anti-corrupción)
+# Pipeline ROI Importación PE — v2.2
+# CAMBIOS v2.2 (sobre v2.1):
+#   [P17] BUG CRÍTICO: input "only" reemplazado por "mode" — los
+#         argumentos --only/--categories/--sources-import no existen
+#         en main.py (solo acepta --mode/--batch-id/--max-elapsed).
+#         El workflow fallaba silenciosamente si el usuario los pasaba
+#         desde workflow_dispatch.
+#   [P18] BUG CRÍTICO: git add sin commit antes de pull --rebase —
+#         mismo bug que [W23] en daily_agent. El staging (git add)
+#         NO satisface el requisito de "working tree limpio" que exige
+#         git pull --rebase. Orden correcto: add → commit → rebase → push.
+#         [P13] estaba incompleto — solo hacía git add, no commit.
+#   [P19] BUG CRÍTICO: BATCH_ID tenía prefijo "batch_" → doble prefijo
+#         "batch_batch_" en archivos CSV y reporte JSON (main.py ya
+#         agrega "batch_" al construir el nombre de archivo).
+#         Fix igual a [W26] en daily_agent: BATCH_ID sin prefijo.
+#   [P20] Ruta de logs corregida en artefactos: data/logs/agent.log
+#         (main.py escribe en ROOT/data/logs/, no en ROOT/logs/).
+#   [P21] batch_24h_*.csv eliminado de artefactos — este workflow no
+#         genera ese archivo (solo lo hace daily_agent paso 7).
+#   [P22] Reporte JSON en paso 7 ahora usa BATCH_ID sin prefijo —
+#         antes nunca se encontraba el archivo (se resuelve con [P19]).
+#   [P23] Push con reintentos (3x) — igual que [W24] en daily_agent,
+#         protege contra race condition si daily_agent y pipeline.yml
+#         commitean casi a la vez pese al concurrency group.
 # ════════════════════════════════════════════════════════════
 name: Pipeline ROI Importación PE
 
@@ -18,26 +34,17 @@ on:
 
   workflow_dispatch:
     inputs:
-      only:
-        description: "Step a ejecutar"
+      mode:
+        description: "Modo de ejecución"
         required: false
-        default: ""
+        default: "local_only"
         type: choice
         options:
-          - ""
-          - scrape
-          - scrape-local
-          - scrape-import
-          - merge
-          - roi
-      categories:
-        description: "Categorías (CPU GPU RAM SSD MOTHERBOARD PSU COOLER CASE)"
-        required: false
-        default: ""
-      sources_import:
-        description: "Fuentes importación"
-        required: false
-        default: "amazon aliexpress ebay"
+          - local_only    # [P17] era "scrape-local" — no existe en main.py
+          - normal
+          - historical
+          - kaggle_only
+          - full
 
 # [P9] Grupo unificado con daily_agent → evita race condition en MASTER CSV
 concurrency:
@@ -53,21 +60,21 @@ jobs:
     timeout-minutes: 90
 
     steps:
-      # ── 1. Checkout ────────────────────────────────────────────────
+      # ── 1. Checkout ──────────────────────────────────────────────
       - name: "📥 Checkout repo"
-        uses: actions/checkout@v4.2.2    # [P7] Node 24
+        uses: actions/checkout@v4.2.2
         with:
           fetch-depth: 0
 
-      # ── 2. Python ──────────────────────────────────────────────────
+      # ── 2. Python ────────────────────────────────────────────────
       - name: "🐍 Setup Python 3.11"
-        uses: actions/setup-python@v5.4.0  # [P7] Node 24
+        uses: actions/setup-python@v5.4.0
         with:
           python-version: "3.11"
           cache: "pip"
 
-      # ── 3. Dependencias ────────────────────────────────────────────
-      - name: "📦 Instalar dependencias (scraping)"
+      # ── 3. Dependencias ──────────────────────────────────────────
+      - name: "📦 Instalar dependencias"
         run: |
           pip install --upgrade pip
           pip install \
@@ -89,29 +96,42 @@ jobs:
           # [P11] tzdata necesario para ZoneInfo("America/Lima") en ubuntu-latest
           # [P10] ebaysdk eliminado — OAuth2 se maneja directo con requests
 
-      # ── 4. Crear directorios ───────────────────────────────────────
+      # ── 4. Crear directorios ─────────────────────────────────────
       - name: "📁 Crear directorios"
-        run: mkdir -p data/raw data/kaggle logs
+        run: mkdir -p data/raw data/logs data/kaggle
 
-      # ── 5. Info del run ────────────────────────────────────────────
+      # ── 5. Info del run ──────────────────────────────────────────
       - name: "ℹ️ Info del run"
         run: |
           echo "════════════════════════════════════"
-          echo "  Only      : '${{ github.event.inputs.only }}'"
-          echo "  Categories: '${{ github.event.inputs.categories }}'"
-          echo "  Sources   : '${{ github.event.inputs.sources_import }}'"
+          echo "  Mode      : '${{ github.event.inputs.mode || 'local_only' }}'"
           echo "  Hora UTC  : $(date -u '+%Y-%m-%d %H:%M:%S')"
           echo "  Hora PE   : $(TZ='America/Lima' date '+%Y-%m-%d %H:%M:%S')"
+          echo "  Trigger   : ${{ github.event_name }}"
           echo "════════════════════════════════════"
-          # [P3] BATCH_ID en hora PE
-          echo "BATCH_ID=batch_$(TZ='America/Lima' date '+%Y%m%d_%H%M%S')" >> $GITHUB_ENV
 
-      # ── 6. Ejecutar pipeline ───────────────────────────────────────
+          # [P19] BATCH_ID SIN prefijo "batch_" — main.py ya lo agrega
+          # al construir el nombre de archivo (batch_{batch_id}_*.csv).
+          # Con prefijo resultaba en "batch_batch_YYYYMMDD_HHMMSS_local.csv"
+          echo "BATCH_ID=$(TZ='America/Lima' date '+%Y%m%d_%H%M%S')" >> $GITHUB_ENV
+
+          # MAX_ELAPSED_S según modo
+          MODE="${{ github.event.inputs.mode || 'local_only' }}"
+          if [ "$MODE" = "full" ]; then
+            echo "MAX_ELAPSED_S=5100" >> $GITHUB_ENV   # 85 min
+          else
+            echo "MAX_ELAPSED_S=3000" >> $GITHUB_ENV   # 50 min
+          fi
+
+          echo "RUN_MODE=${MODE}" >> $GITHUB_ENV
+
+      # ── 6. Ejecutar pipeline ─────────────────────────────────────
       - name: "🚀 Ejecutar pipeline"
         env:
           # [P4] PYTHONPATH para resolver 'import scrapers' y 'import config'
           PYTHONPATH: "agent:agent/scrapers:configuracion"
-          # ── Costos de importación (roi_calculator.py) ──────────────
+          PYTHONUTF8: "1"   # evita UnicodeEncodeError con emojis en logs
+          # ── Costos de importación (roi_calculator.py) ────────────
           IGV:                 "0.18"
           IPM:                 "0.02"
           ARANCEL_AD_VALOREM:  "0.00"
@@ -119,51 +139,31 @@ jobs:
           FLETE_POR_KG_USD:    "8.0"
           MARGEN_GANANCIA_MIN: "0.15"
           LIMITE_COURIER_USD:  "200.0"
-          # ── Scraping ───────────────────────────────────────────────
+          # ── Scraping ─────────────────────────────────────────────
           DELAY_REQ:           "3.0"
           DELAY_CAT:           "6.0"
           MAX_PAGES:           "5"
           MAX_PAGES_IMPORT:    "5"
           OUTPUT_DIR:          "data/raw"
-          COMPUMUNDO_ENABLED:  "false"   # [P15] SSL mismatch permanente — ~12 min ahorrados
-          # ── APIs ───────────────────────────────────────────────────
+          COMPUMUNDO_ENABLED:  "false"   # [P15] SSL mismatch — ~12 min ahorrados
+          # ── APIs ─────────────────────────────────────────────────
           EBAY_APP_ID:         ${{ secrets.EBAY_APP_ID }}
-          EBAY_CLIENT_SECRET:  ${{ secrets.EBAY_CLIENT_SECRET }}   # [P12] faltaba
-          # [P8] Amazon PA API — usado por scraper_importacion.py si está configurado;
-          #      el scraper también funciona con BeautifulSoup si las keys están vacías
+          EBAY_CLIENT_SECRET:  ${{ secrets.EBAY_CLIENT_SECRET }}
           AMAZON_ACCESS_KEY:   ${{ secrets.AMAZON_ACCESS_KEY }}
           AMAZON_SECRET_KEY:   ${{ secrets.AMAZON_SECRET_KEY }}
           AMAZON_PARTNER_TAG:  ${{ secrets.AMAZON_PARTNER_TAG }}
           KAGGLE_USERNAME:     ${{ secrets.KAGGLE_USERNAME }}
           KAGGLE_KEY:          ${{ secrets.KAGGLE_KEY }}
         run: |
-          python - <<'PYEOF'
-          import subprocess, sys, os
+          # [P17] Solo --mode existe en main.py — eliminados --only/--categories/--sources-import
+          PYTHONPATH=agent:agent/scrapers:configuracion \
+          PYTHONUTF8=1 \
+          python agent/main.py \
+            --mode "$RUN_MODE" \
+            --batch-id "$BATCH_ID" \
+            --max-elapsed "$MAX_ELAPSED_S"
 
-          cmd = [sys.executable, "agent/main.py"]
-
-          only = "${{ github.event.inputs.only }}".strip()
-          if only:
-              cmd += ["--only", only]
-
-          categories = "${{ github.event.inputs.categories }}".strip()
-          if categories:
-              cmd += ["--categories"] + categories.split()
-
-          sources = "${{ github.event.inputs.sources_import }}".strip()
-          if sources:
-              cmd += ["--sources-import"] + sources.split()
-
-          batch_id = os.environ.get("BATCH_ID", "")
-          if batch_id:
-              cmd += ["--batch-id", batch_id]
-
-          print(f"Ejecutando: {' '.join(cmd)}")
-          result = subprocess.run(cmd, check=True)
-          sys.exit(result.returncode)
-          PYEOF
-
-      # ── 7. Verificar resultados ────────────────────────────────────
+      # ── 7. Verificar resultados ──────────────────────────────────
       - name: "🔍 Verificar datos generados"
         run: |
           echo "── Archivos en data/raw/ ──"
@@ -181,42 +181,80 @@ jobs:
 
           echo ""
           echo "── Reporte JSON ──"
+          # [P22] BATCH_ID sin prefijo → nombre correcto del reporte
           REPORT="data/raw/report_${BATCH_ID}.json"
-          [ -f "$REPORT" ] && cat "$REPORT" || echo "  Sin reporte"
+          if [ -f "$REPORT" ]; then
+            cat "$REPORT"
+          else
+            echo "  Sin reporte (buscado: $REPORT)"
+          fi
 
-      # ── 8. Commit y push ───────────────────────────────────────────
-      # [P13] Orden correcto: add PRIMERO → pull --rebase → commit → push
+      # ── 8. Commit y push ─────────────────────────────────────────
+      # [P18] Orden correcto: add → commit → pull --rebase → push
+      # [P13] estaba incompleto: solo hacía git add sin commit previo
+      # al rebase — git seguía reportando "uncommitted changes".
       - name: "💾 Commit datos al repo"
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          # [P13] PRIMERO stagear — working tree limpio antes del rebase
           git add data/raw/
           # NO agregar data/kaggle/ — archivos >100MB rompen git push
 
-          # [P14] Pull con falla explícita — no silenciar errores reales
-          git pull --rebase origin main || {
-            echo "❌ git pull --rebase falló — abortando rebase"
-            git rebase --abort 2>/dev/null || true
-            exit 1
-          }
-
           if git diff --staged --quiet; then
-            echo "ℹ️ Sin cambios nuevos"
-          else
-            MASTER_LINES=$(python -c "
+            echo "ℹ️ Sin cambios nuevos para commitear"
+            exit 0
+          fi
+
+          MASTER_LINES=$(python -c "
           import pathlib
           f = pathlib.Path('data/raw/MASTER_hardware_peru.csv')
           print(sum(1 for _ in open(f)) - 1 if f.exists() else 0)
           " 2>/dev/null || echo "0")
 
-            git commit -m "📊 [${BATCH_ID}] pipeline ROI — ${MASTER_LINES} registros"
-            git push origin main
-            echo "✅ Push exitoso"
+          # [P18] COMMIT ANTES del rebase — índice limpio de verdad
+          git commit -m "📊 [${BATCH_ID}] ${RUN_MODE} — ${MASTER_LINES} registros"
+
+          # Pull con rebase — ahora el índice SÍ está limpio
+          REBASE_OK=false
+          for i in 1 2 3; do
+            if git pull --rebase origin main; then
+              REBASE_OK=true
+              break
+            else
+              echo "⚠️ pull --rebase falló (intento $i/3) — abortando y reintentando"
+              git rebase --abort 2>/dev/null || true
+              sleep $((i * 5))
+            fi
+          done
+
+          if [ "$REBASE_OK" = false ]; then
+            echo "❌ git pull --rebase falló tras 3 intentos"
+            exit 1
           fi
 
-      # ── 9. Subir artefactos ────────────────────────────────────────
+          # [P23] Push con reintentos — protege contra race condition
+          # entre daily_agent y pipeline.yml (mismo concurrency group)
+          PUSH_OK=false
+          for i in 1 2 3; do
+            if git push origin main; then
+              PUSH_OK=true
+              break
+            else
+              echo "⚠️ git push falló (intento $i/3) — re-sincronizando"
+              git pull --rebase origin main || true
+              sleep $((i * 5))
+            fi
+          done
+
+          if [ "$PUSH_OK" = false ]; then
+            echo "❌ git push falló tras 3 intentos"
+            exit 1
+          fi
+
+          echo "✅ Push exitoso — ${MASTER_LINES} registros en MASTER"
+
+      # ── 9. Subir artefactos ──────────────────────────────────────
       - name: "📤 Subir artefactos"
         uses: actions/upload-artifact@v4
         if: always()
@@ -225,19 +263,21 @@ jobs:
           path: |
             data/raw/MASTER_hardware_peru.csv
             data/raw/report_*.json
-            data/raw/batch_24h_*.csv
-            logs/agent.log
+            data/logs/agent.log
           retention-days: 30
+        # [P21] batch_24h_*.csv eliminado — solo lo genera daily_agent
+        # [P20] data/logs/agent.log (antes era logs/agent.log — ruta incorrecta)
 
-      # ── 10. Subir logs en caso de falla ───────────────────────────
+      # ── 10. Subir logs en caso de falla ──────────────────────────
       - name: "🚨 Subir logs en caso de falla"
         uses: actions/upload-artifact@v4
         if: failure()
         with:
           name: logs-error-${{ github.run_number }}
           path: |
-            logs/
+            data/logs/
           retention-days: 7
+        # [P20] data/logs/ — ruta correcta donde main.py escribe agent.log
 
       # ── 11. Resumen ───────────────────────────────────────────────
       - name: "📋 Resumen"
@@ -245,6 +285,7 @@ jobs:
         run: |
           echo "════════════════════════════════════"
           echo "  Batch  : $BATCH_ID"
+          echo "  Modo   : $RUN_MODE"
           echo "  Status : ${{ job.status }}"
           echo "  Hora PE: $(TZ='America/Lima' date '+%H:%M:%S')"
           if [ -f data/raw/MASTER_hardware_peru.csv ]; then
