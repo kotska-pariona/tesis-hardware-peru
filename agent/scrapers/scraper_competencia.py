@@ -638,24 +638,25 @@ class HiraokaScraper:
         log.info(f"  [Hiraoka] {category}: {len(records)} registros raw")
         return records
 
-
 # ══════════════════════════════════════════════════════════════════════════
-# COOLBOX SCRAPER  [SC36/SC37/SC38/SC42]
+# COOLBOX SCRAPER  v4.5
+# [SC43] Migrado de VTEX GraphQL a Intelligent Search REST API
+#        Endpoint: /_v/api/intelligent-search/product_search/
+#        Más estable que GQL — no requiere workspace headers
 # ══════════════════════════════════════════════════════════════════════════
 class CoolboxScraper:
     """
-    Coolbox PE — VTEX GraphQL (vtex.search-graphql).
-    [SC36] Migrado desde HTML scraping a API GraphQL directa.
-    Endpoint: https://www.coolbox.pe/_v/segment/graphql/v1
-    Query:    productSearch con selectedFacets[{key: category-3, value: <slug>}]
-    Paginación: from/to con hasNextPage [SC42].
+    Coolbox PE — VTEX Intelligent Search REST API v4.5
+    [SC43] Reemplaza GraphQL (_v/segment/graphql/v1) que devolvía HTTP 500.
+    Endpoint: https://www.coolbox.pe/_v/api/intelligent-search/product_search/
+    Paginación: from/to con recordsFiltered.
     """
-    BASE_URL    = "https://www.coolbox.pe"
-    SOURCE      = "coolbox_pe"
-    GQL_ENDPOINT = "https://www.coolbox.pe/_v/segment/graphql/v1"
-    PAGE_SIZE   = 50
+    BASE_URL      = "https://www.coolbox.pe"
+    SOURCE        = "coolbox_pe"
+    SEARCH_EP     = "https://www.coolbox.pe/_v/api/intelligent-search/product_search/"
+    PAGE_SIZE     = 50
 
-    # [SC37] Slugs de categoría VTEX validados — julio 2026
+    # [SC37] Slugs de categoría VTEX — validados julio 2026
     CATEGORY_SLUGS: Dict[str, str] = {
         "CPU":         "procesadores",
         "GPU":         "tarjetas-de-video",
@@ -667,145 +668,182 @@ class CoolboxScraper:
         "CASE":        "gabinetes",
     }
 
-    # Query GraphQL VTEX — productSearch con paginación y campos mínimos
-    _GQL_QUERY = """
-    query productSearch(
-      $query: String,
-      $selectedFacets: [SelectedFacetInput],
-      $from: Int,
-      $to: Int
-    ) @context(provider: "vtex.search-graphql@0.x") {
-      productSearch(
-        query: $query,
-        selectedFacets: $selectedFacets,
-        from: $from,
-        to: $to,
-        hideUnavailableItems: false
-      ) {
-        products {
-          productId
-          productName
-          brand
-          linkText
-          items {
-            itemId
-            sellers {
-              commertialOffer {
-                Price
-                ListPrice
-                AvailableQuantity
-              }
-            }
-          }
-        }
-        recordsFiltered
-      }
-    }
-    """
-
     def __init__(self):
         self.session = _make_session()
 
     def close(self):
         self.session.close()
 
-    def _gql_headers(self) -> dict:
+    def _search_headers(self) -> dict:
         return {
-            "User-Agent":   _get_ua(),
-            "Accept":       "application/json",
-            "Content-Type": "application/json",
-            "Referer":      self.BASE_URL,
-            "Origin":       self.BASE_URL,
+            "User-Agent":       _get_ua(),
+            "Accept":           "application/json, text/plain, */*",
+            "Accept-Language":  "es-PE,es;q=0.9,en;q=0.8",
+            "Referer":          self.BASE_URL + "/",
+            "Origin":           self.BASE_URL,
+            "x-vtex-locale":    "es-PE",
+            "x-vtex-currency":  "PEN",
+            "x-forwarded-host": "www.coolbox.pe",
         }
 
-    def _fetch_page_gql(
+    def _fetch_page(
         self,
-        category_slug: str,
+        slug: str,
         from_idx: int,
-        to_idx: int,
     ) -> Optional[Dict]:
         """
-        [SC36] Ejecuta la query GraphQL para una página de productos.
-        Retorna el dict 'productSearch' o None si hay error.
+        [SC43] GET al endpoint Intelligent Search REST.
+        Params:
+          query            = ""
+          selectedFacets   = category-3:<slug>
+          from             = from_idx
+          to               = from_idx + PAGE_SIZE - 1
+          hideUnavailable  = false
+          orderBy          = OrderByScoreDESC
         """
-        payload = {
-            "query": self._GQL_QUERY,
-            "variables": {
-                "query":          "",
-                "selectedFacets": [
-                    {"key": "category-3", "value": category_slug}
-                ],
-                "from": from_idx,
-                "to":   to_idx,
-            },
+        to_idx = from_idx + self.PAGE_SIZE - 1
+        params = {
+            "query":           "",
+            "selectedFacets":  f"category-3,{slug}",
+            "from":            from_idx,
+            "to":              to_idx,
+            "hideUnavailable": "false",
+            "orderBy":         "OrderByScoreDESC",
         }
         try:
-            resp = self.session.post(
-                self.GQL_ENDPOINT,
-                headers=self._gql_headers(),
-                json=payload,
+            resp = self.session.get(
+                self.SEARCH_EP,
+                headers=self._search_headers(),
+                params=params,
                 timeout=25,
             )
             if resp.status_code != 200:
                 log.error(
-                    f"[Coolbox] GQL HTTP {resp.status_code} "
-                    f"slug={category_slug} from={from_idx}"
+                    f"[Coolbox] REST HTTP {resp.status_code} "
+                    f"slug={slug} from={from_idx}"
                 )
-                return None
-            data = resp.json()
-            errors = data.get("errors")
-            if errors:
-                log.error(f"[Coolbox] GQL errors slug={category_slug}: {errors}")
-                return None
-            return data.get("data", {}).get("productSearch")
+                # [SC44] Fallback: intentar con catalog search API
+                return self._fetch_page_catalog(slug, from_idx)
+            return resp.json()
         except Exception:
             import traceback
             log.error(
-                f"[Coolbox] GQL fetch error slug={category_slug} from={from_idx}:\n"
+                f"[Coolbox] REST fetch error slug={slug} from={from_idx}:\n"
                 f"{traceback.format_exc()}"
             )
             return None
 
-    def _parse_gql_product(
+    def _fetch_page_catalog(
+        self,
+        slug: str,
+        from_idx: int,
+    ) -> Optional[Dict]:
+        """
+        [SC44] Fallback: VTEX Catalog Search API (más antigua pero muy estable).
+        GET /api/catalog_system/pub/products/search/?fq=C:/<dept>/<cat>/&_from=0&_to=49
+        Retorna lista directa de productos (formato diferente).
+        """
+        to_idx = from_idx + self.PAGE_SIZE - 1
+        # Mapeo slug → dept/cat para catalog API
+        CATALOG_MAP = {
+            "procesadores":      "computacion/procesadores",
+            "tarjetas-de-video": "computacion/tarjetas-de-video",
+            "memorias-ram":      "computacion/memorias-ram",
+            "discos-solidos-ssd":"computacion/discos-solidos-ssd",
+            "placas-madre":      "computacion/placas-madre",
+            "fuentes-de-poder":  "computacion/fuentes-de-poder",
+            "refrigeracion":     "computacion/refrigeracion",
+            "gabinetes":         "computacion/gabinetes",
+        }
+        cat_path = CATALOG_MAP.get(slug, slug)
+        url = f"{self.BASE_URL}/api/catalog_system/pub/products/search/{cat_path}/"
+        params = {"_from": from_idx, "_to": to_idx}
+        try:
+            resp = self.session.get(
+                url,
+                headers=self._search_headers(),
+                params=params,
+                timeout=25,
+            )
+            if resp.status_code != 200:
+                log.error(f"[Coolbox] Catalog fallback HTTP {resp.status_code} slug={slug}")
+                return None
+            products_raw = resp.json()
+            if not isinstance(products_raw, list):
+                return None
+            # Normalizar al formato Intelligent Search
+            return {
+                "products":        self._normalize_catalog_products(products_raw),
+                "recordsFiltered": len(products_raw),
+                "_from_catalog":   True,
+            }
+        except Exception:
+            import traceback
+            log.error(f"[Coolbox] Catalog fallback error slug={slug}:\n{traceback.format_exc()}")
+            return None
+
+    def _normalize_catalog_products(self, products_raw: list) -> list:
+        """Convierte formato Catalog API al formato Intelligent Search."""
+        normalized = []
+        for p in products_raw:
+            items = []
+            for sku_item in (p.get("items") or []):
+                sellers = []
+                for seller in (sku_item.get("sellers") or []):
+                    offer = seller.get("commertialOffer") or {}
+                    sellers.append({
+                        "commertialOffer": {
+                            "Price":             offer.get("Price", 0),
+                            "ListPrice":         offer.get("ListPrice", 0),
+                            "AvailableQuantity": offer.get("AvailableQuantity", 0),
+                        }
+                    })
+                items.append({
+                    "itemId":  sku_item.get("itemId", ""),
+                    "sellers": sellers,
+                })
+            normalized.append({
+                "productId":   str(p.get("productId", "")),
+                "productName": p.get("productName", ""),
+                "brand":       p.get("brand", ""),
+                "linkText":    p.get("linkText", ""),
+                "items":       items,
+            })
+        return normalized
+
+    def _parse_product(
         self,
         product: Dict,
         category: str,
         batch_id: str,
     ) -> Optional[Dict]:
-        """
-        [SC38] Convierte un producto VTEX GraphQL al schema público.
-        Extrae: productId, sku (itemId), price, listPrice, disponibilidad.
-        """
+        """[SC38/SC43] Convierte producto VTEX al schema público."""
         try:
-            product_id   = str(product.get("productId") or "").strip()
-            title        = (product.get("productName") or "").strip()
-            brand        = (product.get("brand") or "").strip() or None
-            link_text    = (product.get("linkText") or "").strip()
+            product_id = str(product.get("productId") or "").strip()
+            title      = (product.get("productName") or "").strip()
+            brand      = (product.get("brand") or "").strip() or None
+            link_text  = (product.get("linkText") or "").strip()
 
             if not title:
                 return None
 
             url_full = f"{self.BASE_URL}/{link_text}/p" if link_text else self.BASE_URL
 
-            # [SC38] Extraer precio y stock del primer seller disponible
             price_pen      = None
             price_orig_pen = None
             available      = False
             sku            = None
 
-            items = product.get("items") or []
-            for item in items:
+            for item in (product.get("items") or []):
                 item_id = str(item.get("itemId") or "").strip()
-                sellers = item.get("sellers") or []
-                for seller in sellers:
-                    offer = seller.get("commertialOffer") or {}
-                    qty   = offer.get("AvailableQuantity", 0)
-                    price = offer.get("Price")
+                for seller in (item.get("sellers") or []):
+                    offer      = seller.get("commertialOffer") or {}
+                    qty        = offer.get("AvailableQuantity", 0)
+                    price      = offer.get("Price")
                     list_price = offer.get("ListPrice")
 
                     if price and float(price) > 0:
                         candidate = float(price)
-                        # Tomar el precio más bajo entre sellers
                         if price_pen is None or candidate < price_pen:
                             price_pen = candidate
                             sku       = item_id or product_id
@@ -816,7 +854,6 @@ class CoolboxScraper:
             if not _valid_price(price_pen):
                 return None
 
-            # Fallback SKU
             if not sku:
                 sku = product_id or _extract_sku_from_url(url_full)
 
@@ -841,44 +878,40 @@ class CoolboxScraper:
             }
         except Exception:
             import traceback
-            log.error(f"[Coolbox] _parse_gql_product error:\n{traceback.format_exc()}")
+            log.error(f"[Coolbox] _parse_product error:\n{traceback.format_exc()}")
             return None
 
     def scrape(self, category: str, queries: List[str], batch_id: str) -> List[Dict]:
-        """
-        [SC36/SC42] Scrape vía VTEX GraphQL con paginación por from/to.
-        Detiene la paginación cuando se alcanza recordsFiltered [SC42].
-        """
+        """[SC43] Scrape vía Intelligent Search REST con fallback Catalog API."""
         records:  List[Dict] = []
         seen_ids: set        = set()
 
         slug = self.CATEGORY_SLUGS.get(category)
         if not slug:
-            log.warning(f"  [Coolbox] Sin slug para categoría '{category}' — omitido")
+            log.warning(f"  [Coolbox] Sin slug para '{category}' — omitido")
             return records
 
-        log.info(f"  [Coolbox] {category} | slug='{slug}' (GraphQL)")
+        log.info(f"  [Coolbox] {category} | slug='{slug}' (REST)")
 
         page = 0
         while page < MAX_PAGES:
             from_idx = page * self.PAGE_SIZE
-            to_idx   = from_idx + self.PAGE_SIZE - 1
+            result   = self._fetch_page(slug, from_idx)
 
-            result = self._fetch_page_gql(slug, from_idx, to_idx)
             if not result:
-                log.debug(f"    [Coolbox] p{page + 1}: sin resultado GQL — stop")
+                log.debug(f"    [Coolbox] p{page+1}: sin resultado — stop")
                 break
 
-            products        = result.get("products") or []
+            products         = result.get("products") or []
             records_filtered = int(result.get("recordsFiltered") or 0)
 
             if not products:
-                log.debug(f"    [Coolbox] p{page + 1}: lista vacía — stop")
+                log.debug(f"    [Coolbox] p{page+1}: lista vacía — stop")
                 break
 
             new_in_page = 0
             for prod in products:
-                rec = self._parse_gql_product(prod, category, batch_id)
+                rec = self._parse_product(prod, category, batch_id)
                 if not rec:
                     continue
                 pid = str(prod.get("productId") or "").strip()
@@ -889,13 +922,12 @@ class CoolboxScraper:
                 records.append(rec)
                 new_in_page += 1
 
-            # [SC42] Verificar si hay más páginas usando recordsFiltered
             fetched_so_far = from_idx + len(products)
             has_next       = fetched_so_far < records_filtered
 
-            log.debug(
-                f"    [Coolbox] p{page + 1}: +{new_in_page} "
-                f"(total={fetched_so_far}/{records_filtered})"
+            log.info(
+                f"    [Coolbox] p{page+1}: +{new_in_page} "
+                f"(acum {fetched_so_far}/{records_filtered})"
             )
 
             page += 1
