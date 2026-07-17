@@ -639,83 +639,80 @@ class HiraokaScraper:
         return records
 
 # ══════════════════════════════════════════════════════════════════════════
-# COOLBOX SCRAPER  v4.6
+# COOLBOX SCRAPER  v4.7
 # [SC43] Migrado de VTEX GraphQL a Intelligent Search REST API
-#        Endpoint: /_v/api/intelligent-search/product_search/
-#        Más estable que GQL — no requiere workspace headers
-# [SC45] selectedFacets con jerarquía completa 3 niveles (category-1/2/3)
-#        Fix: slug solo en category-3 devolvía todo el catálogo (~9373 items)
-#        URL real: coolbox.pe/computo/componentes-de-computo/<slug>
-# [SC44] Fallback: VTEX Catalog Search API si REST falla
+# [SC45] Fix: slugs URL no funcionan — VTEX requiere nombres exactos
+# [SC46] Fix: usar categoryId numérico en selectedFacets (más robusto)
+#        CPU filtra por query adicional (comparte catId con COOLER /591/)
 # ══════════════════════════════════════════════════════════════════════════
 class CoolboxScraper:
     """
-    Coolbox PE — VTEX Intelligent Search REST API v4.6
-    [SC43] Reemplaza GraphQL (_v/segment/graphql/v1) que devolvía HTTP 500.
-    [SC45] Facets de 3 niveles para filtrado correcto por categoría.
-    Endpoint: https://www.coolbox.pe/_v/api/intelligent-search/product_search/
-    Paginación: from/to con recordsFiltered.
+    Coolbox PE — VTEX Intelligent Search REST API v4.7
+    [SC46] selectedFacets usa categoryId numérico, no slug de texto.
+    Árbol real validado 2026-07-17:
+      /47/ = Cómputo
+      /47/258/ = Componentes de Cómputo
+      /47/258/399/ = Tarjetas de vídeo
+      /47/258/260/ = Memorias RAM
+      /47/258/259/ = Discos Internos y SSD
+      /47/258/396/ = Placas Madres
+      /47/258/298/ = Fuentes de poder
+      /47/258/591/ = Sistemas de enfriamiento y ventiladores (CPU+COOLER)
+      /47/258/397/ = Cases de PC
+    CPU: comparte /591/ con COOLER → se filtra con query_filter adicional.
     """
     BASE_URL  = "https://www.coolbox.pe"
     SOURCE    = "coolbox_pe"
     SEARCH_EP = "https://www.coolbox.pe/_v/api/intelligent-search/product_search/"
     PAGE_SIZE = 50
 
-    # [SC45] Facets con jerarquía completa category-1/2/3
-    # Estructura real: coolbox.pe/computo/componentes-de-computo/<slug>
-    CATEGORY_SLUGS: Dict[str, List[Dict]] = {
-        "CPU": [
-            {"key": "category-1", "value": "computo"},
-            {"key": "category-2", "value": "componentes-de-computo"},
-            {"key": "category-3", "value": "procesadores"},
-        ],
-        "GPU": [
-            {"key": "category-1", "value": "computo"},
-            {"key": "category-2", "value": "componentes-de-computo"},
-            {"key": "category-3", "value": "tarjetas-de-video"},
-        ],
-        "RAM": [
-            {"key": "category-1", "value": "computo"},
-            {"key": "category-2", "value": "componentes-de-computo"},
-            {"key": "category-3", "value": "memorias-ram"},
-        ],
-        "SSD": [
-            {"key": "category-1", "value": "computo"},
-            {"key": "category-2", "value": "componentes-de-computo"},
-            {"key": "category-3", "value": "discos-solidos-ssd"},
-        ],
-        "MOTHERBOARD": [
-            {"key": "category-1", "value": "computo"},
-            {"key": "category-2", "value": "componentes-de-computo"},
-            {"key": "category-3", "value": "placas-madre"},
-        ],
-        "PSU": [
-            {"key": "category-1", "value": "computo"},
-            {"key": "category-2", "value": "componentes-de-computo"},
-            {"key": "category-3", "value": "fuentes-de-poder"},
-        ],
-        "COOLER": [
-            {"key": "category-1", "value": "computo"},
-            {"key": "category-2", "value": "componentes-de-computo"},
-            {"key": "category-3", "value": "refrigeracion"},
-        ],
-        "CASE": [
-            {"key": "category-1", "value": "computo"},
-            {"key": "category-2", "value": "componentes-de-computo"},
-            {"key": "category-3", "value": "gabinetes"},
-        ],
+    # [SC46] categoryId validados 2026-07-17 — formato: "categoryId,<id>"
+    # CPU y COOLER comparten /591/ → se diferencian con query_filter
+    CATEGORY_CONFIG: Dict[str, Dict] = {
+        "GPU": {
+            "facets":       "categoryId,399",
+            "query_filter": "",
+        },
+        "RAM": {
+            "facets":       "categoryId,260",
+            "query_filter": "",
+        },
+        "SSD": {
+            "facets":       "categoryId,259",
+            "query_filter": "",
+        },
+        "MOTHERBOARD": {
+            "facets":       "categoryId,396",
+            "query_filter": "",
+        },
+        "PSU": {
+            "facets":       "categoryId,298",
+            "query_filter": "",
+        },
+        "COOLER": {
+            "facets":       "categoryId,591",
+            "query_filter": "",
+        },
+        "CPU": {
+            # [SC46] Comparte /591/ con COOLER — filtrar por query
+            "facets":       "categoryId,591",
+            "query_filter": "procesador",
+        },
+        "CASE": {
+            "facets":       "categoryId,397",
+            "query_filter": "",
+        },
     }
 
-    # [SC44] Mapeo slug → path para Catalog API fallback
+    # [SC44] Fallback Catalog API — paths reales validados
     _CATALOG_MAP: Dict[str, str] = {
-        "procesadores":       "computo/componentes-de-computo/procesadores",
-        "tarjetas-de-video":  "computo/componentes-de-computo/tarjetas-de-video",
-        "memorias-ram":       "computo/componentes-de-computo/memorias-ram",
-        "discos-solidos-ssd": "computo/componentes-de-computo/discos-solidos-ssd",
-        "placas-madre":       "computo/componentes-de-computo/placas-madre",
-        "fuentes-de-poder":   "computo/componentes-de-computo/fuentes-de-poder",
-        "refrigeracion":      "computo/componentes-de-computo/refrigeracion",
-        "gabinetes":          "computo/componentes-de-computo/gabinetes",
+        "399": "computo/componentes-de-computo/tarjetas-de-video",
+        "260": "computo/componentes-de-computo/memorias-ram",
+        "259": "computo/componentes-de-computo/discos-internos-y-ssd",
+        "396": "computo/componentes-de-computo/placas-madres",
+        "298": "computo/componentes-de-computo/fuentes-de-poder",
+        "591": "computo/componentes-de-computo/sistemas-de-enfriamiento",
+        "397": "computo/componentes-de-computo/cases-de-pc",
     }
 
     def __init__(self):
@@ -738,21 +735,19 @@ class CoolboxScraper:
 
     def _fetch_page(
         self,
-        facets: List[Dict],
+        facets_str: str,
+        query_filter: str,
         from_idx: int,
+        cat_id: str,         # solo para fallback
     ) -> Optional[Dict]:
         """
-        [SC43/SC45] GET al endpoint Intelligent Search REST.
-        Envía los 3 niveles de categoría como selectedFacets.
-        Formato: "category-1,computo,category-2,componentes-de-computo,category-3,<slug>"
+        [SC43/SC46] GET al endpoint Intelligent Search REST.
+        selectedFacets = "categoryId,<id>" — más robusto que nombres/slugs.
         Si falla → fallback Catalog API [SC44].
         """
-        to_idx     = from_idx + self.PAGE_SIZE - 1
-        slug       = facets[-1]["value"]  # category-3, para logs y fallback
-        facets_str = ",".join(f"{f['key']},{f['value']}" for f in facets)
-
+        to_idx = from_idx + self.PAGE_SIZE - 1
         params = {
-            "query":           "",
+            "query":           query_filter,
             "selectedFacets":  facets_str,
             "from":            from_idx,
             "to":              to_idx,
@@ -769,30 +764,29 @@ class CoolboxScraper:
             if resp.status_code != 200:
                 log.error(
                     f"[Coolbox] REST HTTP {resp.status_code} "
-                    f"slug={slug} from={from_idx}"
+                    f"catId={cat_id} from={from_idx}"
                 )
-                return self._fetch_page_catalog(slug, from_idx)
+                return self._fetch_page_catalog(cat_id, from_idx)
             return resp.json()
         except Exception:
             import traceback
             log.error(
-                f"[Coolbox] REST fetch error slug={slug} from={from_idx}:\n"
+                f"[Coolbox] REST fetch error catId={cat_id} from={from_idx}:\n"
                 f"{traceback.format_exc()}"
             )
             return None
 
     def _fetch_page_catalog(
         self,
-        slug: str,
+        cat_id: str,
         from_idx: int,
     ) -> Optional[Dict]:
         """
         [SC44] Fallback: VTEX Catalog Search API (muy estable).
         GET /api/catalog_system/pub/products/search/<path>/
-        Retorna lista directa — se normaliza al formato Intelligent Search.
         """
         to_idx   = from_idx + self.PAGE_SIZE - 1
-        cat_path = self._CATALOG_MAP.get(slug, slug)
+        cat_path = self._CATALOG_MAP.get(cat_id, cat_id)
         url      = f"{self.BASE_URL}/api/catalog_system/pub/products/search/{cat_path}/"
         params   = {"_from": from_idx, "_to": to_idx}
         try:
@@ -803,7 +797,7 @@ class CoolboxScraper:
                 timeout=25,
             )
             if resp.status_code != 200:
-                log.error(f"[Coolbox] Catalog fallback HTTP {resp.status_code} slug={slug}")
+                log.error(f"[Coolbox] Catalog fallback HTTP {resp.status_code} catId={cat_id}")
                 return None
             products_raw = resp.json()
             if not isinstance(products_raw, list):
@@ -815,7 +809,7 @@ class CoolboxScraper:
             }
         except Exception:
             import traceback
-            log.error(f"[Coolbox] Catalog fallback error slug={slug}:\n{traceback.format_exc()}")
+            log.error(f"[Coolbox] Catalog fallback error catId={cat_id}:\n{traceback.format_exc()}")
             return None
 
     def _normalize_catalog_products(self, products_raw: list) -> list:
@@ -918,22 +912,28 @@ class CoolboxScraper:
             return None
 
     def scrape(self, category: str, queries: List[str], batch_id: str) -> List[Dict]:
-        """[SC43/SC45] Scrape con facets de 3 niveles + fallback Catalog API."""
+        """[SC43/SC46] Scrape con categoryId numérico + fallback Catalog API."""
         records:  List[Dict] = []
         seen_ids: set        = set()
 
-        facets = self.CATEGORY_SLUGS.get(category)
-        if not facets:
-            log.warning(f"  [Coolbox] Sin facets para '{category}' — omitido")
+        config = self.CATEGORY_CONFIG.get(category)
+        if not config:
+            log.warning(f"  [Coolbox] Sin config para '{category}' — omitido")
             return records
 
-        slug = facets[-1]["value"]
-        log.info(f"  [Coolbox] {category} | slug='{slug}' (REST 3-level)")
+        facets_str   = config["facets"]
+        query_filter = config["query_filter"]
+        cat_id       = facets_str.split(",")[-1]   # "categoryId,399" → "399"
+
+        log.info(
+            f"  [Coolbox] {category} | catId={cat_id} "
+            f"query='{query_filter}' (REST v4.7)"
+        )
 
         page = 0
         while page < MAX_PAGES:
             from_idx = page * self.PAGE_SIZE
-            result   = self._fetch_page(facets, from_idx)
+            result   = self._fetch_page(facets_str, query_filter, from_idx, cat_id)
 
             if not result:
                 log.debug(f"    [Coolbox] p{page+1}: sin resultado — stop")
