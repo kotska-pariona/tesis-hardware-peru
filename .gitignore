@@ -4,3 +4,5 @@ __pycache__/
 data/processed/quality_report_*.json
 .env
 .env
+data/processed/*.csv
+data/processed/*.json
