@@ -184,12 +184,50 @@ class MiceImputer:
                 pct = round(missing_mask.mean() * 100, 2)
                 stats[col] = pct
 
-        imputed_values = self.imputer_.transform(df[mice_cols])
-        df[mice_cols] = imputed_values
+        # [FIX] sklearn salta columnas all-NaN en fit → devuelve menos columnas
+        # Usamos get_feature_names_out si está disponible, sino reconstruimos
+        import numpy as np
+        X_in = df[mice_cols].values
+        X_out = self.imputer_.transform(df[mice_cols])
+
+        # Identificar qué columnas fueron realmente imputadas por sklearn
+        # (las all-NaN en train son saltadas → n_cols_out <= n_cols_in)
+        if X_out.shape[1] == len(mice_cols):
+            # Caso normal: todas las columnas procesadas
+            df[mice_cols] = X_out
+        else:
+            # Caso all-NaN: reconstruir columna a columna
+            # sklearn mantiene el orden pero omite las all-NaN
+            # Detectar cuáles fueron omitidas (las que tienen indicador en imputer_)
+            indicator = self.imputer_.indicator_
+            if indicator is not None:
+                kept_mask = ~np.array([
+                    col_idx in self.imputer_.indicator_.features_
+                    for col_idx in range(len(mice_cols))
+                ])
+            else:
+                # Fallback: detectar por all-NaN en train
+                kept_mask = np.array([True] * len(mice_cols))
+
+            # Método robusto: usar statistics_ para saber cuáles fueron procesadas
+            # imputer_.statistics_ tiene NaN para columnas saltadas
+            stats_arr = self.imputer_.initial_imputer_.statistics_
+            valid_cols = [col for col, stat in zip(mice_cols, stats_arr)
+                         if not np.isnan(stat)]
+
+            if len(valid_cols) == X_out.shape[1]:
+                df[valid_cols] = X_out
+                # Las columnas saltadas quedan con NaN (sin cambio)
+            else:
+                # Último fallback: asignar por posición a las primeras N columnas
+                df[mice_cols[:X_out.shape[1]]] = X_out
 
         # [M2] Columnas binarias: redondear/clip a {0,1} tras MICE
+        # Si la columna era all-NaN (sklearn la saltó), rellenar con 0
         for col in self.numeric_binary_cols_:
-            df[col] = df[col].round().clip(0, 1).astype(int)
+            if df[col].isna().all():
+                df[col] = 0
+            df[col] = df[col].fillna(0).round().clip(0, 1).astype(int)
 
         return df, stats
 
