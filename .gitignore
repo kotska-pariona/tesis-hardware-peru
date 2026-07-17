@@ -24,3 +24,4 @@ data/precios_*.json
 
 # ── Archivos sin extensión sueltos ───────
 agent/scrapers/price_pen
+*.bak

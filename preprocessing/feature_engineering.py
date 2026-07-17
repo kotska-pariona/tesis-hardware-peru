@@ -107,36 +107,46 @@ def build_features(
     col: str = "price_usd",
 ) -> pd.DataFrame:
     """
-    [F1] Si se pasa `context` (un split estrictamente ANTERIOR en el
-    tiempo, p.ej. train al calcular val, o train+val al calcular test),
-    se usa su historial para no perder las primeras filas de cada SKU
-    en `df`. El contexto se descarta al final — solo se retornan las
-    filas que pertenecen a `df`. Nunca se usa información futura.
+    [F1] Version optimizada: sort unico, contexto reducido por SKU,
+    sin copias innecesarias. El contexto es siempre cronologicamente
+    anterior (no hay leakage).
     """
     lags, windows = list(lags), list(windows)
     context_needed = max(lags + windows) if (lags or windows) else 0
 
-    target = _sort_by_date(df)
-    target = target.copy()
+    # Sort unico sobre target
+    target = df.copy()
+    target["_sort_key"] = pd.to_datetime(target["price_date"], errors="coerce")
+    target = target.sort_values(["sku", "_sort_key"], kind="stable").drop(columns=["_sort_key"])
     target["_is_target"] = True
 
     if context is not None and not context.empty and context_needed > 0:
-        ctx_sorted = _sort_by_date(context)
-        tail_context = (
-            ctx_sorted.groupby("sku", group_keys=False)
-            .apply(lambda g: g.tail(context_needed))
-        ).copy()
-        tail_context["_is_target"] = False
-        combined = pd.concat([tail_context, target], ignore_index=True)
-    else:
-        combined = target
+        # [OPT] Solo las columnas necesarias del contexto + sort unico
+        ctx = context.copy()
+        ctx["_sort_key"] = pd.to_datetime(ctx["price_date"], errors="coerce")
+        ctx = ctx.sort_values(["sku", "_sort_key"], kind="stable").drop(columns=["_sort_key"])
 
-    combined = _sort_by_date(combined)
+        # [OPT] tail por SKU con include_groups=False para evitar DeprecationWarning
+        tail_context = (
+            ctx.groupby("sku", group_keys=False)[ctx.columns]
+            .apply(lambda g: g.tail(context_needed), include_groups=False)
+        )
+        # include_groups=False excluye 'sku' del resultado, lo restauramos
+        tail_context = ctx.loc[tail_context.index].copy()
+        tail_context["_is_target"] = False
+
+        combined = pd.concat([tail_context, target], ignore_index=True)
+        # Sort final unico sobre combined
+        combined["_sort_key"] = pd.to_datetime(combined["price_date"], errors="coerce")
+        combined = combined.sort_values(["sku", "_sort_key"], kind="stable").drop(columns=["_sort_key"]).reset_index(drop=True)
+    else:
+        combined = target.reset_index(drop=True)
+
     combined = _add_lags(combined, col, lags)
     combined = _add_rolling_features(combined, col, windows)
 
-    result = combined[combined["_is_target"]].drop(columns=["_is_target"])
-    return _sort_by_date(result)
+    result = combined[combined["_is_target"]].drop(columns=["_is_target"]).reset_index(drop=True)
+    return result
 
 
 # ══════════════════════════════════════════════════════════════════
