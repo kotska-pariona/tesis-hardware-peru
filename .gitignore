@@ -2,3 +2,4 @@ venv/
 __pycache__/
 *.pyc
 data/processed/quality_report_*.json
+.env
