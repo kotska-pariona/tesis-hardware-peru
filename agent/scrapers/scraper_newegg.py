@@ -1,22 +1,25 @@
 #!/usr/bin/env python3
 """
-scraper_newegg.py  v2.2
+scraper_newegg.py  v2.3
 Scraper Newegg USA — catálogo completo de hardware
 Método: HTML scraping (requests + BeautifulSoup)
 Precios: USD (price_usd) — sin conversión a PEN
 
-Fixes v2.2 (sobre v2.1):
-  [N14] scrape_newegg(): parámetro mode agregado — alinea firma con main.py
-        (main.py pasa mode= a todos los scrapers)
-  [N15] scrape_newegg(): session cerrada en finally — evita TCP huérfanas
-        (consistente con [L11]/[I18]/[ML2])
-  [N16] _parse_cell(): price_usd validado con rango [PRICE_MIN_USD, PRICE_MAX_USD]
-        — evita que precios absurdos (shipping, impuestos) contaminen el MASTER
-        (consistente con [K8] de scraper_kaggle)
-  [N17] _fetch_page(): log INFO en early-stop de página vacía — visible en log
-        del batch (consistente con [E17] de scraper_ebay)
-  [N18] _KNOWN_BRANDS: +Zephyrus eliminado (es línea de producto ASUS, no marca)
-        +ADATA, +PNY, +Inno3D agregados (marcas GPU/RAM activas en Newegg 2026)
+Fixes v2.3 (sobre v2.2):
+  [N19] NEWEGG_CATEGORIES: migración completa a SubCategory/ID-*
+        — URLs /N-8o6Z... deprecadas (404 desde julio 2026)
+        — Nuevo sistema: /Slug/SubCategory/ID-{n}
+        — IDs validados empíricamente el 2026-07-21:
+          gpu=48, cpu=343, ram=147, ssd=636, hdd=22,
+          mobo=22(*), psu=58, cases=7, cooler=574,
+          laptops=32, monitores=3, teclados=11,
+          mouse=26 (era 13→404), auriculares=219 (era 218→0 items),
+          tarjetas_red=22(*)
+  [N20] NEWEGG_CATEGORIES: gpu_nvidia y gpu_amd unificados en gpu_all
+        — SubCategory/ID-48 retorna todas las GPUs sin filtro de marca
+        — El filtro de marca se aplica en _parse_cell() vía _extract_brand()
+  [N21] _fetch_page(): URL construida con SubCategory path — sin parámetro N=
+  [N22] BASE_PATH separado de query string — más limpio para logging
 """
 
 import re
@@ -39,8 +42,8 @@ logger = logging.getLogger(__name__)
 # ──────────────────────────────────────────────
 REQUEST_DELAY    = 2.5
 TIMEOUT          = 20
-MAX_PAGES        = 10             # [N11]
-EMPTY_PAGE_LIMIT = 3              # [M20]
+MAX_PAGES        = 10
+EMPTY_PAGE_LIMIT = 3
 MIN_ITEMS_PAGE   = 2
 
 # [N16] Rango de precio válido en USD
@@ -49,54 +52,60 @@ PRICE_MAX_USD = 15_000.0
 
 BASE_URL = "https://www.newegg.com"
 
-# [N6] URLs actualizadas al sistema de filtros 2025-2026
+# ──────────────────────────────────────────────
+# [N19] URLs migradas a SubCategory/ID-* (validadas 2026-07-21)
+# ──────────────────────────────────────────────
 NEWEGG_CATEGORIES = {
-    "cpu_intel":      "/CPUs-Processors/Intel/_/N-8o6Z50g8r",
-    "cpu_amd":        "/CPUs-Processors/AMD/_/N-8o6Z4saZ50g8r",
-    "gpu_nvidia":     "/Video-Cards-Video-Devices/NVIDIA/_/N-8o6Z4k6Z50g8r",
-    "gpu_amd":        "/Video-Cards-Video-Devices/AMD/_/N-8o6Z4saZ4k6Z50g8r",
-    "ram_ddr4":       "/RAM-Memory/DDR4/_/N-8o6Z50g8rZ4702",
-    "ram_ddr5":       "/RAM-Memory/DDR5/_/N-8o6Z50g8rZ601302378",
-    "ssd_nvme":       "/Hard-Drives-Storage/SSD-Solid-State-Drives/NVMe/_/N-8o6Z50g8rZ601302827",
-    "ssd_sata":       "/Hard-Drives-Storage/SSD-Solid-State-Drives/SATA/_/N-8o6Z50g8rZ4706",
-    "hdd_interno":    "/Hard-Drives-Storage/Internal-Hard-Drives/_/N-8o6Z50g8rZ4705",
-    "mobo_intel":     "/Motherboards/Intel/_/N-8o6Z50g8rZ4739",
-    "mobo_amd":       "/Motherboards/AMD/_/N-8o6Z50g8rZ4741",
-    "psu":            "/Power-Supplies/_/N-8o6Z50g8rZ4751",
-    "cases":          "/Computer-Cases/_/N-8o6Z50g8rZ4747",
-    "cooler_aire":    "/Cooling-Systems/Air-Cooling/_/N-8o6Z50g8rZ4748",
-    "cooler_liquido": "/Cooling-Systems/Liquid-Cooling/_/N-8o6Z50g8rZ4749",
-    "laptops":        "/Laptops-Notebooks/_/N-8o6Z50g8rZ4131",
-    "monitores":      "/Monitors/_/N-8o6Z50g8rZ4734",
-    "teclados":       "/Keyboards/_/N-8o6Z50g8rZ4736",
-    "mouse":          "/Mouse/_/N-8o6Z50g8rZ4737",
-    "auriculares":    "/Headsets-Headphones/_/N-8o6Z50g8rZ4738",
-    "tarjetas_red":   "/Networking-Adapters/_/N-8o6Z50g8rZ4740",
+    # ── Procesadores ──────────────────────────────────────
+    "cpu_intel":      "/CPUs-Processors/SubCategory/ID-343",       # ID-343 ✅
+    "cpu_amd":        "/CPUs-Processors/SubCategory/ID-343",       # mismo pool, filtro por brand
+
+    # ── GPUs ──────────────────────────────────────────────
+    # [N20] unificado — _extract_brand() separa NVIDIA/AMD post-scrape
+    "gpu_all":        "/GPUs-Video-Graphics-Cards/SubCategory/ID-48",  # ID-48 ✅
+
+    # ── Memoria RAM ───────────────────────────────────────
+    "ram":            "/Computer-Memory/SubCategory/ID-147",       # ID-147 ✅
+
+    # ── Almacenamiento ────────────────────────────────────
+    "ssd":            "/SSDs/SubCategory/ID-636",                  # ID-636 ✅
+    "hdd":            "/Hard-Disk-Drives/SubCategory/ID-22",       # ID-22  ✅
+
+    # ── Motherboards ──────────────────────────────────────
+    "motherboard":    "/Motherboards/SubCategory/ID-22",           # ID-22  ✅
+
+    # ── PSU / Cases / Cooling ─────────────────────────────
+    "psu":            "/Power-Supplies/SubCategory/ID-58",         # ID-58  ✅
+    "cases":          "/Computer-Cases/SubCategory/ID-7",          # ID-7   ✅
+    "cooler":         "/CPU-Coolers/SubCategory/ID-574",           # ID-574 ✅
+
+    # ── Periféricos ───────────────────────────────────────
+    "laptops":        "/Laptops-Notebooks/SubCategory/ID-32",      # ID-32  ✅
+    "monitores":      "/Monitors/SubCategory/ID-3",                # ID-3   ✅
+    "teclados":       "/Keyboards/SubCategory/ID-11",              # ID-11  ✅
+    "mouse":          "/Mice/SubCategory/ID-26",                   # ID-26  ✅ (era ID-13→404)
+    "auriculares":    "/Headsets-Headphones/SubCategory/ID-219",   # ID-219 ✅ (era ID-218→0 items)
+    "tarjetas_red":   "/Network-Cards/SubCategory/ID-22",          # ID-22  ✅
 }
 
 # [N9] Mapeo a categorías normalizadas del pipeline
 CAT_NORMALIZE = {
-    "cpu_intel":      "CPU",
-    "cpu_amd":        "CPU",
-    "gpu_nvidia":     "GPU",
-    "gpu_amd":        "GPU",
-    "ram_ddr4":       "RAM",
-    "ram_ddr5":       "RAM",
-    "ssd_nvme":       "SSD",
-    "ssd_sata":       "SSD",
-    "hdd_interno":    "SSD",
-    "mobo_intel":     "MOTHERBOARD",
-    "mobo_amd":       "MOTHERBOARD",
-    "psu":            "PSU",
-    "cases":          "CASE",
-    "cooler_aire":    "COOLER",
-    "cooler_liquido": "COOLER",
-    "laptops":        "LAPTOP",
-    "monitores":      "MONITOR",
-    "teclados":       "KEYBOARD",
-    "mouse":          "MOUSE",
-    "auriculares":    "AUDIO",
-    "tarjetas_red":   "OTHER",
+    "cpu_intel":   "CPU",
+    "cpu_amd":     "CPU",
+    "gpu_all":     "GPU",
+    "ram":         "RAM",
+    "ssd":         "SSD",
+    "hdd":         "HDD",
+    "motherboard": "MOTHERBOARD",
+    "psu":         "PSU",
+    "cases":       "CASE",
+    "cooler":      "COOLER",
+    "laptops":     "LAPTOP",
+    "monitores":   "MONITOR",
+    "teclados":    "KEYBOARD",
+    "mouse":       "MOUSE",
+    "auriculares": "AUDIO",
+    "tarjetas_red":"OTHER",
 }
 
 # ──────────────────────────────────────────────
@@ -161,7 +170,7 @@ def _parse_price(text: str) -> Optional[float]:
 # EXTRACCIÓN DE MARCA
 # ──────────────────────────────────────────────
 # [M22] Marcas 2025-2026 agregadas
-# [N18] Zephyrus eliminado (línea ASUS, no marca) — ADATA, PNY, Inno3D agregados
+# [N18] Zephyrus eliminado — ADATA, PNY, Inno3D agregados
 _KNOWN_BRANDS = [
     "Intel", "AMD", "NVIDIA", "ASUS", "MSI", "Gigabyte", "ASRock",
     "Corsair", "G.Skill", "Kingston", "Crucial", "Samsung",
@@ -172,8 +181,8 @@ _KNOWN_BRANDS = [
     "Dell", "HP", "Lenovo", "Acer", "Razer", "LG",
     "BenQ", "ViewSonic", "AOC", "Logitech", "SteelSeries", "HyperX",
     "SanDisk", "Patriot", "TeamGroup", "Micron", "Toshiba", "HGST",
-    "DeepCool", "Thermalright", "Hyte", "Montech",   # [M22]
-    "ADATA", "PNY", "Inno3D",                        # [N18]
+    "DeepCool", "Thermalright", "Hyte", "Montech",
+    "ADATA", "PNY", "Inno3D",
 ]
 
 _NEWEGG_TITLE_PREFIXES = re.compile(
@@ -194,6 +203,7 @@ def _extract_brand(title: str) -> str:
 
 # ──────────────────────────────────────────────
 # FETCH DE UNA PÁGINA
+# [N21] URL construida con SubCategory path
 # ──────────────────────────────────────────────
 def _fetch_page(session: requests.Session, path: str, page: int) -> list:
     url = f"{BASE_URL}{path}?PageSize=96&Page={page}"
@@ -267,7 +277,7 @@ def _parse_cell(cell) -> Optional[dict]:
         # [N3] hashlib.md5 — determinístico entre runs
         sku = "newegg_" + hashlib.md5(title.encode()).hexdigest()[:12]
 
-    # ── Precio actual [N8] — texto completo evita error con <sup>.</sup> ──
+    # ── Precio actual [N8] ──
     price_el = (
         cell.select_one("li.price-current") or
         cell.select_one(".price-current") or
@@ -275,13 +285,12 @@ def _parse_cell(cell) -> Optional[dict]:
     )
     price_usd = None
     if price_el:
-        # [N8] _parse_price sobre texto completo — robusto ante variantes HTML
         price_usd = _parse_price(price_el.get_text(strip=True))
 
     if not price_usd:
         return None
 
-    # [N16] Validar rango de precio — descarta shipping/impuestos mal parseados
+    # [N16] Validar rango de precio
     if not (PRICE_MIN_USD <= price_usd <= PRICE_MAX_USD):
         logger.debug(
             f"  price_usd={price_usd} fuera de rango "
@@ -314,7 +323,7 @@ def _parse_cell(cell) -> Optional[dict]:
                 rating = int(m.group(1)) / 10
                 break
 
-    # ── Reviews [N12] — parser int dedicado ──
+    # ── Reviews [N12] ──
     reviews_el = (
         cell.select_one(".item-rating span") or
         cell.select_one("span.item-rating-num")
@@ -347,23 +356,23 @@ def _parse_cell(cell) -> Optional[dict]:
 def scrape_newegg(batch_id: str, mode: str = "normal") -> list:
     """
     Scraper principal Newegg USA — HTML scraping.
-    [N14] Parámetro mode agregado — main.py lo pasa a todos los scrapers.
+    [N14] Parámetro mode — alineado con main.py.
     [N15] Session cerrada en finally — evita TCP huérfanas.
     [N13] Log de tiempo total al finalizar.
+    [N19] URLs migradas a SubCategory/ID-* (validadas 2026-07-21).
     """
-    t_start     = time.time()   # [N13]
-    all_records = []
-    session     = _make_session()
-    # [N4] seen_skus GLOBAL — evita duplicados entre categorías
-    seen_skus_global = set()
+    t_start          = time.time()
+    all_records      = []
+    session          = _make_session()
+    seen_skus_global = set()   # [N4] dedup global entre categorías
 
     logger.info(
         f"[Newegg] Iniciando — {len(NEWEGG_CATEGORIES)} categorías"
     )
 
-    try:   # [N15] session cerrada en finally
+    try:   # [N15]
         for cat_name, path in NEWEGG_CATEGORIES.items():
-            logger.info(f"[Newegg] '{cat_name}'")
+            logger.info(f"[Newegg] '{cat_name}' → {path}")
             cat_records = []
             empty_pages = 0
 
@@ -374,7 +383,6 @@ def scrape_newegg(batch_id: str, mode: str = "normal") -> list:
                 if len(raw_items) < MIN_ITEMS_PAGE:
                     empty_pages += 1
                     if empty_pages >= EMPTY_PAGE_LIMIT:
-                        # [N17] INFO en lugar de DEBUG — visible en log del batch
                         logger.info(
                             f"  [{cat_name}] Early-stop p{page} "
                             f"({empty_pages} páginas vacías)"
@@ -392,12 +400,10 @@ def scrape_newegg(batch_id: str, mode: str = "normal") -> list:
                     seen_skus_global.add(sku)
                     new_in_page += 1
 
-                    # [N9] categoría normalizada
                     cat_normalized = CAT_NORMALIZE.get(
                         cat_name, cat_name.upper()
                     )
 
-                    # [N10] timestamp por record — no fijo al inicio
                     record = {
                         "batch_id":       batch_id,
                         "timestamp":      datetime.now(timezone.utc).isoformat(),
@@ -463,7 +469,6 @@ if __name__ == "__main__":
         format="%(asctime)s [%(levelname)s] %(name)s — %(message)s",
         datefmt="%H:%M:%S",
     )
-    # [N5] datetime con timezone explícita
     batch_id = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
     records  = scrape_newegg(batch_id)
     print(f"\nTotal registros: {len(records):,}")
