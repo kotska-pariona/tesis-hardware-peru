@@ -25,3 +25,5 @@ data/precios_*.json
 # ── Archivos sin extensión sueltos ───────
 agent/scrapers/price_pen
 *.bak
+data/raw/MASTER_hardware_peru.csv
+data/raw/MASTER_hardware_peru_REBUILT.csv
