@@ -1,2 +1,3 @@
-batch_id,timestamp,source,buy,date,mid,sell
-batch_20260710_221123,2026-07-11T03:11:26.870767+00:00,exchangerate_api,3.3793,"Sat, 11 Ju",3.3962,3.4132
+version https://git-lfs.github.com/spec/v1
+oid sha256:ce4c882afe24e655e9a021457e69d449fe4c27e41e29714616c87983054dd6b0
+size 152
