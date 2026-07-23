@@ -1,30 +1,10 @@
-# ──────────────────────────────────────────────────────────
-# requirements.txt  — Pipeline de scraping (daily_agent.yml)
-# Instalar: pip install -r requirements.txt
-# ──────────────────────────────────────────────────────────
-
-# Core HTTP
-requests>=2.31.0
-urllib3>=2.0.0
-
-# Anti-bot / User-Agent rotation
-fake-useragent>=1.4.0        # scraper_importacion.py — UA rotativos
-cloudscraper>=1.2.71         # fallback para sitios con Cloudflare
-
-# HTML parsing
-beautifulsoup4>=4.12.0
-lxml>=4.9.0                  # FIX: bajar lower bound — v5 tiene issues en ARM runners
-
-# Config / Env
-python-dotenv>=1.0.0
-
-# Data
-pandas>=2.1.0
-# FIX: upper bound para compatibilidad con tensorflow en requirements-ml.txt
-numpy>=1.26.0,<2.0
-
-# Kaggle dataset
-kaggle>=1.6.0
-
-# Timezone (timestamps Lima)
-pytz>=2024.1
+numpy==1.26.4
+torch==2.3.1
+transformers==4.40.2
+datasets==2.19.1
+scikit-learn>=1.5.0
+pandas>=2.0.0
+tqdm>=4.65.0
+accelerate>=0.27.0
+lightgbm>=4.0.0
+optuna>=3.0.0
