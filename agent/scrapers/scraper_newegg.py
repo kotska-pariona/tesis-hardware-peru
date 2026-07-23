@@ -1,25 +1,22 @@
 #!/usr/bin/env python3
 """
-scraper_newegg.py  v2.3
+scraper_newegg.py  v2.4
 Scraper Newegg USA — catálogo completo de hardware
 Método: HTML scraping (requests + BeautifulSoup)
 Precios: USD (price_usd) — sin conversión a PEN
 
-Fixes v2.3 (sobre v2.2):
-  [N19] NEWEGG_CATEGORIES: migración completa a SubCategory/ID-*
-        — URLs /N-8o6Z... deprecadas (404 desde julio 2026)
-        — Nuevo sistema: /Slug/SubCategory/ID-{n}
-        — IDs validados empíricamente el 2026-07-21:
-          gpu=48, cpu=343, ram=147, ssd=636, hdd=22,
-          mobo=22(*), psu=58, cases=7, cooler=574,
-          laptops=32, monitores=3, teclados=11,
-          mouse=26 (era 13→404), auriculares=219 (era 218→0 items),
-          tarjetas_red=22(*)
-  [N20] NEWEGG_CATEGORIES: gpu_nvidia y gpu_amd unificados en gpu_all
-        — SubCategory/ID-48 retorna todas las GPUs sin filtro de marca
-        — El filtro de marca se aplica en _parse_cell() vía _extract_brand()
-  [N21] _fetch_page(): URL construida con SubCategory path — sin parámetro N=
-  [N22] BASE_PATH separado de query string — más limpio para logging
+Fixes v2.4 (sobre v2.3):
+  [N23] ID-22 desambiguado:
+        hdd        → ID-22  ✅ (era el correcto desde el inicio)
+        motherboard→ ID-280 ✅ (validado 2026-07-23: len=939,864)
+        tarjetas_red→ID-175 ✅ (validado 2026-07-23: len=163,292)
+        — ID-22 era un pool genérico de Newegg usado como fallback
+  [N24] cpu_intel / cpu_amd unificados en cpu_all (ID-343)
+        — igual que gpu_all [N20]; dedup global maneja duplicados
+        — _fetch_page() no aplicaba filtro de marca en URL (bug silencioso)
+  [N25] Lógica empty_pages unificada al final del loop
+        — elimina doble incremento cuando raw_items>=MIN pero todos dupes
+        — un solo punto de decisión: flag `got_new` controla el contador
 """
 
 import re
@@ -53,15 +50,16 @@ PRICE_MAX_USD = 15_000.0
 BASE_URL = "https://www.newegg.com"
 
 # ──────────────────────────────────────────────
-# [N19] URLs migradas a SubCategory/ID-* (validadas 2026-07-21)
+# [N23] URLs corregidas — IDs validados 2026-07-23
+# [N24] cpu_all unificado — cpu_intel/cpu_amd eliminados
 # ──────────────────────────────────────────────
 NEWEGG_CATEGORIES = {
     # ── Procesadores ──────────────────────────────────────
-    "cpu_intel":      "/CPUs-Processors/SubCategory/ID-343",       # ID-343 ✅
-    "cpu_amd":        "/CPUs-Processors/SubCategory/ID-343",       # mismo pool, filtro por brand
+    # [N24] Unificado — dedup global evita duplicados
+    "cpu_all":        "/CPUs-Processors/SubCategory/ID-343",       # ID-343 ✅
 
     # ── GPUs ──────────────────────────────────────────────
-    # [N20] unificado — _extract_brand() separa NVIDIA/AMD post-scrape
+    # [N20] Unificado — _extract_brand() separa NVIDIA/AMD post-scrape
     "gpu_all":        "/GPUs-Video-Graphics-Cards/SubCategory/ID-48",  # ID-48 ✅
 
     # ── Memoria RAM ───────────────────────────────────────
@@ -72,7 +70,8 @@ NEWEGG_CATEGORIES = {
     "hdd":            "/Hard-Disk-Drives/SubCategory/ID-22",       # ID-22  ✅
 
     # ── Motherboards ──────────────────────────────────────
-    "motherboard":    "/Motherboards/SubCategory/ID-22",           # ID-22  ✅
+    # [N23] Corregido: ID-22 → ID-280 (validado 2026-07-23: len=939,864)
+    "motherboard":    "/Motherboards/SubCategory/ID-280",          # ID-280 ✅
 
     # ── PSU / Cases / Cooling ─────────────────────────────
     "psu":            "/Power-Supplies/SubCategory/ID-58",         # ID-58  ✅
@@ -83,15 +82,17 @@ NEWEGG_CATEGORIES = {
     "laptops":        "/Laptops-Notebooks/SubCategory/ID-32",      # ID-32  ✅
     "monitores":      "/Monitors/SubCategory/ID-3",                # ID-3   ✅
     "teclados":       "/Keyboards/SubCategory/ID-11",              # ID-11  ✅
-    "mouse":          "/Mice/SubCategory/ID-26",                   # ID-26  ✅ (era ID-13→404)
-    "auriculares":    "/Headsets-Headphones/SubCategory/ID-219",   # ID-219 ✅ (era ID-218→0 items)
-    "tarjetas_red":   "/Network-Cards/SubCategory/ID-22",          # ID-22  ✅
+    "mouse":          "/Mice/SubCategory/ID-26",                   # ID-26  ✅
+    "auriculares":    "/Headsets-Headphones/SubCategory/ID-219",   # ID-219 ✅
+
+    # ── Redes ─────────────────────────────────────────────
+    # [N23] Corregido: ID-22 → ID-175 (validado 2026-07-23: len=163,292)
+    "tarjetas_red":   "/Network-Cards/SubCategory/ID-175",         # ID-175 ✅
 }
 
 # [N9] Mapeo a categorías normalizadas del pipeline
 CAT_NORMALIZE = {
-    "cpu_intel":   "CPU",
-    "cpu_amd":     "CPU",
+    "cpu_all":     "CPU",
     "gpu_all":     "GPU",
     "ram":         "RAM",
     "ssd":         "SSD",
@@ -111,7 +112,6 @@ CAT_NORMALIZE = {
 # ──────────────────────────────────────────────
 # HEADERS ROTATIVOS
 # ──────────────────────────────────────────────
-# [N7] Chrome 136 — julio 2026
 _USER_AGENTS = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
     "(KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36",
@@ -125,7 +125,6 @@ _USER_AGENTS = [
     "Gecko/20100101 Firefox/138.0",
 ]
 
-# [N1] Retry con allowed_methods + raise_on_status
 def _make_session() -> requests.Session:
     session = requests.Session()
     retry   = Retry(
@@ -169,8 +168,6 @@ def _parse_price(text: str) -> Optional[float]:
 # ──────────────────────────────────────────────
 # EXTRACCIÓN DE MARCA
 # ──────────────────────────────────────────────
-# [M22] Marcas 2025-2026 agregadas
-# [N18] Zephyrus eliminado — ADATA, PNY, Inno3D agregados
 _KNOWN_BRANDS = [
     "Intel", "AMD", "NVIDIA", "ASUS", "MSI", "Gigabyte", "ASRock",
     "Corsair", "G.Skill", "Kingston", "Crucial", "Samsung",
@@ -203,7 +200,6 @@ def _extract_brand(title: str) -> str:
 
 # ──────────────────────────────────────────────
 # FETCH DE UNA PÁGINA
-# [N21] URL construida con SubCategory path
 # ──────────────────────────────────────────────
 def _fetch_page(session: requests.Session, path: str, page: int) -> list:
     url = f"{BASE_URL}{path}?PageSize=96&Page={page}"
@@ -225,7 +221,6 @@ def _fetch_page(session: requests.Session, path: str, page: int) -> list:
     if not cells:
         cells = soup.select("div.item-container")
 
-    # [N17] Log INFO cuando no hay celdas — visible en log del batch
     if not cells:
         logger.info(f"  p{page}: 0 celdas encontradas — early-stop")
         return []
@@ -274,10 +269,9 @@ def _parse_cell(cell) -> Optional[dict]:
         if m:
             sku = m.group(1)
     if not sku:
-        # [N3] hashlib.md5 — determinístico entre runs
         sku = "newegg_" + hashlib.md5(title.encode()).hexdigest()[:12]
 
-    # ── Precio actual [N8] ──
+    # ── Precio actual ──
     price_el = (
         cell.select_one("li.price-current") or
         cell.select_one(".price-current") or
@@ -323,7 +317,7 @@ def _parse_cell(cell) -> Optional[dict]:
                 rating = int(m.group(1)) / 10
                 break
 
-    # ── Reviews [N12] ──
+    # ── Reviews ──
     reviews_el = (
         cell.select_one(".item-rating span") or
         cell.select_one("span.item-rating-num")
@@ -359,86 +353,92 @@ def scrape_newegg(batch_id: str, mode: str = "normal") -> list:
     [N14] Parámetro mode — alineado con main.py.
     [N15] Session cerrada en finally — evita TCP huérfanas.
     [N13] Log de tiempo total al finalizar.
-    [N19] URLs migradas a SubCategory/ID-* (validadas 2026-07-21).
+    [N23] IDs corregidos: mobo→ID-280, tarjetas_red→ID-175.
+    [N24] cpu_all unificado — cpu_intel/cpu_amd eliminados.
+    [N25] empty_pages: lógica unificada con flag got_new.
     """
     t_start          = time.time()
     all_records      = []
     session          = _make_session()
-    seen_skus_global = set()   # [N4] dedup global entre categorías
+    seen_skus_global = set()
 
     logger.info(
-        f"[Newegg] Iniciando — {len(NEWEGG_CATEGORIES)} categorías"
+        f"[Newegg] Iniciando v2.4 — {len(NEWEGG_CATEGORIES)} categorías"
     )
 
-    try:   # [N15]
+    try:
         for cat_name, path in NEWEGG_CATEGORIES.items():
             logger.info(f"[Newegg] '{cat_name}' → {path}")
             cat_records = []
-            empty_pages = 0
+            empty_pages = 0   # [N25] único contador
 
             for page in range(1, MAX_PAGES + 1):
                 time.sleep(REQUEST_DELAY + random.uniform(0, 0.8))
                 raw_items = _fetch_page(session, path, page)
 
-                if len(raw_items) < MIN_ITEMS_PAGE:
-                    empty_pages += 1
-                    if empty_pages >= EMPTY_PAGE_LIMIT:
-                        logger.info(
-                            f"  [{cat_name}] Early-stop p{page} "
-                            f"({empty_pages} páginas vacías)"
+                # [N25] got_new: flag unificado para controlar empty_pages
+                got_new = False
+
+                if len(raw_items) >= MIN_ITEMS_PAGE:
+                    new_in_page = 0
+                    for item in raw_items:
+                        sku = item.get("sku", "")
+                        if sku in seen_skus_global:
+                            continue
+                        seen_skus_global.add(sku)
+                        new_in_page += 1
+                        got_new = True
+
+                        cat_normalized = CAT_NORMALIZE.get(
+                            cat_name, cat_name.upper()
                         )
-                        break
-                    continue
+                        record = {
+                            "batch_id":       batch_id,
+                            "timestamp":      datetime.now(timezone.utc).isoformat(),
+                            "source":         "newegg_usa",
+                            "category":       cat_normalized,
+                            "category_raw":   cat_name,
+                            "sku":            sku,
+                            "brand":          item.get("brand", ""),
+                            "title":          item.get("title", ""),
+                            "price_usd":      item.get("price_usd"),
+                            "price_orig_usd": item.get("price_orig_usd"),
+                            "price_date":     datetime.now(timezone.utc).strftime(
+                                "%Y-%m-%d"
+                            ),
+                            "price_currency": "USD",
+                            "discount_pct":   item.get("discount_pct"),
+                            "rating":         item.get("rating"),
+                            "reviews":        item.get("reviews"),
+                            "retailer":       "Newegg",
+                            "url":            item.get("url", ""),
+                        }
+                        cat_records.append(record)
 
-                empty_pages = 0
-                new_in_page = 0
-
-                for item in raw_items:
-                    sku = item.get("sku", "")
-                    if sku in seen_skus_global:
-                        continue
-                    seen_skus_global.add(sku)
-                    new_in_page += 1
-
-                    cat_normalized = CAT_NORMALIZE.get(
-                        cat_name, cat_name.upper()
+                    logger.info(
+                        f"  [{cat_name}] p{page}: "
+                        f"+{len(raw_items)} raw → +{new_in_page} nuevos "
+                        f"(cat={len(cat_records)}, "
+                        f"global={len(seen_skus_global)})"
+                    )
+                else:
+                    logger.debug(
+                        f"  [{cat_name}] p{page}: "
+                        f"{len(raw_items)} items < MIN({MIN_ITEMS_PAGE})"
                     )
 
-                    record = {
-                        "batch_id":       batch_id,
-                        "timestamp":      datetime.now(timezone.utc).isoformat(),
-                        "source":         "newegg_usa",
-                        "category":       cat_normalized,
-                        "category_raw":   cat_name,
-                        "sku":            sku,
-                        "brand":          item.get("brand", ""),
-                        "title":          item.get("title", ""),
-                        "price_usd":      item.get("price_usd"),
-                        "price_orig_usd": item.get("price_orig_usd"),
-                        "price_date":     datetime.now(timezone.utc).strftime(
-                            "%Y-%m-%d"
-                        ),
-                        "price_currency": "USD",
-                        "discount_pct":   item.get("discount_pct"),
-                        "rating":         item.get("rating"),
-                        "reviews":        item.get("reviews"),
-                        "retailer":       "Newegg",
-                        "url":            item.get("url", ""),
-                    }
-                    cat_records.append(record)
-
-                logger.debug(
-                    f"  [{cat_name}] p{page}: +{new_in_page} "
-                    f"(cat={len(cat_records)}, "
-                    f"global={len(seen_skus_global)})"
-                )
-
-                if new_in_page == 0:
+                # [N25] Un solo punto de control para empty_pages
+                if got_new:
+                    empty_pages = 0
+                else:
                     empty_pages += 1
+                    logger.info(
+                        f"  [{cat_name}] p{page}: sin nuevos "
+                        f"(empty_pages={empty_pages}/{EMPTY_PAGE_LIMIT})"
+                    )
                     if empty_pages >= EMPTY_PAGE_LIMIT:
                         logger.info(
-                            f"  [{cat_name}] Early-stop p{page} "
-                            f"(0 nuevos × {empty_pages})"
+                            f"  [{cat_name}] Early-stop p{page}"
                         )
                         break
 
@@ -448,9 +448,8 @@ def scrape_newegg(batch_id: str, mode: str = "normal") -> list:
             all_records.extend(cat_records)
 
     finally:
-        session.close()   # [N15]
+        session.close()
 
-    # [N13] Log de tiempo total
     elapsed = time.time() - t_start
     logger.info(
         f"[Newegg] Total: {len(all_records):,} registros únicos "
