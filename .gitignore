@@ -1,50 +1,28 @@
+# Entornos virtuales
+venv_pe4/
 venv/
-__pycache__/
+.venv/
+env/
+
+# Modelos grandes (usar Git LFS o Drive)
+*.pkl
+*.bin
+*.pt
+*.pth
+
+# Datos procesados grandes
+data/processed/MASTER_hardware_peru*.csv
+data/processed/*.parquet
+data/raw/
+
+# Archivos temporales
 *.pyc
-data/processed/quality_report_*.json
-.env
-.env
-data/processed/*.csv
-data/processed/*.json
+__pycache__/
+*.log
+pcp_debug.html
+10k,*
+newegg_raw_*.csv
 
-# ── Backups ──────────────────────────────
-agent/scrapers/*_backup.py
-scraper_competencia.py
-
-# ── Logs ─────────────────────────────────
-data/logs/
-logs/
-
-# ── Modelos/artefactos binarios ──────────
-data/processed/*.pkl
-
-# ── Archivos temporales de precios ───────
-data/precios_*.csv
-data/precios_*.json
-
-# ── Archivos sin extensión sueltos ───────
-agent/scrapers/price_pen
-*.bak
-data/raw/MASTER_hardware_peru.csv
-data/raw/MASTER_hardware_peru_REBUILT.csv
-
-# Archivos de debug / desarrollo local
-newegg_*.html
-newegg_*.json
-apply_patch.py
-patch_newegg.py
-tash
-
-# Datos generados (batches individuales y reportes)
-data/raw/batch_*.csv
-data/raw/report_*.json
-data/raw/master_raw.parquet
-data/raw/newegg_full_snapshot.json
-
-# Features procesadas
-data/features/
-
-# Scripts de preprocessing ad-hoc
-preprocessing/fix_*.py
-preprocessing/patch_*.py
-preprocessing/rebuild_*.py
+# Archivos de sistema
+.DS_Store
+Thumbs.db
