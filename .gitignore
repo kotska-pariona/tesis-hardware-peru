@@ -27,3 +27,24 @@ agent/scrapers/price_pen
 *.bak
 data/raw/MASTER_hardware_peru.csv
 data/raw/MASTER_hardware_peru_REBUILT.csv
+
+# Archivos de debug / desarrollo local
+newegg_*.html
+newegg_*.json
+apply_patch.py
+patch_newegg.py
+tash
+
+# Datos generados (batches individuales y reportes)
+data/raw/batch_*.csv
+data/raw/report_*.json
+data/raw/master_raw.parquet
+data/raw/newegg_full_snapshot.json
+
+# Features procesadas
+data/features/
+
+# Scripts de preprocessing ad-hoc
+preprocessing/fix_*.py
+preprocessing/patch_*.py
+preprocessing/rebuild_*.py
