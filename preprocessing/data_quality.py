@@ -18,6 +18,8 @@ CATEGORY_MAP = {
     "memorias_ram": "RAM", "ram": "RAM",
     # CPU
     "procesadores": "CPU", "cpu": "CPU",
+    "peripheral": "PERIFERICO",
+    "storage": "SSD",
     # GPU
     "tarjetas_video": "GPU", "gpu": "GPU",
     # MONITOR
@@ -48,6 +50,24 @@ CATEGORY_MAP = {
     "impresoras": "IMPRESORA", "impresora": "IMPRESORA",
     # Core hardware
     "cooler": "COOLER",
+    # Mayusculas (Newegg/eBay/Amazon)
+    "CPU": "CPU",
+    "GPU": "GPU",
+    "RAM": "RAM",
+    "SSD": "SSD",
+    "MOTHERBOARD": "MOTHERBOARD",
+    "PSU": "PSU",
+    "CASE": "CASE",
+    "COOLER": "COOLER",
+    "HDD": "HDD",
+    "LAPTOP": "LAPTOP",
+    "MONITOR": "MONITOR",
+    "MOUSE": "MOUSE",
+    "KEYBOARD": "TECLADO",
+    "AUDIO": "AURICULAR",
+    "OTHER": "OTHER",
+    "disco_duro_memorias": "HDD",
+    "cpu": "CPU",
     "motherboard": "MOTHERBOARD",
     "psu": "PSU",
     "case": "CASE",
