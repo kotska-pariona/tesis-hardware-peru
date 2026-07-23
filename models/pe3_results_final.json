@@ -1,0 +1,17 @@
+{
+  "MAE": 43.8,
+  "RMSE": 580.35,
+  "R2": 0.9549,
+  "MAPE": 0.9091,
+  "DA_sorted": 92.9285,
+  "DA_movement_only": 99.6839,
+  "Coverage_IC95": 95.975,
+  "Width_mean": 259.53,
+  "Width_median": 21.13,
+  "PE3_closed": true,
+  "metas": {
+    "MAPE_ok": true,
+    "DA_ok": true,
+    "Coverage_ok": true
+  }
+}
