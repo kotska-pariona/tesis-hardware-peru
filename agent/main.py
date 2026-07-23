@@ -1,45 +1,26 @@
 #!/usr/bin/env python3
 """
-main.py — Orquestador v5.11
+main.py — Orquestador v5.12
 ════════════════════════════════════════════════════════════════════
+Fixes v5.12 (sobre v5.11):
+  [O34] Ripley PE integrado como fuente local PE (Prioridad 2.1).
+        - Carga dinámica via _load_optional_scraper() — mismo patrón
+          que MeLi/Newegg/PCPartPicker.
+        - Paso 3b insertado entre MeLi PE (paso 3) y Newegg (paso 4).
+        - Activo en modes: normal, local_only, full.
+        - scraper_ripley.py v1.2 requerido en agent/scrapers/.
+        - stats["ripley_pe"] incluido en resumen final.
+  [O35] _OPTIONAL_SCRAPERS dict actualizado con entrada Ripley PE
+        para log de status al inicio del pipeline.
+
 Fixes v5.11 (sobre v5.10):
-  [O30] convert_currency(): rate_mid ahora se castea a float()
-        garantizado en run() antes de propagarse. Si scrape_dolar
-        retorna "mid" como string (comportamiento real de CSV-parsed
-        data), la división float(pen)/rate_mid ya no falla
-        silenciosamente en el except (ValueError, TypeError) de
-        convert_currency(). Fix de bug real — en producción el tipo
-        de cambio se leía pero la conversión cruzada nunca ocurría
-        si el scraper retornaba el valor como str.
-  [O31] merge_to_master(): log de inicio ahora indica cuántos
-        batch files entran al merge. Antes el mensaje era fijo
-        "Actualizando MASTER_hardware_peru.csv..." sin contexto.
-        Ahora: "Actualizando MASTER con N batch(es) válidos..."
-        — mejora trazabilidad en runs parciales por timeout.
-  [O32] _ALIAS_GROUPS: part_id removido de la lista de aliases
-        de "sku". En v5.10, part_id estaba en
-        _ALIAS_GROUPS["sku"] = ["sku","asin_sku","item_id","part_id"]
-        lo que causaba que normalize_schema() copiara part_id→sku
-        para cualquier scraper que emitiera part_id sin sku
-        (PCPartPicker, Competencia, Ripley en desarrollo).
-        part_id y sku son semánticamente distintos en varios
-        scrapers — part_id es un descriptor de componente
-        (ej: "B550M-DS3H"), no un identificador de listing.
-        part_id sigue disponible como columna propia en FIELD_ORDER.
-        Si un scraper específico necesita part_id→sku, debe
-        hacerlo en su propio parser, no en normalize_schema().
-  [O33] save_batch(): columnas nuevas de scrapers futuros ya no
-        se pierden silenciosamente. Antes, extrasaction="ignore"
-        en DictWriter descartaba cualquier campo no presente en
-        fieldnames. Ahora fieldnames se construye como unión de
-        FIELD_ORDER + remainder (todos los keys del batch actual),
-        lo que ya cubría el caso — se agrega log.debug() explícito
-        cuando remainder contiene campos no estándar, para
-        auditar columnas nuevas de scrapers en integración
-        (ej: Ripley PE en Prioridad 2.1).
+  [O30] convert_currency(): rate_mid casteado a float() garantizado.
+  [O31] merge_to_master(): log indica cuántos batch files entran.
+  [O32] _ALIAS_GROUPS: part_id removido de aliases de "sku".
+  [O33] save_batch(): log.debug() para columnas no estándar.
 
 Fixes v5.10 (sobre v5.9):
-  [O28] merge_to_master(): mensaje de log "Deduplicados" corregido.
+  [O28] merge_to_master(): mensaje "Deduplicados" corregido.
   [O29] normalize_schema(): source_tag usado en logging DEBUG.
 
 Fixes v5.9 (sobre v5.8):
@@ -54,14 +35,14 @@ Fixes v5.8 (sobre v5.7):
   [O22] _make_dedup_key(): price_date restaurado en clave de dedup.
 
 Fixes v5.7 (sobre v5.6):
-  [O16] scrape_pcpartpicker cargado dinámicamente.
-  [O17] Todos los scrapers llamados con mode= explícito.
+  [O16] scrape_pcpartpicker cargado dinamicamente.
+  [O17] Todos los scrapers llamados con mode= explicito.
   [O18] scrape_kaggle/scrape_camel/scrape_pcpartpicker con guards.
-  [O19] _near_timeout(): log solo una vez por invocación.
+  [O19] _near_timeout(): log solo una vez por invocacion.
   [O20] mode='local_only' incluye MeLi PE.
 """
 
-from __future__ import annotations  # [O21] Compatibilidad Python <3.10
+from __future__ import annotations  # [O21]
 
 import sys
 import os
@@ -87,7 +68,7 @@ LOG_DIR.mkdir(parents=True, exist_ok=True)
 # ── [O13] Guardia de timeout ───────────────────────────────────────────
 MAX_ELAPSED_S = int(os.getenv("MAX_ELAPSED_S", "3000"))  # 50 min default
 
-# ── FIX-8 + [O1]: Forzar carga de agent/scrapers/ con error explícito ──
+# ── FIX-8 + [O1]: Forzar carga de agent/scrapers/ con error explicito ──
 _scrapers_path = AGENT_DIR / "scrapers" / "__init__.py"
 _spec = importlib.util.spec_from_file_location(
     "scrapers",
@@ -100,7 +81,7 @@ try:
     _spec.loader.exec_module(_mod)
 except Exception as _e:
     print(
-        f"FATAL: scrapers/__init__.py falló al cargar: {_e}",
+        f"FATAL: scrapers/__init__.py fallo al cargar: {_e}",
         file=sys.stderr,
     )
     sys.exit(1)
@@ -109,12 +90,12 @@ if str(AGENT_DIR) not in sys.path:
     sys.path.insert(0, str(AGENT_DIR))
 
 
-# ── Helper de carga dinámica de scrapers opcionales ────────────────────
+# ── Helper de carga dinamica de scrapers opcionales ────────────────────
 def _load_optional_scraper(
     name: str, filename: str
 ) -> tuple[bool, object, str | None]:
     """
-    Carga dinámica de un scraper opcional desde agent/scrapers/.
+    Carga dinamica de un scraper opcional desde agent/scrapers/.
     Retorna (has_scraper, fn_or_None, error_or_None).
     """
     path = AGENT_DIR / "scrapers" / filename
@@ -141,7 +122,7 @@ _HAS_MELI,   scrape_mercadolibre, _meli_err   = _load_optional_scraper(
 _HAS_NEWEGG, scrape_newegg,       _newegg_err = _load_optional_scraper(
     "scrape_newegg",       "scraper_newegg.py"
 )
-# [O16] PCPartPicker carga dinámica — igual que MeLi/Newegg
+# [O16] PCPartPicker carga dinamica
 _HAS_PCP,    scrape_pcpartpicker, _pcp_err    = _load_optional_scraper(
     "scrape_pcpartpicker", "scraper_pcpartpicker.py"
 )
@@ -152,13 +133,17 @@ _HAS_CAMEL,  scrape_camel,        _camel_err  = _load_optional_scraper(
 _HAS_KAGGLE, scrape_kaggle,       _kaggle_err = _load_optional_scraper(
     "scrape_kaggle",       "scraper_kaggle.py"
 )
+# [O34] Ripley PE — Prioridad 2.1
+_HAS_RIPLEY, scrape_ripley,       _ripley_err = _load_optional_scraper(
+    "scrape_ripley",       "scraper_ripley.py"
+)
 
-# ── Logging con rotación [M6] ──────────────────────────────────────────
+# ── Logging con rotacion [M6] ──────────────────────────────────────────
 LOG_FILE = LOG_DIR / "agent.log"
 _file_handler = logging.handlers.RotatingFileHandler(
     str(LOG_FILE),
-    maxBytes=5 * 1024 * 1024,   # 5 MB por archivo
-    backupCount=7,               # 7 archivos → máx 35 MB histórico
+    maxBytes=5 * 1024 * 1024,
+    backupCount=7,
     encoding="utf-8",
 )
 logging.basicConfig(
@@ -172,20 +157,21 @@ logging.basicConfig(
 )
 log = logging.getLogger("main")
 
-# ── Status de carga de scrapers opcionales ─────────────────────────────
+# ── [O35] Status de carga de scrapers opcionales ───────────────────────
 _OPTIONAL_SCRAPERS = {
-    "MeLi PE     [FIX-9] ": (_HAS_MELI,   _meli_err),
-    "Newegg USA  [FIX-10]": (_HAS_NEWEGG, _newegg_err),
-    "PCPartPicker [O16]  ": (_HAS_PCP,    _pcp_err),
-    "Camel        [O18]  ": (_HAS_CAMEL,  _camel_err),
-    "Kaggle       [O18]  ": (_HAS_KAGGLE, _kaggle_err),
+    "MeLi PE      [FIX-9] ": (_HAS_MELI,   _meli_err),
+    "Newegg USA   [FIX-10]": (_HAS_NEWEGG, _newegg_err),
+    "PCPartPicker [O16]   ": (_HAS_PCP,    _pcp_err),
+    "Camel        [O18]   ": (_HAS_CAMEL,  _camel_err),
+    "Kaggle       [O18]   ": (_HAS_KAGGLE, _kaggle_err),
+    "Ripley PE    [O34]   ": (_HAS_RIPLEY, _ripley_err),   # [O35]
 }
 for label, (ok, err) in _OPTIONAL_SCRAPERS.items():
     if ok:
-        log.info(f"  ✅ {label} cargado")
+        log.info(f"  OK {label} cargado")
     else:
         reason = f"error: {err}" if err else "archivo no encontrado"
-        log.warning(f"  ⚠️  {label} no disponible ({reason}) — paso omitido")
+        log.warning(f"  WARN {label} no disponible ({reason}) — paso omitido")
 
 # ── Imports CORE desde scrapers/__init__.py ────────────────────────────
 from scrapers import (
@@ -198,7 +184,7 @@ from scrapers import (
     _HAS_COMPETENCIA,
 )
 
-# ── [O12] FIELD_ORDER — eBay v4.0 + MeLi v2.0 ─────────────────────────
+# ── [O12] FIELD_ORDER ─────────────────────────────────────────────────
 FIELD_ORDER = [
     "batch_id", "timestamp", "source", "category",
     "sku", "brand", "title",
@@ -215,14 +201,9 @@ FIELD_ORDER = [
     "retailer", "part_id", "url",
 ]
 
-# ── [O23][O32] Grupos de columnas alias → canónica ─────────────────────
-# [O32] part_id REMOVIDO de aliases de "sku" — son semánticamente
-# distintos en PCPartPicker, Competencia y Ripley PE (en desarrollo).
-# part_id sigue disponible como columna propia en FIELD_ORDER.
-# Si un scraper específico necesita part_id→sku, debe hacerlo en
-# su propio parser, no aquí.
+# ── [O23][O32] Grupos de columnas alias -> canonica ────────────────────
 _ALIAS_GROUPS = {
-    "sku":            ["sku", "asin_sku", "item_id"],   # [O32] part_id removido
+    "sku":            ["sku", "asin_sku", "item_id"],
     "available_qty":  ["available_qty", "available"],
     "price_orig_pen": ["price_orig_pen", "original_price"],
     "free_shipping":  ["free_shipping", "shipping_free"],
@@ -231,18 +212,17 @@ _ALIAS_GROUPS = {
 
 
 # ══════════════════════════════════════════════════════════════════════
-# [O23][O24][O29] NORMALIZACIÓN DE ESQUEMA
+# [O23][O24][O29] NORMALIZACION DE ESQUEMA
 # ══════════════════════════════════════════════════════════════════════
 
 def normalize_schema(records: list, source_tag: str) -> list:
     """
-    [O23] Consolida columnas alias en su columna canónica del contrato.
-    [O24] Deriva price_date desde timestamp cuando price_date está vacío.
-    [O29] source_tag usado en logging DEBUG por fuente.
-    [O32] part_id ya NO es alias de sku — ver _ALIAS_GROUPS.
+    [O23] Consolida columnas alias en su columna canonica.
+    [O24] Deriva price_date desde timestamp cuando esta vacio.
+    [O29] source_tag usado en logging DEBUG.
+    [O32] part_id NO es alias de sku.
     """
     for row in records:
-        # [O23] Alias genéricos: primer valor no vacío gana
         for canon, aliases in _ALIAS_GROUPS.items():
             current = row.get(canon)
             if current is None or current == "":
@@ -257,7 +237,6 @@ def normalize_schema(records: list, source_tag: str) -> list:
                         )
                         break
 
-        # [O24] price_date derivado de timestamp
         pd_val = row.get("price_date")
         ts_val = row.get("timestamp")
         if (pd_val is None or pd_val == "") and ts_val:
@@ -267,16 +246,13 @@ def normalize_schema(records: list, source_tag: str) -> list:
 
 
 # ══════════════════════════════════════════════════════════════════════
-# [O25][O30] CONVERSIÓN DE MONEDA CRUZADA
+# [O25][O30] CONVERSION DE MONEDA CRUZADA
 # ══════════════════════════════════════════════════════════════════════
 
 def convert_currency(records: list, rate_mid: float | None) -> list:
     """
-    [O25] Rellena price_usd/price_pen cruzado usando el 'mid' del tipo
-    de cambio del batch actual. Nunca sobreescribe un valor ya presente.
-    [O30] rate_mid ya llega garantizado como float desde run() —
-    el cast se hace en el punto de lectura, no aquí, para que esta
-    función sea agnóstica al tipo de origen del dato.
+    [O25] Rellena price_usd/price_pen cruzado.
+    [O30] rate_mid llega garantizado como float desde run().
     """
     if not rate_mid:
         return records
@@ -304,11 +280,9 @@ def save_batch(
     rate_mid: float | None = None,
 ) -> Path | None:
     """
-    [O10] IOError se propaga — no retorna None silencioso en error.
-    Retorna None SOLO cuando records está vacío.
-    [O23][O25] normalize_schema() y convert_currency() aplicados aquí.
-    [O33] log.debug() cuando remainder contiene campos no estándar —
-    audita columnas nuevas de scrapers en integración (ej: Ripley PE).
+    [O10] IOError se propaga.
+    [O23][O25] normalize_schema() y convert_currency() aplicados.
+    [O33] log.debug() para columnas no estandar.
     """
     if not records:
         log.warning(f"  [save] Sin registros para {source_tag}")
@@ -323,13 +297,11 @@ def save_batch(
     ordered    = [f for f in FIELD_ORDER if f in all_keys]
     remainder  = sorted(all_keys - set(ordered))
 
-    # ── [O33] AÑADIDO v5.11 ───────────────────────────────────────────
     if remainder:
         log.debug(
-            f"  [save:{source_tag}] Columnas no estándar detectadas "
-            f"(se incluirán al final): {remainder}"
+            f"  [save:{source_tag}] Columnas no estandar "
+            f"(se incluiran al final): {remainder}"
         )
-    # ── FIN [O33] ─────────────────────────────────────────────────────
 
     fieldnames = ordered + remainder
 
@@ -341,20 +313,17 @@ def save_batch(
         writer.writerows(records)
 
     log.info(
-        f"  💾 Guardado: {out_path.name} ({len(records):,} registros)"
+        f"  Guardado: {out_path.name} ({len(records):,} registros)"
     )
     return out_path
 
 
 # ══════════════════════════════════════════════════════════════════════
-# [O26] TIPO DE CAMBIO — ARCHIVO SEPARADO DEL MASTER DE PRODUCTOS
+# [O26] TIPO DE CAMBIO
 # ══════════════════════════════════════════════════════════════════════
 
 def save_dolar_batch(records: list, batch_id: str) -> Path | None:
-    """
-    [O26] Guarda el tipo de cambio en MASTER_exchange_rate.csv,
-    separado de MASTER_hardware_peru.csv. Dedup por (source, date).
-    """
+    """[O26] Guarda tipo de cambio en MASTER_exchange_rate.csv."""
     if not records:
         log.warning("  [save] Sin registros de tipo de cambio")
         return None
@@ -408,7 +377,7 @@ def save_dolar_batch(records: list, batch_id: str) -> Path | None:
         raise
 
     log.info(
-        f"  💾 MASTER_exchange_rate.csv: +{added:,} nuevos "
+        f"  MASTER_exchange_rate.csv: +{added:,} nuevos "
         f"({len(existing):,} total)"
     )
     return exch_path
@@ -420,8 +389,8 @@ def save_dolar_batch(records: list, batch_id: str) -> Path | None:
 
 def _make_dedup_key(row: dict) -> tuple:
     """
-    [O22] price_date en la clave de dedup — 1 registro por SKU por día.
-    [O27] Fallback sin sku: sku > url > title (SIN price).
+    [O22] price_date en clave de dedup — 1 registro por SKU por dia.
+    [O27] Fallback sin sku: url > title (sin price).
     """
     source     = row.get("source", "") or ""
     sku        = (row.get("sku") or "").strip()
@@ -440,22 +409,20 @@ def _make_dedup_key(row: dict) -> tuple:
 def merge_to_master(batch_files: list) -> tuple[int, int]:
     """
     Retorna (total_records, added_records).
-    [O5]  Escritura atómica: tmp → rename.
-    [O26] batch_files ya NO incluye el batch de dólar.
-    [O31] Log de inicio indica cuántos batch files entran al merge.
+    [O5]  Escritura atomica: tmp -> rename.
+    [O26] batch_files NO incluye batch de dolar.
+    [O31] Log indica cuantos batch files entran al merge.
     """
     master_path = DATA_DIR / "MASTER_hardware_peru.csv"
     new_records = []
     all_fields  = set(FIELD_ORDER)
 
-    # ── [O31] AÑADIDO v5.11 ───────────────────────────────────────────
     valid_files = [f for f in batch_files if f is not None and f.exists()]
     log.info(
         f"\n[MERGE] Actualizando MASTER con "
-        f"{len(valid_files)} batch(es) válidos "
+        f"{len(valid_files)} batch(es) validos "
         f"(de {len(batch_files)} generados)..."
     )
-    # ── FIN [O31] ─────────────────────────────────────────────────────
 
     for f in valid_files:
         try:
@@ -497,18 +464,15 @@ def merge_to_master(batch_files: list) -> tuple[int, int]:
             skipped += 1
 
     if skipped:
-        # [O28] Mensaje genérico — no asume sku
         log.info(
             f"  [master] Deduplicados: {skipped:,} registros omitidos "
-            f"(mismo source+identidad+price_date; identidad = sku, "
-            f"o fingerprint url/title si no hay sku — ver [O27])"
+            f"(mismo source+identidad+price_date)"
         )
 
     ordered    = [f for f in FIELD_ORDER if f in all_fields]
     remainder  = sorted(all_fields - set(ordered))
     fieldnames = ordered + remainder
 
-    # [O5] Escritura atómica
     tmp_path = master_path.with_suffix(".tmp")
     try:
         with open(tmp_path, "w", newline="", encoding="utf-8") as f:
@@ -526,7 +490,7 @@ def merge_to_master(batch_files: list) -> tuple[int, int]:
 
     total = len(existing_records)
     log.info(
-        f"  📊 MASTER actualizado: {total:,} registros totales "
+        f"  MASTER actualizado: {total:,} registros totales "
         f"(+{added:,} nuevos)"
     )
     return total, added
@@ -550,7 +514,7 @@ def save_report(
     report_path = DATA_DIR / f"report_{batch_id}.json"
     with open(report_path, "w", encoding="utf-8") as f:
         json.dump(report, f, indent=2, ensure_ascii=False)
-    log.info(f"  📋 Reporte: {report_path.name}")
+    log.info(f"  Reporte: {report_path.name}")
     return report
 
 
@@ -563,20 +527,18 @@ def run(mode: str, batch_id: str):
     stats   = {}
     batches = []
 
-    # [O14] Contador de pasos dinámico
     _step_n = [0]
     def _step(label: str) -> str:
         _step_n[0] += 1
         return f"\n[{_step_n[0]}] {label}"
 
-    # [O19] _near_timeout(): log solo UNA vez
     _timeout_warned = [False]
     def _near_timeout() -> bool:
         elapsed = time.time() - start
         if elapsed > MAX_ELAPSED_S - 120:
             if not _timeout_warned[0]:
                 log.warning(
-                    f"  ⏱ Timeout próximo ({elapsed:.0f}s / "
+                    f"  Timeout proximo ({elapsed:.0f}s / "
                     f"{MAX_ELAPSED_S}s) — saltando pasos restantes "
                     f"para merge seguro"
                 )
@@ -584,42 +546,40 @@ def run(mode: str, batch_id: str):
             return True
         return False
 
-    log.info("═" * 60)
-    log.info(f"  PIPELINE v5.11 — modo={mode} | batch={batch_id}")
+    log.info("=" * 60)
+    log.info(f"  PIPELINE v5.12 — modo={mode} | batch={batch_id}")
     log.info(
         f"  MAX_ELAPSED_S={MAX_ELAPSED_S}s ({MAX_ELAPSED_S//60} min)"
     )
-    log.info("═" * 60)
+    log.info("=" * 60)
 
     # ── 1. Tipo de cambio (siempre) ──────────────────────────────────
-    log.info(_step("💱 Tipo de cambio USD/PEN"))
+    log.info(_step("Tipo de cambio USD/PEN"))
     rate_mid = None
     try:
         dolar_records = scrape_dolar(batch_id, mode=mode)
-        # ── [O30] AÑADIDO v5.11 — cast a float garantizado ──────────
         _raw_mid = dolar_records[0].get("mid") if dolar_records else None
         try:
             rate_mid = float(_raw_mid) if _raw_mid not in (None, "") else None
         except (ValueError, TypeError):
             log.warning(
-                f"  ⚠️  rate_mid inválido ({_raw_mid!r}) — "
-                f"conversión cruzada deshabilitada para este batch"
+                f"  rate_mid invalido ({_raw_mid!r}) — "
+                f"conversion cruzada deshabilitada para este batch"
             )
             rate_mid = None
-        # ── FIN [O30] ────────────────────────────────────────────────
         save_dolar_batch(dolar_records, batch_id)
         stats["dolar"] = len(dolar_records)
         log.info(
-            f"  ✅ Dolar: {len(dolar_records)} registros "
+            f"  OK Dolar: {len(dolar_records)} registros "
             f"(rate_mid={rate_mid})"
         )
     except Exception as e:
-        log.error(f"  ❌ Dolar: {e}")
+        log.error(f"  ERR Dolar: {e}")
         stats["dolar"] = 0
 
     # ── 2. Scrapers locales PE ───────────────────────────────────────
     if mode in ("normal", "local_only", "full"):
-        log.info(_step("🇵🇪 Tiendas locales PE (Falabella + Hiraoka)"))
+        log.info(_step("Tiendas locales PE (Falabella + Hiraoka)"))
         if not _near_timeout():
             try:
                 local_records = scrape_local(batch_id, mode=mode)
@@ -629,17 +589,17 @@ def run(mode: str, batch_id: str):
                 if p: batches.append(p)
                 stats["local"] = len(local_records)
                 log.info(
-                    f"  ✅ Local PE: {len(local_records):,} registros"
+                    f"  OK Local PE: {len(local_records):,} registros"
                 )
             except Exception as e:
-                log.error(f"  ❌ Local PE: {e}")
+                log.error(f"  ERR Local PE: {e}")
                 stats["local"] = 0
     else:
         stats["local"] = 0
 
     # ── 3. MercadoLibre PE ───────────────────────────────────────────
     if _HAS_MELI and mode in ("normal", "local_only", "full"):
-        log.info(_step("🛍️ MercadoLibre PE"))
+        log.info(_step("MercadoLibre PE"))
         if not _near_timeout():
             try:
                 meli_records = scrape_mercadolibre(batch_id, mode=mode)
@@ -650,19 +610,43 @@ def run(mode: str, batch_id: str):
                 if p: batches.append(p)
                 stats["mercadolibre_pe"] = len(meli_records)
                 log.info(
-                    f"  ✅ MeLi PE: {len(meli_records):,} registros"
+                    f"  OK MeLi PE: {len(meli_records):,} registros"
                 )
             except Exception as e:
-                log.error(f"  ❌ MeLi PE: {e}")
+                log.error(f"  ERR MeLi PE: {e}")
                 stats["mercadolibre_pe"] = 0
     else:
         if not _HAS_MELI:
-            log.warning("  ⚠️  MeLi PE omitido — scraper no disponible")
+            log.warning("  WARN MeLi PE omitido — scraper no disponible")
         stats["mercadolibre_pe"] = 0
+
+    # ── 3b. Ripley PE ────────────────────────────────────────────────
+    # [O34] Nuevo paso — Prioridad 2.1 integrada
+    if _HAS_RIPLEY and mode in ("normal", "local_only", "full"):
+        log.info(_step("Ripley PE"))
+        if not _near_timeout():
+            try:
+                ripley_records = scrape_ripley(batch_id, mode=mode)
+                p = save_batch(
+                    ripley_records, batch_id, "ripley_pe",
+                    rate_mid=rate_mid
+                )
+                if p: batches.append(p)
+                stats["ripley_pe"] = len(ripley_records)
+                log.info(
+                    f"  OK Ripley PE: {len(ripley_records):,} registros"
+                )
+            except Exception as e:
+                log.error(f"  ERR Ripley PE: {e}")
+                stats["ripley_pe"] = 0
+    else:
+        if not _HAS_RIPLEY:
+            log.warning("  WARN Ripley PE omitido — scraper no disponible")
+        stats["ripley_pe"] = 0
 
     # ── 4. Newegg USA ────────────────────────────────────────────────
     if _HAS_NEWEGG and mode in ("normal", "historical", "full"):
-        log.info(_step("🖥️ Newegg USA (precios USD)"))
+        log.info(_step("Newegg USA (precios USD)"))
         if not _near_timeout():
             try:
                 newegg_records = scrape_newegg(batch_id, mode=mode)
@@ -672,21 +656,19 @@ def run(mode: str, batch_id: str):
                 if p: batches.append(p)
                 stats["newegg_usa"] = len(newegg_records)
                 log.info(
-                    f"  ✅ Newegg USA: {len(newegg_records):,} registros"
+                    f"  OK Newegg USA: {len(newegg_records):,} registros"
                 )
             except Exception as e:
-                log.error(f"  ❌ Newegg USA: {e}")
+                log.error(f"  ERR Newegg USA: {e}")
                 stats["newegg_usa"] = 0
     else:
         if not _HAS_NEWEGG:
-            log.warning(
-                "  ⚠️  Newegg USA omitido — scraper no disponible"
-            )
+            log.warning("  WARN Newegg USA omitido — scraper no disponible")
         stats["newegg_usa"] = 0
 
     # ── 5. eBay ──────────────────────────────────────────────────────
     if mode in ("normal", "historical", "full"):
-        log.info(_step("🛒 eBay USA"))
+        log.info(_step("eBay USA"))
         if not _near_timeout():
             try:
                 ebay_records = scrape_ebay(batch_id, mode=mode)
@@ -696,17 +678,17 @@ def run(mode: str, batch_id: str):
                 if p: batches.append(p)
                 stats["ebay"] = len(ebay_records)
                 log.info(
-                    f"  ✅ eBay: {len(ebay_records):,} registros"
+                    f"  OK eBay: {len(ebay_records):,} registros"
                 )
             except Exception as e:
-                log.error(f"  ❌ eBay: {e}")
+                log.error(f"  ERR eBay: {e}")
                 stats["ebay"] = 0
     else:
         stats["ebay"] = 0
 
     # ── 6. CamelCamelCamel ───────────────────────────────────────────
     if _HAS_CAMEL and mode in ("historical", "full"):
-        log.info(_step("🐪 CamelCamelCamel"))
+        log.info(_step("CamelCamelCamel"))
         if not _near_timeout():
             try:
                 camel_records = scrape_camel(batch_id, mode=mode)
@@ -716,21 +698,19 @@ def run(mode: str, batch_id: str):
                 if p: batches.append(p)
                 stats["camel"] = len(camel_records)
                 log.info(
-                    f"  ✅ Camel: {len(camel_records):,} registros"
+                    f"  OK Camel: {len(camel_records):,} registros"
                 )
             except Exception as e:
-                log.error(f"  ❌ Camel: {e}")
+                log.error(f"  ERR Camel: {e}")
                 stats["camel"] = 0
     else:
         if not _HAS_CAMEL and mode in ("historical", "full"):
-            log.warning(
-                "  ⚠️  CamelCamelCamel omitido — scraper no disponible"
-            )
+            log.warning("  WARN CamelCamelCamel omitido — scraper no disponible")
         stats["camel"] = 0
 
     # ── 7. PCPartPicker ──────────────────────────────────────────────
     if _HAS_PCP and mode in ("historical", "full"):
-        log.info(_step("🖥️ PCPartPicker"))
+        log.info(_step("PCPartPicker"))
         if not _near_timeout():
             try:
                 pcp_records = scrape_pcpartpicker(batch_id, mode=mode)
@@ -741,21 +721,19 @@ def run(mode: str, batch_id: str):
                 if p: batches.append(p)
                 stats["pcpartpicker"] = len(pcp_records)
                 log.info(
-                    f"  ✅ PCPartPicker: {len(pcp_records):,} registros"
+                    f"  OK PCPartPicker: {len(pcp_records):,} registros"
                 )
             except Exception as e:
-                log.error(f"  ❌ PCPartPicker: {e}")
+                log.error(f"  ERR PCPartPicker: {e}")
                 stats["pcpartpicker"] = 0
     else:
         if not _HAS_PCP and mode in ("historical", "full"):
-            log.warning(
-                "  ⚠️  PCPartPicker omitido — scraper no disponible"
-            )
+            log.warning("  WARN PCPartPicker omitido — scraper no disponible")
         stats["pcpartpicker"] = 0
 
     # ── 8. Kaggle ────────────────────────────────────────────────────
     if _HAS_KAGGLE and mode in ("kaggle_only", "full"):
-        log.info(_step("📦 Kaggle datasets"))
+        log.info(_step("Kaggle datasets"))
         if not _near_timeout():
             try:
                 kaggle_records = scrape_kaggle(batch_id, mode=mode)
@@ -765,23 +743,21 @@ def run(mode: str, batch_id: str):
                 if p: batches.append(p)
                 stats["kaggle"] = len(kaggle_records)
                 log.info(
-                    f"  ✅ Kaggle: {len(kaggle_records):,} registros"
+                    f"  OK Kaggle: {len(kaggle_records):,} registros"
                 )
             except Exception as e:
-                log.error(f"  ❌ Kaggle: {e}")
+                log.error(f"  ERR Kaggle: {e}")
                 stats["kaggle"] = 0
     else:
         if not _HAS_KAGGLE and mode in ("kaggle_only", "full"):
-            log.warning(
-                "  ⚠️  Kaggle omitido — scraper no disponible"
-            )
+            log.warning("  WARN Kaggle omitido — scraper no disponible")
         stats["kaggle"] = 0
 
-    # ── 9. Importación ───────────────────────────────────────────────
+    # ── 9. Importacion ───────────────────────────────────────────────
     if _HAS_IMPORTACION and mode in (
         "normal", "local_only", "historical", "full"
     ):
-        log.info(_step("📦 Precios de importación"))
+        log.info(_step("Precios de importacion"))
         if not _near_timeout():
             try:
                 imp_records = scrape_importacion(batch_id, mode=mode)
@@ -792,17 +768,17 @@ def run(mode: str, batch_id: str):
                 if p: batches.append(p)
                 stats["importacion"] = len(imp_records)
                 log.info(
-                    f"  ✅ Importación: {len(imp_records):,} registros"
+                    f"  OK Importacion: {len(imp_records):,} registros"
                 )
             except Exception as e:
-                log.error(f"  ❌ Importación: {e}")
+                log.error(f"  ERR Importacion: {e}")
                 stats["importacion"] = 0
     else:
         stats["importacion"] = 0
 
     # ── 10. Competencia ──────────────────────────────────────────────
     if _HAS_COMPETENCIA and mode in ("normal", "local_only", "full"):
-        log.info(_step("🔍 Competencia local PE"))
+        log.info(_step("Competencia local PE"))
         if not _near_timeout():
             try:
                 comp_records = scrape_competencia(batch_id, mode=mode)
@@ -813,10 +789,10 @@ def run(mode: str, batch_id: str):
                 if p: batches.append(p)
                 stats["competencia"] = len(comp_records)
                 log.info(
-                    f"  ✅ Competencia: {len(comp_records):,} registros"
+                    f"  OK Competencia: {len(comp_records):,} registros"
                 )
             except Exception as e:
-                log.error(f"  ❌ Competencia: {e}")
+                log.error(f"  ERR Competencia: {e}")
                 stats["competencia"] = 0
     else:
         stats["competencia"] = 0
@@ -830,12 +806,12 @@ def run(mode: str, batch_id: str):
     report  = save_report(batch_id, stats, elapsed, new_added)
 
     # ── Resumen final ─────────────────────────────────────────────────
-    log.info("\n" + "═" * 60)
+    log.info("\n" + "=" * 60)
     log.info("  RESUMEN FINAL")
-    log.info("═" * 60)
+    log.info("=" * 60)
     log.info(f"  Batch ID     : {batch_id}")
     log.info(f"  Modo         : {mode}")
-    log.info(f"  Duración     : {int(elapsed//60)}m {int(elapsed%60)}s")
+    log.info(f"  Duracion     : {int(elapsed//60)}m {int(elapsed%60)}s")
     log.info(f"  {'Fuente':<22} {'Registros':>10}")
     log.info(f"  {'-'*34}")
     for src, count in stats.items():
@@ -844,7 +820,7 @@ def run(mode: str, batch_id: str):
     log.info(f"  {'-'*34}")
     log.info(f"  {'NUEVOS REALES':<22} {new_added:>10,}")
     log.info(f"  {'MASTER TOTAL':<22} {master_total:>10,}")
-    log.info("═" * 60)
+    log.info("=" * 60)
 
     return report
 
@@ -855,7 +831,7 @@ def run(mode: str, batch_id: str):
 
 def _parse_args():
     parser = argparse.ArgumentParser(
-        description="Pipeline de recolección — tesis-hardware-peru v5.11",
+        description="Pipeline de recoleccion — tesis-hardware-peru v5.12",
         formatter_class=argparse.RawTextHelpFormatter,
     )
     parser.add_argument(
@@ -865,22 +841,22 @@ def _parse_args():
             "normal", "local_only", "historical", "kaggle_only", "full"
         ],
         help=(
-            "Modo de ejecución:\n"
-            "  normal      → local PE + MeLi PE + Newegg + eBay + "
-            "importacion + competencia (~55 min)\n"
-            "  local_only  → Falabella/Hiraoka + MeLi PE + importacion + "
-            "competencia (~30 min)\n"
-            "  historical  → Newegg + eBay + CamelCamelCamel + "
+            "Modo de ejecucion:\n"
+            "  normal      -> local PE + MeLi PE + Ripley PE + Newegg + "
+            "eBay + importacion + competencia (~60 min)\n"
+            "  local_only  -> Falabella/Hiraoka + MeLi PE + Ripley PE + "
+            "importacion + competencia (~35 min)\n"
+            "  historical  -> Newegg + eBay + CamelCamelCamel + "
             "PCPartPicker + importacion (~50 min)\n"
-            "  kaggle_only → solo descarga Kaggle (~30 min)\n"
-            "  full        → todo (~110 min) "
-            "⚠️ usa MAX_ELAPSED_S para merge seguro"
+            "  kaggle_only -> solo descarga Kaggle (~30 min)\n"
+            "  full        -> todo (~115 min) "
+            "usa MAX_ELAPSED_S para merge seguro"
         ),
     )
     parser.add_argument(
         "--batch-id",
         default=None,
-        help="Batch ID manual (default: timestamp automático)",
+        help="Batch ID manual (default: timestamp automatico)",
     )
     parser.add_argument(
         "--max-elapsed",
