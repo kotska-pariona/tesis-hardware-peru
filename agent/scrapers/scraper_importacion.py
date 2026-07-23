@@ -355,94 +355,148 @@ class AmazonScraper:
         ts           = datetime.now(timezone.utc).isoformat()
         price_date   = datetime.now(timezone.utc).strftime("%Y-%m-%d")
         shipping_est = SHIPPING_EST_BY_CATEGORY.get(category, SHIPPING_EST_DEFAULT)
+        PEN_TO_USD   = 1 / 3.72
+
+        def _parse_review_count(raw: str) -> int:
+            raw = raw.strip().strip("()")
+            raw = raw.replace(",", "")
+            m_k = re.match(r"([\d.]+)[Kk]", raw)
+            if m_k:
+                return int(float(m_k.group(1)) * 1000)
+            try:
+                return int(float(raw))
+            except ValueError:
+                return 0
 
         for card in soup.select("div[data-component-type='s-search-result']"):
             try:
-                title_el = (card.select_one("h2 span") or
-                            card.select_one("h2 a span"))
-                title    = title_el.get_text(strip=True) if title_el else ""
-                if not title:
+                # ── TÍTULO ──────────────────────────────────────────────
+                title  = ""
+                h2_all = card.find_all("h2")
+                if len(h2_all) >= 2:
+                    brand_txt = h2_all[0].get_text(strip=True)
+                    name_txt  = h2_all[1].get_text(strip=True)
+                    title = f"{brand_txt} {name_txt}".strip()
+                elif len(h2_all) == 1:
+                    title = h2_all[0].get_text(strip=True)
+                else:
+                    el = card.select_one("div[data-cy='title-recipe']")
+                    if el:
+                        title = el.get_text(" ", strip=True)
+                if not title or len(title) < 5:
                     continue
 
-                asin    = card.get("data-asin", "")
-                link_el = card.select_one("h2 a")
-                url     = (f"https://www.amazon.com{link_el['href']}"
-                           if link_el and link_el.get("href") else "")
+                # ── ASIN ────────────────────────────────────────────────
+                asin = card.get("data-asin", "")
 
+                # ── URL ─────────────────────────────────────────────────
+                url     = ""
+                link_el = card.select_one("a[href*='/dp/']")
+                if link_el:
+                    href  = link_el.get("href", "")
+                    m_url = re.search(r"(/[^/]+/dp/[A-Z0-9]{10})", href)
+                    url   = (f"https://www.amazon.com{m_url.group(1)}"
+                             if m_url else
+                             f"https://www.amazon.com{href.split('?')[0]}")
+
+                # ── PRECIO ──────────────────────────────────────────────
                 price_usd = 0.0
-                for sel in [
-                    "span.a-price > span.a-offscreen",
-                    "span[data-a-color='base'] span.a-offscreen",
-                    "span[data-a-color='price'] span.a-offscreen",
-                    "span.a-price-whole",
-                ]:
-                    el = card.select_one(sel)
-                    if el:
-                        price_usd = _parse_price(el.get_text(strip=True))
-                        if price_usd > 0:
-                            break
+                price_el  = card.select_one("div[data-cy='price-recipe']")
+                if price_el:
+                    raw = price_el.get_text(" ", strip=True)
+                    m   = re.search(r"PEN[\s\xa0]*([\d,]+\.?\d*)", raw)
+                    if m:
+                        price_usd = round(
+                            float(m.group(1).replace(",", "")) * PEN_TO_USD, 2
+                        )
+                if price_usd == 0.0:
+                    for sel in [
+                        "span.a-price > span.a-offscreen",
+                        "span[data-a-color='base'] span.a-offscreen",
+                    ]:
+                        el = card.select_one(sel)
+                        if el:
+                            raw = el.get_text(strip=True)
+                            val = _parse_price(
+                                raw.replace("PEN", "").replace("\xa0", "").strip()
+                            )
+                            if val > 0:
+                                price_usd = round(val * PEN_TO_USD, 2)
+                                break
 
+                # ── SHIPPING ────────────────────────────────────────────
                 shipping_usd = shipping_est
                 for sel in [
                     "span[aria-label='Amazon Prime']",
                     "i.a-icon-prime",
                     "span[data-csa-c-content-id='FREE_SHIPPING']",
                 ]:
-                    try:
-                        if card.select_one(sel):
-                            shipping_usd = 0.0
-                            break
-                    except Exception:
-                        continue
+                    if card.select_one(sel):
+                        shipping_usd = 0.0
+                        break
                 if shipping_usd > 0:
                     card_text = card.get_text()
-                    if "FREE delivery" in card_text or "FREE Shipping" in card_text:
+                    if any(x in card_text for x in
+                           ["FREE delivery", "FREE Shipping", "Free delivery"]):
                         shipping_usd = 0.0
 
+                # ── RATING ──────────────────────────────────────────────
                 rating  = 0.0
                 rate_el = card.select_one("span.a-icon-alt")
                 if rate_el:
-                    m = re.search(r"([\d.]+) out of", rate_el.get_text())
+                    m = re.search(r"([\d.]+)\s*out of", rate_el.get_text())
                     if m:
                         rating = float(m.group(1))
+                if rating == 0.0:
+                    rb = card.select_one("div[data-cy='reviews-block']")
+                    if rb:
+                        m = re.search(r"([\d.]+)\s*out of", rb.get_text())
+                        if m:
+                            rating = float(m.group(1))
 
+                # ── REVIEWS ─────────────────────────────────────────────
                 reviews = 0
-                rev_el  = (
-                    card.select_one(
-                        "span[aria-label$='stars'] + span a span"
-                    ) or
-                    card.select_one(
-                        "a[href*='#customerReviews'] span.a-size-base"
-                    )
-                )
+                rev_el  = card.select_one("a[href*='customerReviews']")
                 if rev_el:
-                    raw_rev = (rev_el.get_text(strip=True)
-                               .replace(",", "").replace(".", ""))
-                    try:
-                        reviews = int(raw_rev)
-                    except ValueError:
-                        pass
+                    reviews = _parse_review_count(rev_el.get_text(strip=True))
+                if reviews == 0:
+                    for sp in card.select("span[aria-label]"):
+                        lbl = sp.get("aria-label", "")
+                        m3  = re.search(r"([\d,]+\.?\d*[Kk]?)\s*rating", lbl)
+                        if m3:
+                            reviews = _parse_review_count(m3.group(1))
+                            break
+                if reviews == 0:
+                    rb = card.select_one("div[data-cy='reviews-block']")
+                    if rb:
+                        m4 = re.search(r"\(([\d.,]+[Kk]?)\)", rb.get_text())
+                        if m4:
+                            reviews = _parse_review_count(m4.group(1))
 
-                if price_usd > 0:
+                # ── GUARDAR ─────────────────────────────────────────────
+                if price_usd > 0:                          # ← solo si hay precio
                     items.append({
                         "batch_id":     batch_id,
                         "source":       "amazon_usa",
                         "category":     category,
                         "title":        title[:200],
-                        "sku":          asin,      # [I14] asin_sku eliminado
-                        "price_usd":    round(price_usd, 2),
+                        "sku":          asin,
+                        "price_usd":    price_usd,
                         "price_date":   price_date,
-                        "shipping_usd": shipping_usd,
+                        "shipping_usd": round(shipping_usd, 2),
                         "total_usd":    round(price_usd + shipping_usd, 2),
                         "url":          url[:300],
                         "rating":       rating,
                         "reviews":      reviews,
                         "timestamp":    ts,
                     })
+
             except Exception as e:
                 log.debug(f"    parse card error: {e}")
                 continue
+
         return items
+
 
 
 # ══════════════════════════════════════════════════════════════════════
