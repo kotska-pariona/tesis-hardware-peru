@@ -1,0 +1,21 @@
+{
+  "batch_id": "test_ripley_real",
+  "timestamp": "2026-07-23T06:28:05.290202+00:00",
+  "elapsed_s": 1925.7,
+  "stats": {
+    "dolar": 1,
+    "local": 7198,
+    "mercadolibre_pe": 0,
+    "ripley_pe": 3201,
+    "newegg_usa": 0,
+    "ebay": 0,
+    "camel": 0,
+    "pcpartpicker": 0,
+    "kaggle": 0,
+    "importacion": 1196,
+    "competencia": 769,
+    "master_total": 297348
+  },
+  "new_added": 5565,
+  "master_total": 297348
+}

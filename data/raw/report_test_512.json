@@ -1,0 +1,17 @@
+{
+  "batch_id": "test_512",
+  "timestamp": "2026-07-23T05:50:10.152807+00:00",
+  "elapsed_s": 730.2,
+  "stats": {
+    "dolar": 1,
+    "local": 7206,
+    "newegg_usa": 0,
+    "ebay": 0,
+    "camel": 0,
+    "pcpartpicker": 0,
+    "kaggle": 0,
+    "master_total": 291783
+  },
+  "new_added": 7206,
+  "master_total": 291783
+}

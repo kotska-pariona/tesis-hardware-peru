@@ -1,70 +1,60 @@
-# Entornos virtuales
+# ── Entornos virtuales ────────────────────────────────────────
 venv_pe4/
 venv/
 .venv/
 env/
 
-# Modelos grandes (usar Git LFS o Drive)
+# ── Modelos grandes (DVC) ─────────────────────────────────────
 *.pkl
 *.bin
 *.pt
 *.pth
+*.h5
+*.hdf5
+*.ckpt
 
-# Datos procesados grandes
+# ── data/raw: permitir CSVs y JSONs de scraping ───────────────
+# NO ignorar data/raw/ completo — GitHub Actions necesita commitear aquí
+# Solo ignorar archivos muy pesados o temporales dentro de raw/
+data/raw/master_raw.parquet
+data/raw/newegg_full_snapshot.json
+data/raw/MASTER_hardware_peru_OLD_BUGGY.csv
+data/raw/MASTER_hardware_peru_REBUILT.csv
+data/raw/MASTER_hardware_peru_BACKUP_*.csv
+data/raw/batch_test_*.csv
+data/raw/batch_newegg_*.csv
+
+# ── data/processed y features (gestionadas por DVC) ──────────
 data/processed/MASTER_hardware_peru*.csv
 data/processed/*.parquet
-data/raw/
+data/processed/mice_imputer.pkl
+data/features/zscore_normalizer.pkl
+data/features/*.pkl
 
-# Archivos temporales
+# ── Jupyter ───────────────────────────────────────────────────
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# ── Archivos temporales ───────────────────────────────────────
 *.pyc
 __pycache__/
 *.log
 pcp_debug.html
-10k,*
-newegg_raw_*.csv
-
-# Archivos de sistema
+*.html
+*.bak
+*.v[0-9]*.bak
 .DS_Store
 Thumbs.db
 
-# ── Agregado por diagnóstico 2026-07-23 ──────────────────────
-# Modelos y checkpoints
-*.h5
-*.hdf5
-*.ckpt
-*.pth
-
-# Jupyter
-.ipynb_checkpoints/
-*.ipynb_checkpoints
-
-# Archivos de debug HTML
-*.html
-
-# Archivos de backup
-*.bak
-*.v[0-9]*.bak
-
-# Archivos temporales del agente
+# ── Archivos temporales del agente ───────────────────────────
 tash
 price_pen
 apply_patch.py
 patch_newegg.py
 setup_dashboard.sh
+newegg_raw_*.csv
 newegg_*.html
-
-# Logs de ejecución con timestamp
 10k,*
 
-# Carpetas de features (gestionadas por DVC)
-data/features/
-data/processed/
-
-# Reportes de calidad generados automáticamente
-data/processed/quality_report_*.json
-data/processed/split_report_*.json
-data/processed/mice_report_*.json
-
-# ── Excepciones: permitir punteros DVC ──────────────────────
-← métricas finales*/*.dvc
-models/test_predictions*.csv
+# ── Excepciones: permitir punteros DVC ───────────────────────
+!models/*.dvc
