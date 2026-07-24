@@ -1,10 +1,5 @@
-# ════════════════════════════════════════════════════════════
-# Pipeline ROI Importación PE — v2.3
-# CAMBIOS v2.3 (sobre v2.2):
-#   [P22] BUG FIX: Conflicto MASTER en rebase — usar merge -X ours
-#   [P23] BUG FIX: Coolbox GQL 500 — deshabilitado temporalmente
-#   [P24] MEJORA: git push con force-with-lease en lugar de rebase
-# ════════════════════════════════════════════════════════════
+# Pipeline ROI Importación PE — v2.4
+# [P25] checkout lfs:true  [P26] git lfs install  [P27] git lfs pull
 name: Pipeline ROI Importación PE
 
 on:
@@ -41,6 +36,7 @@ jobs:
         uses: actions/checkout@v4.2.2
         with:
           fetch-depth: 0
+          lfs: true
 
       - name: "🐍 Setup Python 3.11"
         uses: actions/setup-python@v5.4.0
@@ -51,7 +47,9 @@ jobs:
       - name: "📦 Instalar dependencias"
         run: |
           pip install --upgrade pip
-          pip install requests beautifulsoup4 lxml scrapy pandas numpy kaggle python-dotenv urllib3 tenacity fake-useragent cloudscraper pytz tzdata
+          pip install requests beautifulsoup4 lxml scrapy pandas numpy \
+            kaggle python-dotenv urllib3 tenacity fake-useragent \
+            cloudscraper pytz tzdata
 
       - name: "📁 Crear directorios"
         run: mkdir -p data/raw data/logs
@@ -83,11 +81,9 @@ jobs:
           import subprocess, sys, os
           mode = "${{ github.event.inputs.mode }}" or "local_only"
           cmd = [sys.executable, "agent/main.py", "--mode", mode]
-
           batch_id = os.environ.get("BATCH_ID")
           if batch_id:
               cmd += ["--batch-id", batch_id]
-
           print(f"Ejecutando: {' '.join(cmd)}")
           subprocess.run(cmd, check=True)
           PYEOF
@@ -104,57 +100,57 @@ jobs:
             echo "⚠️ MASTER no encontrado"
           fi
           echo "── Reporte del batch ──"
-          [ -f "data/raw/report_${BATCH_ID}.json" ] && cat "data/raw/report_${BATCH_ID}.json" || echo "Sin reporte"
+          [ -f "data/raw/report_${BATCH_ID}.json" ] && \
+            cat "data/raw/report_${BATCH_ID}.json" || echo "Sin reporte"
 
       - name: "💾 Commit y Push"
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          # [P22] Configurar merge driver para CSVs grandes — siempre gana "ours"
-          git config merge.ours.driver true
+          git lfs install
+          git config merge.lfs.driver true
 
-          # Stagear datos nuevos
           git add data/raw/
 
           if git diff --staged --quiet; then
             echo "ℹ️ Sin cambios nuevos"
-          else
-            MASTER_LINES=$(python3 -c "
+            exit 0
+          fi
+
+          MASTER_LINES=$(python3 -c "
           import pathlib
           f = pathlib.Path('data/raw/MASTER_hardware_peru.csv')
           print(sum(1 for _ in open(f)) - 1 if f.exists() else 0)
           " 2>/dev/null || echo "0")
 
-            git commit -m "🤖 [${BATCH_ID}] normal — ${MASTER_LINES} registros"
+          git commit -m "🤖 [${BATCH_ID}] normal — ${MASTER_LINES} registros"
 
-            # [P24] Fetch + merge con estrategia ours para archivos grandes
-            git fetch origin main
+          git fetch origin main
+          git lfs pull origin main 2>/dev/null || true
 
-            # Verificar si hay divergencia
-            LOCAL=$(git rev-parse HEAD)
-            REMOTE=$(git rev-parse origin/main)
+          LOCAL=$(git rev-parse HEAD)
+          REMOTE=$(git rev-parse origin/main)
 
-            if [ "$LOCAL" = "$REMOTE" ]; then
-              echo "✅ Sin divergencia — push directo"
-              git push origin main
-            else
-              echo "⚠️ Divergencia detectada — merge con estrategia ours para MASTER"
-              # Merge favoreciendo nuestra versión del MASTER (runner tiene la versión más nueva)
-              git merge origin/main \
-                --no-edit \
-                -m "🔀 merge origin/main [${BATCH_ID}]" \
-                -X ours
+          if [ "$LOCAL" = "$REMOTE" ]; then
+            echo "✅ Sin divergencia — push directo"
+            git push origin main
+          else
+            echo "⚠️ Divergencia — merge con estrategia ours"
+            git merge origin/main --no-edit -m "🔀 merge origin/main [${BATCH_ID}]" -X ours
 
-              for i in {1..3}; do
-                git push origin main && { echo "✅ Push OK (intento $i)"; break; } || {
-                  echo "⚠️ Push falló (intento $i/3) — reintentando en 10s"
-                  sleep 10
-                  git fetch origin main
-                  git merge origin/main --no-edit -X ours
-                }
-              done
-            fi
+            for i in {1..3}; do
+              git push origin main && {
+                echo "✅ Push OK (intento $i)"
+                break
+              } || {
+                echo "⚠️ Push falló (intento $i/3)"
+                sleep 10
+                git fetch origin main
+                git lfs pull origin main 2>/dev/null || true
+                git merge origin/main --no-edit -X ours
+              }
+            done
           fi
 
       - name: "📤 Subir artefactos"

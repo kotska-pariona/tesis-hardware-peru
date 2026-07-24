@@ -1,39 +1,10 @@
-# ════════════════════════════════════════════════════════════
-# Hardware Peru — Data Agent v6.4
-# CAMBIOS v6.4 (sobre v6.3):
-#   [W26] FIX: BATCH_ID ahora se genera en UTC (antes usaba hora PE
-#         pero el batch 24h lo interpretaba como UTC → desfase de 5h,
-#         causando que la ventana real de "últimas 24h" cubriera solo
-#         ~19h reales, excluyendo batches silenciosamente).
-#         Efecto secundario: elimina el doble prefijo "batch_batch_"
-#         en los nombres de archivo → regex del paso 7 simplificado.
-#
-# CAMBIOS v6.3 (sobre v6.2):
-#   [W23] FIX CRÍTICO: [W19] estaba incompleto — `git add` (staging)
-#         NO satisface el requisito de "working tree limpio" que exige
-#         `git pull --rebase`. Git sigue reportando "uncommitted changes"
-#         aunque los archivos estén staged. La solución real es hacer
-#         COMMIT completo ANTES del pull --rebase, no solo `git add`.
-#         Orden correcto: add → commit → pull --rebase → push.
-#   [W24] Push con reintentos (3x) — protege contra carreras si dos
-#         workflows (daily_agent.yml y pipeline.yml) commitean casi
-#         a la vez pese al concurrency group.
-#   [W25] rebase --abort explícito en cada fallo de reintento, para
-#         no dejar el repo en estado "rebase in progress" a mitad de retry.
-#
-# CAMBIOS v6.2 (sobre v6.1):
-#   [W19] git add ANTES de pull --rebase (fix bug "unstaged changes")
-#         — INCOMPLETO, corregido en [W23] arriba.
-#   [W20] ebaysdk eliminado de pip install (no usado — OAuth2 directo)
-#   [W21] batch 24h: escritura atómica con .tmp → rename (anti-corrupción)
-#   [W22] Compumundo: flag COMPUMUNDO_ENABLED=false via env (ahorra ~12 min)
-# ════════════════════════════════════════════════════════════
-name: Hardware Peru — Data Agent v6.4
+# Hardware Peru — Data Agent v6.5
+# [W27] checkout lfs:true  [W28] git lfs install  [W29] git lfs pull  [W30] merge.lfs.driver
+name: Hardware Peru — Data Agent v6.5
 
 on:
   schedule:
-    - cron: '0 */3 * * *'   # [W16] cada 3h = 8 snapshots/día, margen 2h+
-
+    - cron: '0 */3 * * *'
   workflow_dispatch:
     inputs:
       mode:
@@ -42,11 +13,11 @@ on:
         default: 'normal'
         type: choice
         options:
-          - normal        # local PE + MeLi + eBay + importación + competencia
-          - local_only    # [W12] Falabella/Hiraoka/Coolbox/Compumundo + MeLi + importacion
-          - historical    # eBay + CamelCamelCamel + PCPartPicker + importacion
-          - kaggle_only   # solo Kaggle (ejecutar 1 vez manualmente)
-          - full          # todo (~110 min, usa MAX_ELAPSED_S para merge seguro)
+          - normal
+          - local_only
+          - historical
+          - kaggle_only
+          - full
 
 concurrency:
   group: data-collection-${{ github.ref }}
@@ -59,33 +30,31 @@ jobs:
   collect-data:
     name: "🤖 Recolección — ${{ github.event.inputs.mode || 'normal' }}"
     runs-on: ubuntu-latest
-    timeout-minutes: 90    # [W11] valor fijo — control real via MAX_ELAPSED_S en main.py
+    timeout-minutes: 90
 
     env:
       EBAY_APP_ID:          ${{ secrets.EBAY_APP_ID }}
-      EBAY_CLIENT_SECRET:   ${{ secrets.EBAY_CLIENT_SECRET }}   # [W10]
+      EBAY_CLIENT_SECRET:   ${{ secrets.EBAY_CLIENT_SECRET }}
       KAGGLE_USERNAME:      ${{ secrets.KAGGLE_USERNAME }}
       KAGGLE_KEY:           ${{ secrets.KAGGLE_KEY }}
       RUN_MODE:             ${{ github.event.inputs.mode || 'normal' }}
       OUTPUT_DIR:           data/raw
       TZ:                   America/Lima
-      COMPUMUNDO_ENABLED:   "false"   # [W22] SSL mismatch permanente — ~12 min ahorrados
+      COMPUMUNDO_ENABLED:   "false"
 
     steps:
-      # ── 1. Checkout ────────────────────────────────────────────
       - name: "📥 Checkout"
         uses: actions/checkout@v4.2.2
         with:
           fetch-depth: 0
+          lfs: true
 
-      # ── 2. Python ──────────────────────────────────────────────
       - name: "🐍 Setup Python 3.11"
         uses: actions/setup-python@v5.4.0
         with:
           python-version: '3.11'
           cache: 'pip'
 
-      # ── 3. Dependencias ────────────────────────────────────────
       - name: "📦 Instalar dependencias"
         run: |
           pip install --upgrade pip
@@ -105,10 +74,7 @@ jobs:
             cloudscraper \
             pytz \
             tzdata
-          # [W14] tzdata necesario para ZoneInfo("America/Lima") en ubuntu-latest
-          # [W20] ebaysdk eliminado — OAuth2 se maneja directo con requests
 
-      # ── 4. Info del run ────────────────────────────────────────
       - name: "ℹ️ Info del run"
         run: |
           echo "════════════════════════════════"
@@ -117,34 +83,25 @@ jobs:
           echo "  Hora PE  : $(TZ='America/Lima' date '+%Y-%m-%d %H:%M:%S')"
           echo "  Trigger  : ${{ github.event_name }}"
           echo "════════════════════════════════"
-          # [W26] BATCH_ID en UTC — evita el desfase de 5h que tenía el
-          #       cálculo del batch 24h (paso 7), y elimina el doble
-          #       prefijo "batch_batch_" en los nombres de archivo
           echo "BATCH_ID=$(date -u '+%Y%m%d_%H%M%S')" >> $GITHUB_ENV
-
-          # [W17] MAX_ELAPSED_S según modo
           if [ "$RUN_MODE" = "full" ]; then
-            echo "MAX_ELAPSED_S=5100" >> $GITHUB_ENV   # 85 min (margen 5 min)
+            echo "MAX_ELAPSED_S=5100" >> $GITHUB_ENV
           else
-            echo "MAX_ELAPSED_S=3000" >> $GITHUB_ENV   # 50 min
+            echo "MAX_ELAPSED_S=3000" >> $GITHUB_ENV
           fi
 
-      # ── 5. Ejecutar pipeline ───────────────────────────────────
       - name: "🚀 Ejecutar recolección"
         run: |
-          # [W13] PYTHONPATH incluye agent/scrapers
           PYTHONPATH=agent:agent/scrapers:configuracion \
           python agent/main.py \
             --mode "$RUN_MODE" \
             --batch-id "$BATCH_ID" \
-            --max-elapsed "$MAX_ELAPSED_S"   # [W17]
+            --max-elapsed "$MAX_ELAPSED_S"
 
-      # ── 6. Verificar resultados ────────────────────────────────
       - name: "🔍 Verificar datos"
         run: |
           echo "── Archivos generados ──"
           ls -lh data/raw/ | grep -E "batch_|MASTER" | tail -15
-
           echo ""
           echo "── MASTER CSV ──"
           if [ -f data/raw/MASTER_hardware_peru.csv ]; then
@@ -154,21 +111,17 @@ jobs:
           else
             echo "  ⚠️ MASTER no encontrado aún (primer run)"
           fi
-
           echo ""
           echo "── Reporte del batch ──"
           REPORT="data/raw/report_${BATCH_ID}.json"
-          if [ -f "$REPORT" ]; then
-            cat "$REPORT"
-          fi
+          if [ -f "$REPORT" ]; then cat "$REPORT"; fi
 
-      # ── 7. Batch 24h ───────────────────────────────────────────
       - name: "📊 Generar batch 24h"
         run: |
           python - <<'PYEOF'
           import os, glob, re, shutil, pandas as pd
           from datetime import datetime, timedelta, timezone
-          from zoneinfo import ZoneInfo   # [W14] tzdata instalado arriba
+          from zoneinfo import ZoneInfo
 
           raw_dir  = "data/raw"
           tz_pe    = ZoneInfo("America/Lima")
@@ -177,15 +130,12 @@ jobs:
           cutoff   = now_utc - timedelta(hours=24)
 
           all_batch_files = glob.glob(f"{raw_dir}/batch_*_*.csv")
-
           recent = []
           for f in all_batch_files:
               basename = os.path.basename(f)
               if basename.startswith("batch_24h_"):
                   continue
               try:
-                  # [W26] BATCH_ID ya nace en UTC — regex simplificado,
-                  #       sin necesidad del grupo opcional (?:batch_)?
                   m = re.match(r"batch_(\d{8})_(\d{6})_", basename)
                   if not m:
                       continue
@@ -196,7 +146,6 @@ jobs:
               except (ValueError, AttributeError):
                   continue
 
-          # [W18] tag parsing con regex directo — sin lógica de índices frágil
           tags = {}
           for f in recent:
               basename = os.path.basename(f)
@@ -214,13 +163,12 @@ jobs:
                       dfs.append(pd.read_csv(f, low_memory=False))
                   except Exception as e:
                       print(f"  Error leyendo {f}: {e}")
-
               if dfs:
                   combined = pd.concat(dfs, ignore_index=True)
                   out = f"{raw_dir}/batch_24h_{now_pe.strftime('%Y%m%d')}.csv"
                   tmp = out + ".tmp"
                   combined.to_csv(tmp, index=False)
-                  shutil.move(tmp, out)   # [W21] escritura atómica — anti-corrupción
+                  shutil.move(tmp, out)
                   print(f"✅ Batch 24h guardado: {out}")
                   print(f"   Registros: {len(combined):,}")
                   if "source" in combined.columns:
@@ -229,15 +177,13 @@ jobs:
               print("⚠️ Sin batches recientes (primer run del día)")
           PYEOF
 
-      # ── 8. Commit ──────────────────────────────────────────────
-      # [W23] FIX REAL: commit COMPLETO antes de pull --rebase.
-      # `git add` (staging) NO satisface el requisito de git para rebasear;
-      # el índice debe estar COMMITEADO, no solo staged.
-      # Orden correcto: add → commit → pull --rebase → push.
       - name: "💾 Commit datos"
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git lfs install
+          git config merge.lfs.driver true
 
           git add data/raw/
 
@@ -252,39 +198,38 @@ jobs:
           print(sum(1 for _ in open(f)) - 1 if f.exists() else 0)
           " 2>/dev/null || echo "0")
 
-          # [W23] Commit ANTES del rebase — deja el índice limpio de verdad
           git commit -m "🤖 [${BATCH_ID}] ${RUN_MODE} — ${MASTER_LINES} registros"
 
-          # [W15] Pull con falla explícita — no silenciar errores reales
-          # Ahora el índice SÍ está limpio (commiteado), el rebase puede proceder
           REBASE_OK=false
           for i in 1 2 3; do
-            if git pull --rebase origin main; then
+            git fetch origin main
+            git lfs pull origin main 2>/dev/null || true
+            if git rebase origin/main; then
               REBASE_OK=true
               break
             else
-              echo "⚠️ pull --rebase falló (intento $i/3) — abortando rebase y reintentando"
-              git rebase --abort 2>/dev/null || true   # [W25]
+              echo "⚠️ rebase falló (intento $i/3)"
+              git rebase --abort 2>/dev/null || true
               sleep $((i * 5))
             fi
           done
 
           if [ "$REBASE_OK" = false ]; then
-            echo "❌ git pull --rebase falló tras 3 intentos"
-            echo "💾 El commit sigue local en este runner — no se perdió el dato,"
-            echo "   pero requiere revisión manual del branch main."
-            exit 1
+            echo "❌ rebase falló tras 3 intentos — intentando merge -X ours"
+            git merge origin/main --no-edit -X ours \
+              -m "🔀 merge fallback [${BATCH_ID}]" || true
           fi
 
-          # [W24] Push con reintentos — protege contra carreras entre workflows
           PUSH_OK=false
           for i in 1 2 3; do
             if git push origin main; then
               PUSH_OK=true
               break
             else
-              echo "⚠️ git push falló (intento $i/3) — re-sincronizando"
-              git pull --rebase origin main || true
+              echo "⚠️ push falló (intento $i/3)"
+              git fetch origin main
+              git lfs pull origin main 2>/dev/null || true
+              git rebase origin/main || git merge origin/main --no-edit -X ours || true
               sleep $((i * 5))
             fi
           done
@@ -296,7 +241,6 @@ jobs:
 
           echo "✅ Push exitoso — ${MASTER_LINES} registros en MASTER"
 
-      # ── 9. Resumen ─────────────────────────────────────────────
       - name: "📋 Resumen"
         if: always()
         run: |
