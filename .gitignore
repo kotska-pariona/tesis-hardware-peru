@@ -62,3 +62,15 @@ newegg_*.html
 # Archivos procesados derivados — se regeneran con pe5_agent.py
 data/processed/*.csv
 data/processed/oportunidades_roi.csv
+
+# CSVs/JSONs sueltos en data/ (fuera de raw/)
+data/precios_*.csv
+data/precios_*.json
+
+# Reportes temporales del pipeline — se regeneran en cada run
+data/processed/quality_report_*.json
+data/processed/split_report_*.json
+data/processed/mice_report_*.json
+
+# Predicciones de test de modelos ML — derivadas, no versionar
+models/test_predictions_*.csv

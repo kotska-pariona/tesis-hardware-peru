@@ -1,0 +1,15 @@
+{
+  "total_rows": 292423,
+  "labeled_rows": 139624,
+  "unlabeled_rows": 152799,
+  "coverage_pct": 47.75,
+  "label_distribution": {
+    "0_vigente": 73211,
+    "1_transicion": 56807,
+    "2_obsoleto": 9606
+  },
+  "confidence_distribution": {
+    "medium": 101691,
+    "high": 37933
+  }
+}
