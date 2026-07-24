@@ -1,0 +1,88 @@
+{
+  "version": "1.0",
+  "timestamp": "2026-07-24T14:36:58.263934+00:00",
+  "total_analyzed": 168805,
+  "decisions": {
+    "WAIT": 85485,
+    "HOLD": 42357,
+    "BUY": 40844,
+    "LIQUIDATE": 119
+  },
+  "pct_buy": 24.2,
+  "pct_wait": 50.6,
+  "pct_liquidate": 0.1,
+  "pct_hold": 25.1,
+  "best_roi_pct": 2122.88,
+  "best_ahorro_pen": 3606.27,
+  "top_buy": [
+    {
+      "title": "MSI Summit E13 AI EVO Intel Core Ultra 7 16GB RAM Motherboard",
+      "category": "LAPTOP",
+      "roi_pct": 134.02,
+      "score_final": 80.0,
+      "ahorro_pen": 2404.7
+    },
+    {
+      "title": "Gateway Ultra Slim 15.6\" FHD Laptop Intel Core i3-1115G4 4GB 128GB Win11H",
+      "category": "LAPTOP",
+      "roi_pct": 309.45,
+      "score_final": 80.0,
+      "ahorro_pen": 3173.49
+    },
+    {
+      "title": "Toshiba Portege X30-F Intel Core i7 16GB RAM 512GB Ultra-Light Laptop",
+      "category": "LAPTOP",
+      "roi_pct": 292.16,
+      "score_final": 80.0,
+      "ahorro_pen": 3128.26
+    },
+    {
+      "title": "Toshiba Portege X30-E Intel Core i7 8GB RAM 256GB SSD  Ultra-Light Laptop | GOOD",
+      "category": "LAPTOP",
+      "roi_pct": 309.45,
+      "score_final": 80.0,
+      "ahorro_pen": 3173.49
+    },
+    {
+      "title": "Gateway Ultra Slim 15.6\" FHD Laptop Intel Core i3-1115G4 4GB 128GB Win11H",
+      "category": "LAPTOP",
+      "roi_pct": 309.45,
+      "score_final": 80.0,
+      "ahorro_pen": 3173.49
+    }
+  ],
+  "top_liquidate": [
+    {
+      "title": "LOT Samsung 8GB 4GB 2GB 1GB 2RX8 DDR4/DDR3/DDR2 Desktop Memory RAM 288/240PIN GS",
+      "category": "RAM",
+      "obs_score": 0.7,
+      "score_final": 42.0
+    },
+    {
+      "title": "Thermalright MC-2 ARGB Black RAM Cooler, RGB Strip, Dual 3200RPM Silent Fans, Black Active Cooling Design. Compatible with DDR, DDR2, DDR3, DDR4，DDR5 Memory. Adopts Simple Buckle Structure for Fast",
+      "category": "RAM",
+      "obs_score": 0.7,
+      "score_final": 42.0
+    },
+    {
+      "title": "LOT Samsung 16GB 8GB 4GB 2GB 1GB 2RX8 DDR4/DDR3/DDR2 Desktop Memory RAM 240PIN $",
+      "category": "RAM",
+      "obs_score": 0.7,
+      "score_final": 42.0
+    },
+    {
+      "title": "New 5xESD DIMM RAM Memory Trays with Lid /Fits 50pcs DDR/DDR2/DDR3/DDR4 Desktop",
+      "category": "RAM",
+      "obs_score": 0.7,
+      "score_final": 42.0
+    },
+    {
+      "title": "Intel Core i7-8700K Desktop Processor 6 Cores up to 4.7GHz Turbo Unlocked LGA1151 300 Series 95W",
+      "category": "CPU",
+      "obs_score": 0.7,
+      "score_final": 42.0
+    }
+  ],
+  "pe3_r2": 0.9549,
+  "pe4_f1": 0.9966
+}
