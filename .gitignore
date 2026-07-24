@@ -1,11 +1,40 @@
-# ── Entornos virtuales ────────────────────────────────────────
-venv_pe4/
+# ═══════════════════════════════════════════════════════════════════════
+#  .gitignore — tesis-hardware-peru
+#  Estrategia:
+#    data/raw/        → Git LFS (datos únicos de scraping)
+#    data/features/   → ignorado (335 MB, derivado de MASTER)
+#    data/processed/  → ignorado (derivados regenerables)
+#    models/          → git normal para artefactos < 10 MB
+#                       git LFS para modelos > 50 MB
+# ═══════════════════════════════════════════════════════════════════════
+
+# ── Entornos virtuales ────────────────────────────────────────────────
 venv/
+venv_pe4/
 .venv/
 env/
 
-# ── Modelos grandes (DVC) ─────────────────────────────────────
-*.pkl
+# ── Python ────────────────────────────────────────────────────────────
+*.pyc
+__pycache__/
+*.egg-info/
+dist/
+build/
+
+# ── Jupyter ───────────────────────────────────────────────────────────
+.ipynb_checkpoints/
+
+# ── OS ────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ── Logs y temporales ─────────────────────────────────────────────────
+*.log
+*.bak
+*.html
+pcp_debug.html
+
+# ── Modelos grandes (> 50 MB) → usar Git LFS manualmente ─────────────
 *.bin
 *.pt
 *.pth
@@ -13,9 +42,12 @@ env/
 *.hdf5
 *.ckpt
 
-# ── data/raw: permitir CSVs y JSONs de scraping ───────────────
-# NO ignorar data/raw/ completo — GitHub Actions necesita commitear aquí
-# Solo ignorar archivos muy pesados o temporales dentro de raw/
+# ── PKL: ignorar por defecto, excepto artefactos pequeños versionados ─
+*.pkl
+!models/zscore_normalizer.pkl
+!models/mice_imputer.pkl
+
+# ── data/raw: solo ignorar snapshots pesados y backups ───────────────
 data/raw/master_raw.parquet
 data/raw/newegg_full_snapshot.json
 data/raw/MASTER_hardware_peru_OLD_BUGGY.csv
@@ -23,61 +55,28 @@ data/raw/MASTER_hardware_peru_REBUILT.csv
 data/raw/MASTER_hardware_peru_BACKUP_*.csv
 data/raw/batch_test_*.csv
 data/raw/batch_newegg_*.csv
+data/raw/newegg_raw_*.csv
+data/raw/newegg_*.html
 
-# ── data/processed y features (gestionadas por DVC) ──────────
-data/processed/MASTER_hardware_peru*.csv
-data/processed/*.parquet
-data/processed/mice_imputer.pkl
-data/features/zscore_normalizer.pkl
-data/features/*.pkl
+# ── data/features: 335 MB, derivado de MASTER (regenerable) ──────────
+data/features/
 
-# ── Jupyter ───────────────────────────────────────────────────
-.ipynb_checkpoints/
-*.ipynb_checkpoints
-
-# ── Archivos temporales ───────────────────────────────────────
-*.pyc
-__pycache__/
-*.log
-pcp_debug.html
-*.html
-*.bak
-*.v[0-9]*.bak
-.DS_Store
-Thumbs.db
-
-# ── Archivos temporales del agente ───────────────────────────
-tash
-price_pen
-apply_patch.py
-patch_newegg.py
-setup_dashboard.sh
-newegg_raw_*.csv
-newegg_*.html
-10k,*
-
-# ── Excepciones: permitir punteros DVC ───────────────────────
-!models/*.dvc
-
-# Archivos procesados derivados — se regeneran con pe5_agent.py
+# ── data/processed: derivados regenerables ───────────────────────────
 data/processed/*.csv
-data/processed/oportunidades_roi.csv
-
-# CSVs/JSONs sueltos en data/ (fuera de raw/)
-data/precios_*.csv
-data/precios_*.json
-
-# Reportes temporales del pipeline — se regeneran en cada run
+data/processed/*.parquet
 data/processed/quality_report_*.json
 data/processed/split_report_*.json
 data/processed/mice_report_*.json
 
-# Predicciones de test de modelos ML — derivadas, no versionar
+# ── data/ raíz: CSVs/JSONs sueltos de scraping ───────────────────────
+data/precios_*.csv
+data/precios_*.json
+
+# ── models/: predicciones de test (derivadas) ────────────────────────
 models/test_predictions_*.csv
 
-# Features dataset — 335 MB, derivado de MASTER_CSV
-# Regenerar con: python agent/pipeline.py --features
-data/features/
-
-# Excepciones: artefactos pequeños que SÍ se versionan
-!models/zscore_normalizer.pkl
+# ── Archivos temporales del agente ───────────────────────────────────
+apply_patch.py
+patch_newegg.py
+setup_dashboard.sh
+10k,*
