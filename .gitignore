@@ -67,3 +67,4 @@ data/processed/mice_report_*.json
 
 # ── Excepciones: permitir punteros DVC ──────────────────────
 ← métricas finales*/*.dvc
+models/test_predictions*.csv
