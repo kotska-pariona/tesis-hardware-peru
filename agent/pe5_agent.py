@@ -874,6 +874,22 @@ def main():
     agent = PricingAgent(master_csv=args.master)
     df    = agent.run()
 
+    # -- Asignacion de presupuesto --
+    budget  = get_budget(args.budget)
+    log.info(f'[BUDGET] Presupuesto total: S/. {budget:,.2f}')
+    records = df.to_dict('records')
+    records = allocate_budget(records, budget)
+    df      = pd.DataFrame(records)
+
+
+    # -- Asignacion de presupuesto --
+    budget = get_budget(args.budget)
+    log.info(f'[BUDGET] Presupuesto total: S/. {budget:,.2f}')
+    records = df.to_dict('records')
+    records = allocate_budget(records, budget)
+    import pandas as pd as _pd
+    df = _pd.DataFrame(records)
+
     if df.empty:
         print("❌ Sin resultados")
         return
