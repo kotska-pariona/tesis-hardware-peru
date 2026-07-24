@@ -26,3 +26,41 @@ newegg_raw_*.csv
 # Archivos de sistema
 .DS_Store
 Thumbs.db
+
+# ── Agregado por diagnóstico 2026-07-23 ──────────────────────
+# Modelos y checkpoints
+*.h5
+*.hdf5
+*.ckpt
+*.pth
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# Archivos de debug HTML
+*.html
+
+# Archivos de backup
+*.bak
+*.v[0-9]*.bak
+
+# Archivos temporales del agente
+tash
+price_pen
+apply_patch.py
+patch_newegg.py
+setup_dashboard.sh
+newegg_*.html
+
+# Logs de ejecución con timestamp
+10k,*
+
+# Carpetas de features (gestionadas por DVC)
+data/features/
+data/processed/
+
+# Reportes de calidad generados automáticamente
+data/processed/quality_report_*.json
+data/processed/split_report_*.json
+data/processed/mice_report_*.json
