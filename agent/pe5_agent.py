@@ -266,12 +266,19 @@ def compute_obsolescence(
             label = result.get("label", "").upper()
             score = float(result.get("score", 0.0))
 
-            if "OBSOLET" in label or label == "LABEL_1":
+            # LABEL_0=vigente | LABEL_1=transicion | LABEL_2=obsoleto
+            if "OBSOLET" in label or label == "LABEL_2":
                 sig.score  = score
                 sig.signal = "LIQUIDATE" if score >= OBS_THRESHOLD else "KEEP"
-            else:
-                sig.score  = 1.0 - score
+            elif "TRANSIC" in label or label == "LABEL_1":
+                # Transición → score reducido
+                sig.score  = score * 0.5
                 sig.signal = "LIQUIDATE" if sig.score >= OBS_THRESHOLD else "KEEP"
+
+            else:
+                # Vigente (LABEL_0) → no obsoleto
+                sig.score  = 0.0
+                sig.signal = "KEEP"
 
             sig.method = "model_pe4"
             return sig
@@ -321,16 +328,17 @@ def compute_decision(
 
     # ── Señal Tendencia ──────────────────────────────────────────
     if trend.signal == "NOW":
-        trend_score = 80.0
         if trend.at_minimum:
             trend_score = 100.0
             reasons.append("precio en mínimo histórico")
+        else:
+            trend_score = 70.0
     elif trend.signal == "WAIT":
         trend_score = 20.0
         reasons.append(f"precio bajando {trend.slope_pct*100:.2f}%/día")
     else:
         # [FIX-4] UNKNOWN → neutral pero con razón explícita
-        trend_score = 50.0
+        trend_score = 40.0
         reasons.append(
             f"tendencia sin datos suficientes "
             f"({trend.n_points}/{MIN_POINTS_TREND} snapshots)"
