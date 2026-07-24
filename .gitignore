@@ -58,3 +58,7 @@ newegg_*.html
 
 # ── Excepciones: permitir punteros DVC ───────────────────────
 !models/*.dvc
+
+# Archivos procesados derivados — se regeneran con pe5_agent.py
+data/processed/*.csv
+data/processed/oportunidades_roi.csv
