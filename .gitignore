@@ -64,3 +64,6 @@ data/processed/
 data/processed/quality_report_*.json
 data/processed/split_report_*.json
 data/processed/mice_report_*.json
+
+# ── Excepciones: permitir punteros DVC ──────────────────────
+← métricas finales*/*.dvc
