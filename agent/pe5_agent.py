@@ -78,7 +78,7 @@ VERSION              = "1.1"
 MIN_POINTS_TREND     = 7       # [FIX-2] mínimo 1 semana de snapshots
 
 # -- Presupuesto --
-BUDGET_CONFIG_PATH = pathlib.Path('config/budget.json')
+BUDGET_CONFIG_PATH = Path('config/budget.json')
 MAX_UNITS_PER_SKU  = 3
 MIN_SCORE_TO_BUY   = 60.0
 TREND_THRESHOLD      = 0.010   # [FIX-2] 1% caída diaria → WAIT (antes 0.5%)
@@ -446,7 +446,10 @@ def compute_decision(
     reasons = []
 
     # ── Señal ROI ────────────────────────────────────────────────
-    roi_norm = min(100.0, max(0.0, roi_pct))   # 0-100
+    # [FIX-5] Normalización log para diferenciar ROIs altos
+    # ROI 0%→0 | 50%→41 | 100%→58 | 200%→72 | 400%→83 | 1000%→93
+    import math as _math
+    roi_norm = 0.0 if roi_pct <= 0 else min(100.0, 100.0 * _math.log1p(roi_pct / 100.0) / _math.log1p(10.0))
 
     # ── Señal Tendencia ──────────────────────────────────────────
     if trend.signal == "NOW":
