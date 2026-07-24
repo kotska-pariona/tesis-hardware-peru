@@ -1,0 +1,53 @@
+{
+  "model": "intfloat/multilingual-e5-large",
+  "dataset": "/content/drive/MyDrive/tesis_pe4/data/pe4_labeled_bert_clean.csv",
+  "n_train": 24501,
+  "n_val": 4371,
+  "n_test": 5829,
+  "epochs": 5,
+  "batch_size": 8,
+  "balance": "hybrid",
+  "f1_macro": 0.9966,
+  "accuracy": 0.9973,
+  "f1_vigente": 0.9982,
+  "f1_transicion": 0.9972,
+  "f1_obsoleto": 0.9944,
+  "history": [
+    {
+      "epoch": 1,
+      "loss": 0.2057,
+      "val_f1_macro": 0.9831,
+      "val_acc": 0.9858
+    },
+    {
+      "epoch": 2,
+      "loss": 0.0389,
+      "val_f1_macro": 0.9896,
+      "val_acc": 0.9911
+    },
+    {
+      "epoch": 3,
+      "loss": 0.02,
+      "val_f1_macro": 0.9935,
+      "val_acc": 0.9947
+    },
+    {
+      "epoch": 4,
+      "loss": 0.0091,
+      "val_f1_macro": 0.9969,
+      "val_acc": 0.9973
+    },
+    {
+      "epoch": 5,
+      "loss": 0.0024,
+      "val_f1_macro": 0.9968,
+      "val_acc": 0.997
+    }
+  ],
+  "best_val_f1": 0.9969,
+  "vs_bert_base": {
+    "bert_f1_macro": 0.9921,
+    "e5_f1_macro": 0.9966,
+    "delta": 0.0045
+  }
+}
