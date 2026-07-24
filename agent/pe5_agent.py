@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-pe5_agent.py  v1.0
+pe5_agent.py  v1.1
 ══════════════════════════════════════════════════════════════
 Motor de decisión de precios BUY-WAIT-LIQUIDATE (PE5)
 
@@ -25,6 +25,14 @@ Score final (0-100):
   score = roi_pct * w_roi
           + trend_score * w_trend
           - obs_penalty * w_obs
+  Descuento -10% si trend == UNKNOWN (baja confianza)
+
+Cambios v1.1:
+  [FIX-1] Preload modelo PE4 en __init__ — una sola carga,
+          pipe pasado como parámetro a compute_obsolescence()
+  [FIX-2] MIN_POINTS_TREND 4→7, TREND_THRESHOLD 0.005→0.010
+  [FIX-3] Filtro price_usd >= 50 — elimina ruido Kaggle
+  [FIX-4] score_final descuento -10% + razón cuando UNKNOWN
 
 Output:
   data/processed/pe5_decisions.csv
@@ -66,10 +74,11 @@ from roi_calculator import (
 log = logging.getLogger(__name__)
 
 # ── Constantes PE5 ──────────────────────────────────────────────────
-VERSION              = "1.0"
-MIN_POINTS_TREND     = 4       # mínimo de snapshots para calcular tendencia
-TREND_THRESHOLD      = 0.005   # 0.5% caída diaria → WAIT
+VERSION              = "1.1"
+MIN_POINTS_TREND     = 7       # [FIX-2] mínimo 1 semana de snapshots
+TREND_THRESHOLD      = 0.010   # [FIX-2] 1% caída diaria → WAIT (antes 0.5%)
 OBS_THRESHOLD        = 0.60    # score obsolescencia ≥ 60% → LIQUIDATE
+PRICE_USD_MIN        = 50.0    # [FIX-3] ignorar productos < $50 (ruido Kaggle)
 W_ROI                = 0.50    # peso ROI en score final
 W_TREND              = 0.30    # peso tendencia
 W_OBS                = 0.20    # penalización obsolescencia
@@ -159,6 +168,7 @@ def compute_trend(
     """
     Calcula la tendencia de precios locales para una categoría.
     Usa regresión lineal sobre precio_mediano por día.
+    Requiere MIN_POINTS_TREND=7 snapshots para señal válida.
     """
     sig = TrendSignal()
 
@@ -193,7 +203,7 @@ def compute_trend(
         .sort_values("_date")
     )
 
-    sig.n_points  = len(daily)
+    sig.n_points   = len(daily)
     sig.price_min  = float(daily["price_pen"].min())
     sig.price_max  = float(daily["price_pen"].max())
     sig.price_last = float(daily["price_pen"].iloc[-1])
@@ -234,40 +244,24 @@ def compute_trend(
 def compute_obsolescence(
     title: str,
     category: str,
-    model_dir: Optional[Path] = None,
+    obs_pipe=None,           # [FIX-1] pipe precargado desde __init__
 ) -> ObsSignal:
     """
     Calcula score de obsolescencia.
-    Intenta usar el modelo PE4 (multilingual-E5-large).
-    Fallback: heurística por keywords.
+    Prioridad: modelo PE4 precargado → heurística por keywords.
+
+    Args:
+        title:    Título del producto
+        category: Categoría normalizada
+        obs_pipe: Pipeline HuggingFace precargado (o None → heurística)
     """
     sig = ObsSignal()
     title_lower = str(title).lower()
 
-    # ── Intentar modelo PE4 ──────────────────────────────────────
-    if model_dir is None:
-        model_dir = _ROOT / "models" / "pe4_bert_obsolescence"
-
-    if model_dir.exists():
+    # ── [FIX-1] Usar modelo PE4 precargado ──────────────────────
+    if obs_pipe is not None:
         try:
-            # Importación lazy — evita error si transformers no instalado
-            from transformers import pipeline as hf_pipeline
-            import torch
-
-            # Cargar modelo (cacheado en memoria si ya fue cargado)
-            if not hasattr(compute_obsolescence, "_pipe"):
-                log.info("  [PE4] Cargando modelo de obsolescencia...")
-                compute_obsolescence._pipe = hf_pipeline(
-                    "text-classification",
-                    model=str(model_dir),
-                    device=0 if torch.cuda.is_available() else -1,
-                )
-                log.info("  [PE4] Modelo cargado ✅")
-
-            result = compute_obsolescence._pipe(
-                title[:512],
-                truncation=True,
-            )[0]
+            result = obs_pipe(title[:512], truncation=True)[0]
 
             label = result.get("label", "").upper()
             score = float(result.get("score", 0.0))
@@ -282,10 +276,8 @@ def compute_obsolescence(
             sig.method = "model_pe4"
             return sig
 
-        except ImportError:
-            log.debug("  [PE4] transformers no disponible — usando heurística")
         except Exception as e:
-            log.debug(f"  [PE4] Error modelo: {e} — usando heurística")
+            log.debug(f"  [PE4] Error inferencia: {e} — usando heurística")
 
     # ── Fallback: heurística por keywords ───────────────────────
     hits = [kw for kw in OBS_KEYWORDS if kw in title_lower]
@@ -293,7 +285,6 @@ def compute_obsolescence(
     sig.method = "heuristic"
 
     if hits:
-        # Score proporcional al número de keywords encontradas
         sig.score  = min(1.0, len(hits) * 0.35)
         sig.signal = "LIQUIDATE" if sig.score >= OBS_THRESHOLD else "KEEP"
     else:
@@ -318,6 +309,9 @@ def compute_decision(
 
     Prioridad: LIQUIDATE > WAIT > BUY > HOLD
 
+    [FIX-4] Descuento -10% en score si trend == UNKNOWN
+            + razón explícita en 'razon'
+
     Returns: (decision, score_final, razon)
     """
     reasons = []
@@ -335,17 +329,27 @@ def compute_decision(
         trend_score = 20.0
         reasons.append(f"precio bajando {trend.slope_pct*100:.2f}%/día")
     else:
-        trend_score = 50.0   # UNKNOWN → neutral
+        # [FIX-4] UNKNOWN → neutral pero con razón explícita
+        trend_score = 50.0
+        reasons.append(
+            f"tendencia sin datos suficientes "
+            f"({trend.n_points}/{MIN_POINTS_TREND} snapshots)"
+        )
 
     # ── Penalización obsolescencia ───────────────────────────────
     obs_penalty = obs.score * 100   # 0-100
 
     # ── Score final ponderado ────────────────────────────────────
     score = (
-        roi_norm    * W_ROI
+        roi_norm      * W_ROI
         + trend_score * W_TREND
         - obs_penalty * W_OBS
     )
+
+    # [FIX-4] Descuento de confianza cuando trend es UNKNOWN
+    if trend.signal == "UNKNOWN":
+        score *= 0.90
+
     score = round(max(0.0, min(100.0, score)), 2)
 
     # ── Decisión por prioridad ───────────────────────────────────
@@ -362,7 +366,6 @@ def compute_decision(
 
     elif roi_signal == "BUY":
         if trend.signal == "WAIT":
-            # BUY con advertencia de tendencia bajista
             decision = "BUY"
             reasons.append(
                 f"ROI {roi_pct:.1f}% atractivo "
@@ -370,7 +373,9 @@ def compute_decision(
             )
         else:
             decision = "BUY"
-            reasons.append(f"ROI {roi_pct:.1f}% ≥ {MARGEN_GANANCIA_MIN*100:.0f}% mínimo")
+            reasons.append(
+                f"ROI {roi_pct:.1f}% ≥ {MARGEN_GANANCIA_MIN*100:.0f}% mínimo"
+            )
 
     else:
         decision = "HOLD"
@@ -389,8 +394,10 @@ def compute_decision(
 
 class PricingAgent:
     """
-    Agente de decisión de precios PE5.
+    Agente de decisión de precios PE5 v1.1
     Integra ROI (PE3-base) + Tendencia + Obsolescencia (PE4).
+
+    [FIX-1] Modelo PE4 se precarga en __init__ una sola vez.
     """
 
     def __init__(self, master_csv: Path = MASTER_CSV):
@@ -399,7 +406,37 @@ class PricingAgent:
         self.df_local   = pd.DataFrame()
         self.df_import  = pd.DataFrame()
         self.results    = []
+        self._obs_pipe  = None   # [FIX-1] pipeline PE4 precargado
+
         self._load_data()
+        self._load_obs_model()   # [FIX-1] carga única al inicio
+
+    def _load_obs_model(self):
+        """
+        [FIX-1] Precarga el modelo PE4 una sola vez en __init__.
+        Si falla, self._obs_pipe queda None → heurística como fallback.
+        """
+        model_dir = _ROOT / "models" / "pe4_bert_obsolescence"
+        if not model_dir.exists():
+            log.info("  [PE4] Modelo no encontrado — usando heurística")
+            return
+
+        try:
+            from transformers import pipeline as hf_pipeline
+            import torch
+
+            log.info("  [PE4] Cargando modelo de obsolescencia...")
+            self._obs_pipe = hf_pipeline(
+                "text-classification",
+                model=str(model_dir),
+                device=0 if torch.cuda.is_available() else -1,
+            )
+            log.info("  [PE4] Modelo cargado ✅")
+
+        except ImportError:
+            log.info("  [PE4] transformers no instalado — usando heurística")
+        except Exception as e:
+            log.warning(f"  [PE4] Error al cargar modelo: {e} — usando heurística")
 
     def _load_data(self):
         if not self.master_csv.exists():
@@ -467,7 +504,10 @@ class PricingAgent:
         return df_out
 
     def _analyze_category(self, category: str, usd_pen: float):
-        """Analiza una categoría: calcula ROI + Trend + Obs para cada producto."""
+        """
+        Analiza una categoría: calcula ROI + Trend + Obs para cada producto.
+        [FIX-3] Filtra productos con price_usd < PRICE_USD_MIN ($50).
+        """
         local_cat  = self.df_local[
             self.df_local["category_norm"] == category
         ].copy()
@@ -496,14 +536,22 @@ class PricingAgent:
             import_cat["price_usd"], errors="coerce"
         )
         import_cat = import_cat[import_cat["price_usd"] > 0]
+
+        # [FIX-3] Filtrar productos de bajo precio (ruido Kaggle/histórico)
+        n_before = len(import_cat)
+        import_cat = import_cat[import_cat["price_usd"] >= PRICE_USD_MIN]
+        n_filtered = n_before - len(import_cat)
+
         if import_cat.empty:
             return
 
         log.info(
             f"  {category:15s}: "
-            f"{len(import_cat):4d} productos | "
+            f"{len(import_cat):4d} productos "
+            f"(+{n_filtered} filtrados <${PRICE_USD_MIN:.0f}) | "
             f"precio local S/ {precio_mediano:.0f} | "
-            f"trend={trend.signal} (slope={trend.slope_pct*100:.3f}%/día)"
+            f"trend={trend.signal} "
+            f"(n={trend.n_points}, slope={trend.slope_pct*100:.3f}%/día)"
         )
 
         for _, row in import_cat.iterrows():
@@ -530,10 +578,14 @@ class PricingAgent:
 
                 roi_signal = "BUY" if roi.conviene_importar else "NO_BUY"
 
-                # [S3] Obsolescencia
-                obs = compute_obsolescence(title, category)
+                # [S3] Obsolescencia — [FIX-1] pasar pipe precargado
+                obs = compute_obsolescence(
+                    title,
+                    category,
+                    obs_pipe=self._obs_pipe,
+                )
 
-                # Decisión final
+                # Decisión final — [FIX-4] score con descuento UNKNOWN
                 decision, score_final, razon = compute_decision(
                     roi_pct=roi.roi_pct,
                     roi_signal=roi_signal,
@@ -593,6 +645,11 @@ class PricingAgent:
             "version":        VERSION,
             "timestamp":      now,
             "total_analyzed": len(df),
+            "price_filter":   f">= ${PRICE_USD_MIN:.0f} USD",
+            "trend_config":   {
+                "min_points": MIN_POINTS_TREND,
+                "threshold":  TREND_THRESHOLD,
+            },
             "decisions":      counts,
             "pct_buy":        round(counts.get("BUY", 0) / len(df) * 100, 1),
             "pct_wait":       round(counts.get("WAIT", 0) / len(df) * 100, 1),
@@ -615,7 +672,7 @@ class PricingAgent:
     def _print_summary(self, df: pd.DataFrame):
         counts = df["decision"].value_counts()
         log.info("\n" + "═"*55)
-        log.info("  RESUMEN PE5 — BUY-WAIT-LIQUIDATE")
+        log.info(f"  RESUMEN PE5 v{VERSION} — BUY-WAIT-LIQUIDATE")
         log.info("═"*55)
         for dec in ["BUY", "WAIT", "LIQUIDATE", "HOLD"]:
             n   = counts.get(dec, 0)
@@ -667,7 +724,7 @@ def main():
 
     import argparse
     parser = argparse.ArgumentParser(
-        description="PE5 — Motor BUY-WAIT-LIQUIDATE v1.0"
+        description=f"PE5 — Motor BUY-WAIT-LIQUIDATE v{VERSION}"
     )
     parser.add_argument(
         "--master", type=Path, default=MASTER_CSV,
@@ -698,7 +755,7 @@ def main():
         ]
 
     print(f"\n{'═'*70}")
-    print(f"  TOP {args.top} DECISIONES PE5")
+    print(f"  TOP {args.top} DECISIONES PE5 v{VERSION}")
     print(f"{'═'*70}")
     top = filter_df.head(args.top)
     for _, r in top.iterrows():
