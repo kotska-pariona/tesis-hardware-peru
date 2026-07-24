@@ -756,12 +756,8 @@ class PricingAgent:
         DATA_PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
 
         # CSV
-        # -- Asignacion de presupuesto --
-    budget = get_budget(args.budget)
-    log.info(f'[BUDGET] Presupuesto total: S/. {budget:,.2f}')
-    records = allocate_budget(records, budget)
 
-    df.to_csv(DECISIONS_CSV, index=False, encoding="utf-8")
+        df.to_csv(DECISIONS_CSV, index=False, encoding="utf-8")
         log.info(f"\n  💾 Decisiones: {DECISIONS_CSV}")
 
         # Reporte JSON
