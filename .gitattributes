@@ -1,1 +1,4 @@
 data/processed/MASTER_hardware_peru_clean.csv filter=lfs diff=lfs merge=lfs -text
+data/raw/MASTER_hardware_peru.csv filter=lfs diff=lfs merge=lfs -text
+data/raw/MASTER_exchange_rate.csv filter=lfs diff=lfs merge=lfs -text
+data/raw/batch_24h_*.csv filter=lfs diff=lfs merge=lfs -text
