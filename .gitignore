@@ -78,3 +78,6 @@ models/test_predictions_*.csv
 # Features dataset — 335 MB, derivado de MASTER_CSV
 # Regenerar con: python agent/pipeline.py --features
 data/features/
+
+# Excepciones: artefactos pequeños que SÍ se versionan
+!models/zscore_normalizer.pkl
