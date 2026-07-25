@@ -1,66 +1,27 @@
 #!/usr/bin/env python3
 """
-feature_engineering.py v1.1
+feature_engineering.py v1.5
 ═══════════════════════════════════════════════════════════════════
 Etapa II del pipeline (Sección 4.7.2 del plan de tesis).
 
-Genera las características de entrada para los modelos de Etapa III
-(TFT, TCN, XGBoost) a partir de los splits temporales ya separados
-por temporal_split.py.
-
-CAMBIOS v1.1 (sobre v1.0):
-  [F1] FIX CRÍTICO build_features(): ahora acepta un parámetro
-       `context` (split estrictamente ANTERIOR en el tiempo). Antes,
-       lags/MA/std se calculaban por split de forma aislada, así que
-       las primeras ~30 filas de cada SKU en val/test quedaban en NaN
-       aunque el historial real existiera en el split previo. Ahora
-       se "presta" temporalmente el historial necesario del contexto,
-       se calculan las features sobre la serie combinada, y al final
-       se descartan las filas prestadas — solo se usa información
-       PASADA real, nunca futura (no hay leakage).
-  [F2] FIX CRÍTICO orden cronológico: sort_values(["sku","price_date"])
-       ordenaba por STRING, no por fecha real. Si las fuentes usan
-       formatos de fecha inconsistentes (ISO vs DD/MM/YYYY, etc.),
-       el orden quedaba silenciosamente incorrecto y todos los lags/
-       medias móviles/z-scores calculados eran inválidos sin ningún
-       error visible. Ahora se usa pd.to_datetime() como clave de
-       ordenamiento auxiliar (la columna price_date original no se
-       modifica).
-  [F3] RollingZScoreNormalizer.update_history(): permite encadenar
-       el historial rolling entre splits consecutivos (train→val→test)
-       para que test no "salte" directamente al historial de train
-       ignorando val — evita una discontinuidad artificial en el
-       cálculo de z-score al inicio de test.
-  [F4] Asignación de z-scores por índice explícito (Series.loc) en
-       vez de por posición (extend + asignación posicional), evitando
-       una dependencia implícita y frágil del orden de iteración de
-       groupby().
-
-ANTI-LEAKAGE (Kapoor & Narayanan, 2023):
-  - El normalizador (rolling z-score) se AJUSTA (fit) exclusivamente
-    sobre train.csv.
-  - Los parámetros aprendidos (media, std por ventana) se APLICAN
-    (transform) sobre val.csv y test.csv sin volver a ajustarlos.
-  - Los lags/MA/std son deterministas y solo miran hacia el pasado;
-    usar `context` para no perder datos NO introduce leakage, porque
-    context es siempre un split cronológicamente anterior al target.
-  - MICE se ajusta también solo sobre train; val/test usan el mismo
-    imputador ya entrenado (fit_transform en train, transform en resto).
-
-Características generadas (por SKU):
-  - Rezagos:        price_usd_lag_1, price_usd_lag_7, price_usd_lag_30
-  - Medias móviles:  price_usd_ma_7, price_usd_ma_14, price_usd_ma_30
-  - Volatilidad:     price_usd_std_7, price_usd_std_30 (rolling std)
-  - Normalización:   price_usd_zscore_90 (rolling z-score, ventana 90d)
-
-Uso:
-    python preprocessing/feature_engineering.py \
-        --input-dir data/processed \
-        --output-dir data/features
+CAMBIOS v1.5 (FIX-28):
+  [B11] Lags y ventanas adaptados a la densidad real de las series.
+        El dataset tiene máx ~10 observaciones por SKU con frecuencia
+        diaria/semanal. Los lags (1,7,30) y ventanas (7,14,30) de v1.x
+        producían 100% NaN porque ningún SKU tiene 30+ observaciones.
+        Ahora se usan lags=(1,2,3) y ventanas=(2,3,5) por defecto,
+        con parámetros configurables por CLI para ajuste futuro.
+  [B12] _add_lags(): añade columna de cobertura de lag — reporta qué
+        porcentaje de filas tiene valor real (no NaN) en cada lag,
+        para detectar lags inútiles antes de pasarlos al modelo.
+  [B13] run_feature_pipeline(): imprime tabla de cobertura de lags
+        y emite advertencia si algún lag tiene < 10% cobertura en
+        train, sugiriendo reducir el lag máximo.
 """
 
 import argparse
 import pickle
+import sys
 from pathlib import Path
 
 import numpy as np
@@ -68,18 +29,100 @@ import pandas as pd
 
 
 # ══════════════════════════════════════════════════════════════════
-# UTILIDAD DE ORDEN CRONOLÓGICO REAL — [F2]
+# CONSTANTES
+# ══════════════════════════════════════════════════════════════════
+_SORT_KEY  = "__fe_sort_key"
+_IS_TARGET = "__fe_is_target"
+
+PRICE_COL_CANDIDATES = [
+    "price_usd",
+    "price_pen",
+    "price_orig_pen",
+    "total_usd",
+    "original_price",
+]
+
+# Lags y ventanas por defecto — adaptados a series cortas (máx ~10 obs)
+# Ajustar con --lags y --windows si el dataset cambia
+DEFAULT_LAGS    = (1, 2, 3)
+DEFAULT_WINDOWS = (2, 3, 5)
+
+
+# ══════════════════════════════════════════════════════════════════
+# DETECCIÓN AUTOMÁTICA DE COLUMNA DE PRECIO
+# ══════════════════════════════════════════════════════════════════
+def detect_price_col(df: pd.DataFrame,
+                     candidates: list = PRICE_COL_CANDIDATES) -> str:
+    for col in candidates:
+        if col not in df.columns:
+            continue
+        pct_valid = df[col].notna().mean()
+        if pct_valid >= 0.05:
+            if col != candidates[0]:
+                print(f"   ⚠️  '{candidates[0]}' es ≥95% NaN — "
+                      f"usando '{col}' ({pct_valid*100:.1f}% válido)")
+            else:
+                print(f"   ✅ Columna de precio: '{col}' "
+                      f"({pct_valid*100:.1f}% válido)")
+            return col
+
+    diag = "\n".join(
+        f"   {c}: {'no existe' if c not in df.columns else f'{df[c].notna().mean()*100:.1f}% válido'}"
+        for c in candidates
+    )
+    raise ValueError(
+        f"Ninguna columna de precio candidata tiene datos suficientes:\n"
+        f"{diag}"
+    )
+
+
+# ══════════════════════════════════════════════════════════════════
+# DIAGNÓSTICO DE SERIES TEMPORALES — [B11]
+# ══════════════════════════════════════════════════════════════════
+def diagnose_series(df: pd.DataFrame, label: str = "train") -> dict:
+    """
+    Imprime estadísticas de longitud de series por SKU.
+    Devuelve dict con percentiles para uso programático.
+    """
+    counts = df.groupby("sku").size()
+    stats  = counts.describe(percentiles=[.25, .5, .75, .90, .95])
+    print(f"\n   📊 Longitud de series [{label}]:")
+    print(f"      SKUs únicos : {len(counts):,}")
+    print(f"      min / p25   : {int(stats['min'])} / {int(stats['25%'])}")
+    print(f"      mediana     : {int(stats['50%'])}")
+    print(f"      p75 / p95   : {int(stats['75%'])} / {int(stats['95%'])}")
+    print(f"      máx         : {int(stats['max'])}")
+    return stats.to_dict()
+
+
+def suggest_lags(df: pd.DataFrame) -> tuple:
+    """
+    [B11] Sugiere lags y ventanas basados en el p50 de longitud
+    de serie. Regla conservadora: lag_max <= p50 - 1.
+    """
+    counts = df.groupby("sku").size()
+    p50    = int(counts.median())
+    p75    = int(counts.quantile(0.75))
+
+    lag_max    = max(1, p50 - 1)
+    window_max = max(2, p75 - 1)
+
+    lags    = tuple(sorted({1, 2, lag_max}))
+    windows = tuple(sorted({2, 3, min(window_max, lag_max + 2)}))
+
+    print(f"\n   💡 Lags sugeridos (p50={p50}): {lags}")
+    print(f"   💡 Ventanas sugeridas (p75={p75}): {windows}")
+    return lags, windows
+
+
+# ══════════════════════════════════════════════════════════════════
+# UTILIDAD DE ORDEN CRONOLÓGICO REAL
 # ══════════════════════════════════════════════════════════════════
 def _sort_by_date(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Ordena por (sku, fecha_real) usando pd.to_datetime() como clave
-    auxiliar. La columna price_date original NO se modifica ni se
-    sobrescribe — solo se usa para determinar el orden correcto.
-    """
     df = df.copy()
-    df["_sort_key"] = pd.to_datetime(df["price_date"], errors="coerce")
-    df = df.sort_values(["sku", "_sort_key"], kind="stable")
-    return df.drop(columns=["_sort_key"]).reset_index(drop=True)
+    df[_SORT_KEY] = pd.to_datetime(df["price_date"], errors="coerce")
+    df = df.sort_values(["sku", _SORT_KEY], kind="stable")
+    return df.drop(columns=[_SORT_KEY]).reset_index(drop=True)
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -91,87 +134,121 @@ def _add_lags(df: pd.DataFrame, col: str, lags: list) -> pd.DataFrame:
     return df
 
 
-def _add_rolling_features(df: pd.DataFrame, col: str, windows: list) -> pd.DataFrame:
+def _add_rolling_features(df: pd.DataFrame, col: str,
+                           windows: list) -> pd.DataFrame:
+    """ddof=0 → std de 1 elemento = 0.0 en vez de NaN."""
     grouped = df.groupby("sku")[col]
     for w in windows:
-        df[f"{col}_ma_{w}"]  = grouped.transform(lambda s: s.rolling(w, min_periods=1).mean())
-        df[f"{col}_std_{w}"] = grouped.transform(lambda s: s.rolling(w, min_periods=1).std())
+        df[f"{col}_ma_{w}"] = grouped.transform(
+            lambda s, _w=w: s.rolling(_w, min_periods=1).mean()
+        )
+        df[f"{col}_std_{w}"] = grouped.transform(
+            lambda s, _w=w: s.rolling(_w, min_periods=1).std(ddof=0)
+        )
     return df
 
 
 def build_features(
     df: pd.DataFrame,
     context: pd.DataFrame = None,
-    lags: list = (1, 7, 30),
-    windows: list = (7, 14, 30),
+    lags: list = DEFAULT_LAGS,
+    windows: list = DEFAULT_WINDOWS,
     col: str = "price_usd",
 ) -> pd.DataFrame:
     """
-    [F1] Version optimizada: sort unico, contexto reducido por SKU,
-    sin copias innecesarias. El contexto es siempre cronologicamente
-    anterior (no hay leakage).
+    Genera lags, medias móviles y volatilidad por SKU.
+    [F1]  context = split anterior → evita NaN en primeras filas.
+    [B10] groupby().tail(N) nativo — sin apply(), sin warnings.
     """
-    lags, windows = list(lags), list(windows)
+    lags    = list(lags)
+    windows = list(windows)
     context_needed = max(lags + windows) if (lags or windows) else 0
 
-    # Sort unico sobre target
+    for c in [_SORT_KEY, _IS_TARGET]:
+        if c in df.columns:
+            df = df.drop(columns=[c])
+
     target = df.copy()
-    target["_sort_key"] = pd.to_datetime(target["price_date"], errors="coerce")
-    target = target.sort_values(["sku", "_sort_key"], kind="stable").drop(columns=["_sort_key"])
-    target["_is_target"] = True
+    target[_SORT_KEY] = pd.to_datetime(target["price_date"], errors="coerce")
+    target = (target
+              .sort_values(["sku", _SORT_KEY], kind="stable")
+              .drop(columns=[_SORT_KEY])
+              .reset_index(drop=True))
+    target[_IS_TARGET] = True
 
     if context is not None and not context.empty and context_needed > 0:
-        # [OPT] Solo las columnas necesarias del contexto + sort unico
         ctx = context.copy()
-        ctx["_sort_key"] = pd.to_datetime(ctx["price_date"], errors="coerce")
-        ctx = ctx.sort_values(["sku", "_sort_key"], kind="stable").drop(columns=["_sort_key"])
+        for c in [_SORT_KEY, _IS_TARGET]:
+            if c in ctx.columns:
+                ctx = ctx.drop(columns=[c])
 
-        # [OPT] tail por SKU con include_groups=False para evitar DeprecationWarning
-        tail_context = (
-            ctx.groupby("sku", group_keys=False)[ctx.columns]
-            .apply(lambda g: g.tail(context_needed), include_groups=False)
+        ctx[_SORT_KEY] = pd.to_datetime(ctx["price_date"], errors="coerce")
+        ctx = (ctx
+               .sort_values(["sku", _SORT_KEY], kind="stable")
+               .drop(columns=[_SORT_KEY])
+               .reset_index(drop=True))
+
+        # [B10] groupby().tail(N) — nativo pandas, sin apply()
+        tail_ctx = (
+            ctx.groupby("sku", sort=False)
+            .tail(context_needed)
+            .reset_index(drop=True)
         )
-        # include_groups=False excluye 'sku' del resultado, lo restauramos
-        tail_context = ctx.loc[tail_context.index].copy()
-        tail_context["_is_target"] = False
+        tail_ctx[_IS_TARGET] = False
 
-        combined = pd.concat([tail_context, target], ignore_index=True)
-        # Sort final unico sobre combined
-        combined["_sort_key"] = pd.to_datetime(combined["price_date"], errors="coerce")
-        combined = combined.sort_values(["sku", "_sort_key"], kind="stable").drop(columns=["_sort_key"]).reset_index(drop=True)
+        combined = (
+            pd.concat([tail_ctx, target], ignore_index=True)
+            .assign(**{
+                _SORT_KEY: lambda d: pd.to_datetime(
+                    d["price_date"], errors="coerce"
+                )
+            })
+            .sort_values(["sku", _SORT_KEY], kind="stable")
+            .drop(columns=[_SORT_KEY])
+            .reset_index(drop=True)
+        )
     else:
-        combined = target.reset_index(drop=True)
+        combined = target.copy()
 
     combined = _add_lags(combined, col, lags)
     combined = _add_rolling_features(combined, col, windows)
 
-    result = combined[combined["_is_target"]].drop(columns=["_is_target"]).reset_index(drop=True)
+    result = (combined[combined[_IS_TARGET]]
+              .drop(columns=[_IS_TARGET])
+              .reset_index(drop=True))
     return result
 
 
 # ══════════════════════════════════════════════════════════════════
-# ROLLING Z-SCORE — fit SOLO en train, transform en val/test
-# (implementación simplificada: usa media/std móvil de 90 días
-#  calculada acumulativamente hasta cada punto, sin usar futuro)
+# COBERTURA DE LAGS — [B12]
+# ══════════════════════════════════════════════════════════════════
+def report_lag_coverage(df: pd.DataFrame, col: str,
+                        lags: list, label: str = ""):
+    """
+    [B12] Imprime % de filas con valor real (no NaN) por lag.
+    Advierte si algún lag tiene < 10% cobertura.
+    """
+    print(f"\n   📋 Cobertura de lags [{label}]:")
+    for lag in lags:
+        lag_col = f"{col}_lag_{lag}"
+        if lag_col not in df.columns:
+            continue
+        cov = df[lag_col].notna().mean() * 100
+        bar = "█" * int(cov / 5)
+        warn = " ⚠️  < 10%" if cov < 10 else ""
+        print(f"      lag_{lag:<3} {cov:5.1f}%  {bar}{warn}")
+
+
+# ══════════════════════════════════════════════════════════════════
+# ROLLING Z-SCORE — fit SOLO en train
 # ══════════════════════════════════════════════════════════════════
 class RollingZScoreNormalizer:
-    """
-    Ajusta (fit) los parámetros de normalización SOLO sobre el
-    dataset de entrenamiento. Para train, usa rolling z-score causal
-    (ventana 90 días, solo pasado). Para val/test, usa la MISMA
-    ventana pero continuando la serie histórica de train, evitando
-    así "resetear" la normalización en el corte de partición.
-
-    [F3] update_history() permite encadenar el historial entre splits
-    consecutivos (train → val → test), evitando que test "salte"
-    directamente al historial de train ignorando val por completo.
-    """
 
     def __init__(self, window: int = 90, col: str = "price_usd"):
-        self.window = window
-        self.col = col
-        self.fitted_ = False
-        self._history_ = {}   # sku -> últimos `window` valores conocidos
+        self.window   = window
+        self.col      = col
+        self.fitted_  = False
+        self._history_: dict = {}
 
     def fit(self, df_train: pd.DataFrame):
         df_train = _sort_by_date(df_train)
@@ -180,27 +257,29 @@ class RollingZScoreNormalizer:
         self.fitted_ = True
         return self
 
-    def transform(self, df: pd.DataFrame, is_train: bool = False) -> pd.DataFrame:
+    def transform(self, df: pd.DataFrame,
+                  is_train: bool = False) -> pd.DataFrame:
         if not self.fitted_:
-            raise RuntimeError("Debe llamar fit() sobre train antes de transform()")
-
-        df = _sort_by_date(df)
+            raise RuntimeError(
+                "Debe llamar fit() sobre train antes de transform()"
+            )
+        df       = _sort_by_date(df)
         col_name = f"{self.col}_zscore_{self.window}"
-        # [F4] Asignación explícita por índice — evita depender del
-        # orden implícito de iteración de groupby().
         z_series = pd.Series(index=df.index, dtype="float64")
+        updated_history: dict = {}
 
         for sku, group in df.groupby("sku"):
-            idx = group.index
-            values = group[self.col].tolist()
-            history = self._history_.get(sku, []) if not is_train else []
+            idx     = group.index
+            values  = group[self.col].tolist()
+            history = [] if is_train else self._history_.get(sku, [])
             rolling_z = []
+            buffer    = list(history)
 
-            buffer = list(history)  # contexto previo para val/test
             for v in values:
                 if len(buffer) >= 2:
-                    mu, sigma = np.mean(buffer), np.std(buffer)
-                    z = (v - mu) / sigma if sigma > 1e-6 else 0.0
+                    mu    = np.mean(buffer)
+                    sigma = np.std(buffer)
+                    z     = (v - mu) / sigma if sigma > 1e-6 else 0.0
                 else:
                     z = 0.0
                 rolling_z.append(z)
@@ -209,20 +288,19 @@ class RollingZScoreNormalizer:
                     buffer.pop(0)
 
             z_series.loc[idx] = rolling_z
+            if is_train:
+                updated_history[sku] = buffer[-self.window:]
+
+        if is_train:
+            self._history_.update(updated_history)
 
         df[col_name] = z_series
         return df
 
     def update_history(self, df: pd.DataFrame):
-        """
-        [F3] Extiende el historial con un split ya transformado
-        (p.ej. val), para que el SIGUIENTE split (test) continúe la
-        ventana rolling sin salto temporal. Llamar DESPUÉS de
-        transform(val) y ANTES de transform(test).
-        """
         df = _sort_by_date(df)
         for sku, group in df.groupby("sku"):
-            prev = self._history_.get(sku, [])
+            prev     = self._history_.get(sku, [])
             combined = prev + group[self.col].tolist()
             self._history_[sku] = combined[-self.window:]
 
@@ -239,65 +317,113 @@ class RollingZScoreNormalizer:
 # ══════════════════════════════════════════════════════════════════
 # PIPELINE PRINCIPAL
 # ══════════════════════════════════════════════════════════════════
-def run_feature_pipeline(input_dir: Path, output_dir: Path):
+def run_feature_pipeline(input_dir: Path, output_dir: Path,
+                         lags: tuple = None, windows: tuple = None):
+
+    if input_dir.resolve() == output_dir.resolve():
+        print("❌ FATAL: --input-dir y --output-dir son el mismo directorio.")
+        sys.exit(1)
+
     output_dir.mkdir(parents=True, exist_ok=True)
 
     print("═" * 60)
-    print("  FEATURE ENGINEERING v1.1 — Etapa II")
+    print("  FEATURE ENGINEERING v1.5 — Etapa II")
     print("═" * 60)
 
     train = pd.read_csv(input_dir / "train.csv", low_memory=False)
     val   = pd.read_csv(input_dir / "val.csv",   low_memory=False)
     test  = pd.read_csv(input_dir / "test.csv",  low_memory=False)
 
-    print(f"\n📊 Splits cargados: train={len(train):,} | val={len(val):,} | test={len(test):,}")
+    print(f"\n📊 Splits cargados: "
+          f"train={len(train):,} | val={len(val):,} | test={len(test):,}")
 
-    # 1. Features deterministas (lags, MA, std) — no requieren fit.
-    #    [F1] val/test usan `context` = split(s) anterior(es), para
-    #    no perder las primeras ~30 filas de cada SKU por falta de
-    #    historial (sin introducir leakage: el contexto es siempre
-    #    cronológicamente anterior).
+    # Detectar columna de precio
+    print("\n🔍 Detectando columna de precio...")
+    price_col = detect_price_col(train)
+
+    # [B11] Diagnóstico de series y lags sugeridos
+    print("\n🔬 Analizando densidad de series temporales...")
+    diagnose_series(train, label="train")
+
+    if lags is None or windows is None:
+        print("\n   ℹ️  Lags/ventanas no especificados — calculando automáticamente:")
+        auto_lags, auto_windows = suggest_lags(train)
+        lags    = lags    or auto_lags
+        windows = windows or auto_windows
+    else:
+        print(f"\n   ℹ️  Lags manuales: {lags} | Ventanas: {windows}")
+
+    cols_before = set(train.columns)
+
+    # ── 1. Features deterministas ────────────────────────────────
     print("\n🔧 Generando lags, medias móviles y volatilidad...")
-    train_feat = build_features(train)
-    val_feat   = build_features(val,  context=train)
-    test_feat  = build_features(test, context=pd.concat([train, val], ignore_index=True))
+    train_feat = build_features(train, col=price_col,
+                                lags=lags, windows=windows)
+    val_feat   = build_features(val,   context=train, col=price_col,
+                                lags=lags, windows=windows)
+    test_feat  = build_features(
+        test,
+        context=pd.concat([train, val], ignore_index=True),
+        col=price_col, lags=lags, windows=windows,
+    )
 
-    # 2. Rolling z-score — fit SOLO en train (anti-leakage)
+    # ── 2. Rolling z-score (fit SOLO en train) ───────────────────
     print("\n📐 Ajustando normalizador (rolling z-score, fit=train)...")
-    normalizer = RollingZScoreNormalizer(window=90, col="price_usd")
+    normalizer = RollingZScoreNormalizer(window=90, col=price_col)
     normalizer.fit(train_feat)
 
     train_feat = normalizer.transform(train_feat, is_train=True)
     val_feat   = normalizer.transform(val_feat,   is_train=False)
-    normalizer.update_history(val_feat)  # [F3] encadena val antes de test
+    normalizer.update_history(val_feat)
     test_feat  = normalizer.transform(test_feat,  is_train=False)
 
-    # Guardar normalizador para uso en inferencia (Etapa III/run_pipeline.py)
     normalizer.save(output_dir / "zscore_normalizer.pkl")
-    print(f"  💾 Normalizador guardado: zscore_normalizer.pkl")
+    print(f"   💾 Normalizador guardado: zscore_normalizer.pkl")
 
-    # 3. Guardar features
+    # ── 3. Guardar features ──────────────────────────────────────
     train_feat.to_csv(output_dir / "train_features.csv", index=False)
-    val_feat.to_csv(output_dir / "val_features.csv", index=False)
-    test_feat.to_csv(output_dir / "test_features.csv", index=False)
+    val_feat.to_csv(output_dir   / "val_features.csv",   index=False)
+    test_feat.to_csv(output_dir  / "test_features.csv",  index=False)
+
+    # ── 4. Reporte ───────────────────────────────────────────────
+    cols_after = set(train_feat.columns)
+    new_cols   = sorted(cols_after - cols_before)
 
     print(f"\n✅ Features guardadas en {output_dir}/")
-    print(f"   Columnas nuevas por split: "
-          f"{train_feat.shape[1] - train.shape[1]}")
-    print(f"   NaN en lag_30 (train)  : {train_feat['price_usd_lag_30'].isna().sum():,}")
-    print(f"   NaN en lag_30 (val)    : {val_feat['price_usd_lag_30'].isna().sum():,} "
-          f"(antes del fix [F1] esto era ~100% de las primeras filas por SKU)")
-    print(f"   NaN en lag_30 (test)   : {test_feat['price_usd_lag_30'].isna().sum():,}")
+    print(f"   Columnas nuevas ({len(new_cols)}): {new_cols}")
+
+    # [B12] Cobertura de lags
+    report_lag_coverage(train_feat, price_col, list(lags), "train")
+    report_lag_coverage(val_feat,   price_col, list(lags), "val")
+    report_lag_coverage(test_feat,  price_col, list(lags), "test")
 
     print("\n" + "═" * 60)
+    print("  ✅ Feature Engineering v1.5 completado")
     print("  ✅ Etapa II completada — listo para modelos (Etapa III)")
     print("═" * 60)
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Feature Engineering — Etapa II")
-    parser.add_argument("--input-dir", required=True, help="Carpeta con train/val/test.csv")
-    parser.add_argument("--output-dir", required=True, help="Carpeta de salida de features")
+    parser = argparse.ArgumentParser(
+        description="Feature Engineering — Etapa II"
+    )
+    parser.add_argument("--input-dir",  required=True)
+    parser.add_argument("--output-dir", required=True)
+    parser.add_argument(
+        "--lags", type=int, nargs="+", default=None,
+        help="Lags explícitos (ej: --lags 1 2 3). "
+             "Por defecto se calculan automáticamente."
+    )
+    parser.add_argument(
+        "--windows", type=int, nargs="+", default=None,
+        help="Ventanas rolling (ej: --windows 2 3 5). "
+             "Por defecto se calculan automáticamente."
+    )
     args = parser.parse_args()
 
-    run_feature_pipeline(Path(args.input_dir), Path(args.output_dir))
+    run_feature_pipeline(
+        Path(args.input_dir),
+        Path(args.output_dir),
+        lags    = tuple(args.lags)    if args.lags    else None,
+        windows = tuple(args.windows) if args.windows else None,
+    )

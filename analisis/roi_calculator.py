@@ -350,18 +350,24 @@ def calculate_roi(
         usd_pen_rate=usd_pen_rate,
     )
 
-    ahorro = price_local_pen - cost.costo_total_pen
+    # [FIX-18] Todo en USD — evita distorsión por mediana PEN vs rango import
+    # price_local_pen se convierte a USD para comparación directa
+    _rate = cost.usd_pen_rate if cost.usd_pen_rate > 0 else 3.75
+    price_local_usd = price_local_pen / _rate if price_local_pen > 0 else 0.0
+
+    ahorro_usd = price_local_usd - cost.costo_total_usd
+    ahorro     = ahorro_usd * _rate  # mantener ahorro_pen para reporte
 
     # [ROI3] Guardia explícita — evita ZeroDivisionError silencioso
-    if cost.costo_total_pen > 0:
-        roi = ahorro / cost.costo_total_pen * 100
+    if cost.costo_total_usd > 0:
+        roi = ahorro_usd / cost.costo_total_usd * 100
     else:
         roi = 0.0
 
-    if price_local_pen > 0:
-        margen = ahorro / price_local_pen * 100
+    if price_local_usd > 0:
+        margen = ahorro_usd / price_local_usd * 100
     else:
-        margen = 0.0   # [ROI3] price_local_pen=0 no genera excepción
+        margen = 0.0   # [ROI3] price_local_usd=0 no genera excepción
 
     conviene = roi >= (MARGEN_GANANCIA_MIN * 100)
 

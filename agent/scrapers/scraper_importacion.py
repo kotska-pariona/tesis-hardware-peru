@@ -355,7 +355,7 @@ class AmazonScraper:
         ts           = datetime.now(timezone.utc).isoformat()
         price_date   = datetime.now(timezone.utc).strftime("%Y-%m-%d")
         shipping_est = SHIPPING_EST_BY_CATEGORY.get(category, SHIPPING_EST_DEFAULT)
-        PEN_TO_USD   = 1 / 3.72
+        PEN_TO_USD   = 1 / 3.404  # TC SUNAT 2026-07-24 (antes: 3.72)
 
         def _parse_review_count(raw: str) -> int:
             raw = raw.strip().strip("()")

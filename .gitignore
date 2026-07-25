@@ -80,3 +80,6 @@ apply_patch.py
 patch_newegg.py
 setup_dashboard.sh
 10k,*
+config/budget.json
+venv/
+venv_pe4/
