@@ -1,0 +1,23 @@
+stages:
+  preprocess:
+    cmd: python preprocessing/mice_imputer.py
+    deps:
+      - data/raw/MASTER_hardware_peru.csv
+      - preprocessing/mice_imputer.py
+    params:
+      - params.yaml:
+        - preprocessing.test_size
+        - preprocessing.val_size
+    outs:
+      - data/processed/
+
+  feature_engineering:
+    cmd: python preprocessing/feature_engineering.py
+    deps:
+      - data/processed/
+      - preprocessing/feature_engineering.py
+    params:
+      - params.yaml:
+        - preprocessing.zscore_window
+    outs:
+      - data/splits/
