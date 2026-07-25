@@ -26,3 +26,10 @@ Mayor ganancia en clase Obsoleto (+0.0052).
 - Mejor epoca: 4/5 | Val F1-macro: 0.9969
 - Hardware: Tesla T4
 <!-- PE4_RESULTS_END -->
+## Modelos en HuggingFace
+
+| Modelo | HuggingFace | Métricas |
+|--------|------------|---------|
+| PE4 multilingual-E5-large (fine-tuned) | [kotska-pariona/pe4-e5-obsolescence](https://huggingface.co/kotska-pariona/pe4-e5-obsolescence) | F1-macro=0.9966 |
+
+> Modelo PE3 (LightGBM+MCP): trackeado en DVC (Google Drive remote)
