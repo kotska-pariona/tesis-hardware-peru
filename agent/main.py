@@ -649,7 +649,7 @@ def run(mode: str, batch_id: str):
         log.info(_step("Newegg USA (precios USD)"))
         if not _near_timeout():
             try:
-                newegg_records = scrape_newegg(batch_id, mode=mode)
+                newegg_records = scrape_all(batch_id, mode=mode)
                 p = save_batch(
                     newegg_records, batch_id, "newegg", rate_mid=rate_mid
                 )
