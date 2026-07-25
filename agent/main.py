@@ -119,8 +119,8 @@ def _load_optional_scraper(
 _HAS_MELI,   scrape_mercadolibre, _meli_err   = _load_optional_scraper(
     "scrape_mercadolibre", "scraper_mercadolibre.py"
 )
-_HAS_NEWEGG, scrape_newegg,       _newegg_err = _load_optional_scraper(
-    "scrape_newegg",       "scraper_newegg.py"
+_HAS_NEWEGG, scrape_all,       _newegg_err = _load_optional_scraper(
+    "scrape_all",           "scraper_newegg.py"
 )
 # [O16] PCPartPicker carga dinamica
 _HAS_PCP,    scrape_pcpartpicker, _pcp_err    = _load_optional_scraper(
