@@ -1,0 +1,7 @@
+L 347:     df = filter_price_outliers(df)
+L 348:     df = normalize_categories(df)
+L 349:     df = recategorize_noise(df)
+L 350:     df = normalize_sources(df)
+L 351:     df = normalize_price_date(df)
+L 352:     df = deduplicate(df)
+L 353:     df = consolidate_columns(df)

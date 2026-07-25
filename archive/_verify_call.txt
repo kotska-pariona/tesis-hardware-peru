@@ -1,0 +1,3 @@
+L   6: [DQ4] normalize_categories | [DQ5] normalize_sources | [DQ6] normalize_price_date
+L 348:     df = normalize_categories(df)
+L 349:     df = normalize_sources(df)

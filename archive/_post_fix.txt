@@ -1,0 +1,17 @@
+Cat           N Local  Mediana S/    Min S/    Max S/
+-------------------------------------------------------
+CPU             3,173 S/   1,839 S/    20 S/23,999
+GPU             5,751 S/   3,114 S/    14 S/49,829
+RAM             8,132 S/     729 S/    14 S/32,912
+SSD             8,099 S/     890 S/    19 S/49,585
+MONITOR         7,524 S/     849 S/    25 S/10,819
+PC             13,365 S/   3,290 S/    29 S/42,055
+COOLER            558 S/     372 S/    40 S/ 2,150
+LAPTOP          2,522 S/   4,299 S/    90 S/25,999
+
+=== CPU antes vs despues ===
+CPU registros locales : 3,173
+CPU mediana           : S/1,839
+CPU media             : S/2,884
+CPU p25               : S/1,139
+CPU p75               : S/3,599

@@ -1,0 +1,150 @@
+L 181:     )
+L 182:     print(f"  [DQ5] Fuentes: {b} -> {df['source'].nunique()} unicas")
+L 183:     print(f"         {df['source'].value_counts().to_dict()}")
+L 184:     return df
+L 185: 
+L 186: # ── [DQ6] Normalizar fechas ────────────────────────────────────────────────
+L 187: def normalize_price_date(df):
+L 188:     df = df.copy()
+L 189:     parsed = pd.to_datetime(df["price_date"], errors="coerce")
+L 190:     n_inv = int(parsed.isna().sum())
+L 191:     if n_inv > 0:
+L 192:         print(f"  [DQ6] WARN {n_inv:,} filas con price_date invalida -> eliminadas")
+L 193:         df = df[parsed.notna()].copy()
+L 194:         parsed = parsed[parsed.notna()]
+L 195:     df["price_date"] = parsed.dt.strftime("%Y-%m-%d")
+L 196:     print(f"  [DQ6] OK price_date ISO 8601 - "
+L 197:           f"rango: {df['price_date'].min()} -> {df['price_date'].max()}")
+L 198:     return df
+L 199: 
+L 200: # ── [DQ7] Deduplicar ──────────────────────────────────────────────────────
+L 201: def deduplicate(df):
+L 202:     n0 = len(df)
+L 203:     if "fingerprint" in df.columns and df["fingerprint"].notna().sum() > 0:
+L 204:         df = df.drop_duplicates(subset=["fingerprint"], keep="last")
+L 205:         method = "fingerprint"
+L 206:     else:
+L 207:         keys = [c for c in ["source", "sku", "price_date", "price_usd"] if c in df.columns]
+L 208:         df = df.drop_duplicates(subset=keys, keep="last")
+L 209:         method = f"clave compuesta {keys}"
+L 210:     print(f"  [DQ7] Duplicados: {n0 - len(df):,} eliminados ({method}) | "
+L 211:           f"{n0:,} -> {len(df):,}")
+L 212:     return df.reset_index(drop=True)
+L 213: 
+L 214: # ── [DQ8] Consolidar columnas duplicadas ──────────────────────────────────
+L 215: def consolidate_columns(df):
+L 216:     df = df.copy()
+L 217:     changes = []
+L 218: 
+L 219:     # sold_qty + sold_quantity -> sold_qty
+L 220:     if "sold_qty" in df.columns and "sold_quantity" in df.columns:
+L 221:         df["sold_qty"] = df["sold_qty"].fillna(df["sold_quantity"])
+L 222:         df.drop(columns=["sold_quantity"], inplace=True)
+L 223:         changes.append("sold_quantity -> sold_qty")
+L 224: 
+L 225:     # reviews + reviews_count -> reviews
+L 226:     if "reviews" in df.columns and "reviews_count" in df.columns:
+L 227:         df["reviews"] = pd.to_numeric(df["reviews"], errors="coerce")
+L 228:         df["reviews_count"] = pd.to_numeric(df["reviews_count"], errors="coerce")
+L 229:         df["reviews"] = df["reviews"].fillna(df["reviews_count"])
+L 230:         df.drop(columns=["reviews_count"], inplace=True)
+L 231:         changes.append("reviews_count -> reviews")
+L 232: 
+L 233:     # shipping_free + free_shipping -> free_shipping
+L 234:     if "shipping_free" in df.columns and "free_shipping" in df.columns:
+L 235:         df["free_shipping"] = df["free_shipping"].fillna(df["shipping_free"])
+L 236:         df.drop(columns=["shipping_free"], inplace=True)
+L 237:         changes.append("shipping_free -> free_shipping")
+L 238: 
+L 239:     # scraped_at + timestamp -> timestamp (mantener timestamp)
+L 240:     if "scraped_at" in df.columns and "timestamp" in df.columns:
+L 241:         df["timestamp"] = pd.to_datetime(df["timestamp"], errors="coerce")
+L 242:         df["scraped_at"] = pd.to_datetime(df["scraped_at"], errors="coerce")
+L 243:         df["timestamp"] = df["timestamp"].fillna(df["scraped_at"])
+L 244:         df.drop(columns=["scraped_at"], inplace=True)
+L 245:         changes.append("scraped_at -> timestamp")
+L 246: 
+L 247:     if changes:
+L 248:         print(f"  [DQ8] Columnas consolidadas: {', '.join(changes)}")
+L 249:     else:
+L 250:         print(f"  [DQ8] OK Sin columnas duplicadas que consolidar")
+L 251:     print(f"         Columnas finales: {df.shape[1]}")
+L 252:     return df
+L 253: 
+L 254: # ── [DQ9] Reporte ─────────────────────────────────────────────────────────
+L 255: def generate_report(df_before, df_after, completeness_stats, report_dir):
+L 256:     batch_id = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+L 257:     report = {
+L 258:         "batch_id": batch_id,
+L 259:         "generated_at": datetime.now(timezone.utc).isoformat(),
+L 260:         "pipeline_step": "data_quality.py v1.1",
+L 261:         "rows_before": int(len(df_before)),
+L 262:         "rows_after": int(len(df_after)),
+L 263:         "rows_removed": int(len(df_before) - len(df_after)),
+L 264:         "pct_retained": round(len(df_after) / max(len(df_before), 1) * 100, 2),
+L 265:         "completeness_pct": completeness_stats,
+L 266:         "category_distribution": df_after["category"].value_counts().to_dict(),
+L 267:         "source_distribution": df_after["source"].value_counts().to_dict(),
+L 268:         "price_range": {
+L 269:             "pen_min":    float(df_after["price_pen"].min()),
+L 270:             "pen_max":    float(df_after["price_pen"].max()),
+L 271:             "pen_median": float(df_after["price_pen"].median()),
+L 272:             "usd_min":    float(df_after["price_usd"].min()),
+L 273:             "usd_max":    float(df_after["price_usd"].max()),
+L 274:             "usd_median": float(df_after["price_usd"].median()),
+L 275:         },
+L 276:         "date_range": {
+L 277:             "min": df_after["price_date"].min(),
+L 278:             "max": df_after["price_date"].max(),
+L 279:             "unique_dates": int(pd.to_datetime(df_after["price_date"]).nunique()),
+L 280:         },
+L 281:     }
+L 282:     path = report_dir / f"quality_report_{batch_id}.json"
+L 283:     with open(path, "w", encoding="utf-8") as f:
+L 284:         json.dump(report, f, indent=2, ensure_ascii=False, default=str)
+L 285:     print(f"  [DQ9] OK Reporte guardado: {path.name}")
+L 286:     return report
+L 287: 
+L 288: # ── Main ──────────────────────────────────────────────────────────────────
+L 289: def run_data_quality(input_path, output_path, report_dir):
+L 290:     report_dir.mkdir(parents=True, exist_ok=True)
+L 291:     print("=" * 60)
+L 292:     print("  DATA QUALITY v1.1 - Etapa I")
+L 293:     print("=" * 60)
+L 294: 
+L 295:     df = pd.read_csv(input_path, low_memory=False)
+L 296:     df_before = df.copy()
+L 297:     print(f"\n MASTER cargado: {len(df):,} filas | {df.shape[1]} columnas")
+L 298: 
+L 299:     print("\n-- Validaciones --")
+L 300:     validate_schema(df)
+L 301:     completeness_stats = validate_completeness(df)
+L 302: 
+L 303:     print("\n-- Limpieza --")
+L 304:     df = filter_price_outliers(df)
+L 305:     df = normalize_categories(df)
+L 306:     df = normalize_sources(df)
+L 307:     df = normalize_price_date(df)
+L 308:     df = deduplicate(df)
+L 309:     df = consolidate_columns(df)
+L 310: 
+L 311:     n_rem = len(df_before) - len(df)
+L 312:     print(f"\n-- Resultado final --")
+L 313:     print(f"  Antes  : {len(df_before):,} | Despues: {len(df):,} | "
+L 314:           f"Eliminadas: {n_rem:,} ({round(n_rem / len(df_before) * 100, 2)}%)")
+L 315: 
+L 316:     df.to_csv(output_path, index=False)
+L 317:     print(f"\n OK MASTER limpio guardado: {output_path}")
+L 318:     generate_report(df_before, df, completeness_stats, report_dir)
+L 319: 
+L 320:     print("\n" + "=" * 60)
+L 321:     print("  OK data_quality.py v1.1 completado - listo para temporal_split.py")
+L 322:     print("=" * 60)
+L 323: 
+L 324: if __name__ == "__main__":
+L 325:     parser = argparse.ArgumentParser()
+L 326:     parser.add_argument("--input",      type=Path, default=Path("data/processed/MASTER_hardware_peru_clean.csv"))
+L 327:     parser.add_argument("--output",     type=Path, default=Path("data/processed/MASTER_hardware_peru_clean.csv"))
+L 328:     parser.add_argument("--report-dir", type=Path, default=Path("data/processed"))
+L 329:     args = parser.parse_args()
+L 330:     run_data_quality(args.input, args.output, args.report_dir)

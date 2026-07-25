@@ -1,0 +1,15 @@
+L 175: 
+L 176: # -- [DQ4b] Recategorizar ruido cross-categoria ----------------------------
+L 177: # Productos mal categorizados detectados empiricamente (FIX-21):
+L 178: #   CPU <- PCs completas (falabella_pe), coolers (coolbox_pe)
+---
+L 203: 
+L 204: def recategorize_noise(df):
+L 205:     df = df.copy()
+L 206:     total_fixed = 0
+---
+L 214:             total_fixed += n
+L 215:     print(f'  [DQ4b] Recategorizados: {total_fixed:,} registros con categoria incorrecta')
+L 216:     return df
+L 217: 
+---
