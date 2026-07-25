@@ -1,0 +1,5 @@
+outs:
+- md5: bf25eb5120ad92ef5c7d8596b5dc4046
+  size: 5069051
+  hash: md5
+  path: sentencepiece.bpe.model
