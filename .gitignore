@@ -89,3 +89,5 @@ tash
 newegg_raw_*.csv
 sync_and_fix.sh
 data/MASTER_hardware_peru_REBUILT.csv
+models/pe4_bert_obsolescence/model.safetensors
+models/pe4_bert_obsolescence/sentencepiece.bpe.model
