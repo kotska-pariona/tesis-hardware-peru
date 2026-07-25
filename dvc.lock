@@ -20,18 +20,18 @@ stages:
     outs:
     - path: data/splits/
       hash: md5
-      md5: 17fb9f8e51dd01147d231d0e8fca8db6.dir
-      size: 140590310
-      nfiles: 4
+      md5: 70d334b66f6a6a30ee4ab1e7844546c7.dir
+      size: 140591094
+      nfiles: 5
   feature_engineering:
     cmd: python preprocessing/feature_engineering.py --input-dir data/splits 
       --output-dir data/features
     deps:
     - path: data/splits/
       hash: md5
-      md5: 17fb9f8e51dd01147d231d0e8fca8db6.dir
-      size: 140590310
-      nfiles: 4
+      md5: 70d334b66f6a6a30ee4ab1e7844546c7.dir
+      size: 140591094
+      nfiles: 5
     - path: preprocessing/feature_engineering.py
       hash: md5
       md5: 66bd0f4d055eefd6af47ad1fcd3a2031
