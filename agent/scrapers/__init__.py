@@ -116,7 +116,7 @@ except Exception as e:                                    # [I11]
 #      (archivo existe en repo — 0 resultados en log, posible cambio de HTML)
 # [I13] ADVERTENCIA: main.py NO usa esta variable — mismo caso que arriba.
 try:
-    from .scraper_newegg import scrape_newegg
+    from .scraper_newegg import scrape_all as scrape_newegg
     _HAS_NEWEGG = True
     _newegg_err = None
 except Exception as e:                                    # [I11]

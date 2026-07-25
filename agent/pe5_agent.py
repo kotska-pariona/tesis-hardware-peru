@@ -533,8 +533,9 @@ class PricingAgent:
     [FIX-1] Modelo PE4 se precarga en __init__ una sola vez.
     """
 
-    def __init__(self, master_csv: Path = MASTER_CSV):
+    def __init__(self, master_csv: Path = MASTER_CSV, category: str = ""):
         self.master_csv = master_csv
+        self.category   = category  # [FIX-7] filtro de categoría
         self.df_master  = pd.DataFrame()
         self.df_local   = pd.DataFrame()
         self.df_import  = pd.DataFrame()
@@ -613,10 +614,22 @@ class PricingAgent:
         usd_pen = _RATE_CACHE["usd_pen_venta"]
         log.info(f"  TC: S/ {usd_pen:.4f} por USD")
 
-        categories = [
+        all_cats = [
             c for c in self.df_master["category_norm"].unique()
             if c != "OTHER"
         ]
+        # [FIX-7b] Respetar --category si se especificó
+        if self.category:
+            requested = [c.strip().upper() for c in self.category.split(",")]
+            categories = [c for c in all_cats if c.upper() in requested]
+            if not categories:
+                log.warning(
+                    f"  Categoria '{self.category}' no encontrada. "
+                    f"Disponibles: {sorted(all_cats)}"
+                )
+                return pd.DataFrame()
+        else:
+            categories = all_cats
         log.info(f"  Categorías a analizar: {len(categories)}")
 
         for category in sorted(categories):
@@ -636,17 +649,69 @@ class PricingAgent:
         log.info(f"\n  ⏱ Tiempo total: {elapsed:.1f}s")
         return df_out
 
+
+    # [FIX-19] Price-Band Matching helper
+    @staticmethod
+    def _get_price_band_ref(
+        local_prices: "pd.Series",
+        import_usd: float,
+        usd_pen: float,
+        precio_mediano: float,
+    ) -> float:
+        """
+        Devuelve el precio local de referencia para un producto importado
+        usando price-band matching en lugar de la mediana global.
+        """
+        import numpy as np
+        import_pen = import_usd * usd_pen
+
+        # Banda primaria: ±100% del precio importado en PEN
+        band_lo = import_pen * 0.50
+        band_hi = import_pen * 2.00
+        band = local_prices[(local_prices >= band_lo) & (local_prices <= band_hi)]
+
+        if len(band) >= 3:
+            return float(band.median())
+
+        # Banda secundaria: ±200%
+        band_lo2 = import_pen * 0.30
+        band_hi2 = import_pen * 3.00
+        band2 = local_prices[(local_prices >= band_lo2) & (local_prices <= band_hi2)]
+        if len(band2) >= 3:
+            return float(band2.median())
+
+        # Fallback: mediana del cuartil más cercano
+        q25 = float(local_prices.quantile(0.25))
+        q50 = float(local_prices.quantile(0.50))
+        q75 = float(local_prices.quantile(0.75))
+        q_max = float(local_prices.max())
+
+        if import_pen <= q25:
+            seg = local_prices[local_prices <= q25]
+        elif import_pen <= q50:
+            seg = local_prices[(local_prices > q25) & (local_prices <= q50)]
+        elif import_pen <= q75:
+            seg = local_prices[(local_prices > q50) & (local_prices <= q75)]
+        else:
+            seg = local_prices[local_prices > q75]
+
+        if len(seg) >= 1:
+            return float(seg.median())
+
+        return precio_mediano  # último recurso
+
     def _analyze_category(self, category: str, usd_pen: float):
         """
         Analiza una categoría: calcula ROI + Trend + Obs para cada producto.
         [FIX-3] Filtra productos con price_usd < PRICE_USD_MIN ($50).
         """
+        MAX_ROWS = 15_000  # [FIX-8] evitar OOM en categorias grandes
         local_cat  = self.df_local[
             self.df_local["category_norm"] == category
-        ].copy()
+        ].head(MAX_ROWS).copy()
         import_cat = self.df_import[
             self.df_import["category_norm"] == category
-        ].copy()
+        ].head(MAX_ROWS).copy()
 
         if local_cat.empty or import_cat.empty:
             return
@@ -659,8 +724,84 @@ class PricingAgent:
         if local_cat.empty:
             return
 
+        # [FIX-16] Filtro precio mínimo local por categoría
+        # Elimina accesorios/ruido (S/29) que contaminan el matching
+        LOCAL_PRICE_MIN_PEN = {
+            "CPU": 200, "GPU": 300, "RAM": 50, "SSD": 50,
+            "LAPTOP": 500, "MONITOR": 150, "MOTHERBOARD": 150,
+            "PSU": 80, "COOLER": 30, "CASE": 80,
+            "KEYBOARD": 30, "MOUSE": 20, "HEADSET": 30,
+        }
+        _local_min = LOCAL_PRICE_MIN_PEN.get(category, 30)
+        local_cat = local_cat[local_cat["price_pen"] >= _local_min]
+        if local_cat.empty:
+            return
+
+
+        # [FIX-20] Whitelist filter: solo titulos que contengan keywords del producto
+        # Elimina contaminacion (CASIO, escritorios, TVs, PCs completas en cat CPU, etc.)
+        CATEGORY_WHITELIST = {
+            "CPU": [
+                "procesador","processor","ryzen","intel","core i","core ultra",
+                "athlon","threadripper","xeon","pentium","celeron","i3","i5","i7","i9",
+                "amd","ghz","lga","am4","am5","am3"
+            ],
+            "GPU": [
+                "tarjeta","grafica","gpu","geforce","radeon","rtx","gtx","rx ",
+                "nvidia","amd","vga","gddr","video card","graphics"
+            ],
+            "RAM": [
+                "ram","memoria","ddr","dimm","sodimm","mhz","gb ddr",
+                "memory","kingston","corsair","crucial","hyperx","gskill","teamgroup"
+            ],
+            "SSD": [
+                "ssd","nvme","m.2","solid state","nand","pcie","sata",
+                "samsung 870","samsung 980","wd blue","wd black","kingston",
+                "crucial","seagate","disco solido"
+            ],
+            "MONITOR": [
+                "monitor","pantalla","display","ips","va panel","hz","ms ",
+                "1080p","1440p","4k","ultrawide","curved","gaming monitor"
+            ],
+            "MOTHERBOARD": [
+                "motherboard","placa","mainboard","lga","am4","am5","atx","micro atx",
+                "mini itx","z790","b650","x670","b550","z690","h610","b760"
+            ],
+            "PSU": [
+                "fuente","psu","power supply","watt","80 plus","modular",
+                "corsair","evga","seasonic","thermaltake","cooler master"
+            ],
+            "COOLER": [
+                "cooler","disipador","ventilador","fan","aio","liquid cool",
+                "noctua","be quiet","arctic","deepcool","thermalright","cpu cooler"
+            ],
+            "CASE": [
+                "case","gabinete","torre","chasis","atx","mid tower","full tower",
+                "mini itx","tempered glass","nzxt","fractal","lian li","corsair"
+            ],
+        }
+
+        _whitelist = CATEGORY_WHITELIST.get(category, [])
+        if _whitelist:
+            def _has_whitelist(title_str):
+                t = str(title_str).lower()
+                return any(kw in t for kw in _whitelist)
+            _before_wl = len(local_cat)
+            local_cat = local_cat[local_cat["title"].apply(_has_whitelist)]
+            _removed_wl = _before_wl - len(local_cat)
+            if _removed_wl > 0:
+                log.debug(f"  [FIX-20] {category}: {_removed_wl} titulos ruidosos eliminados "
+                          f"({_removed_wl/_before_wl*100:.1f}%)")
+            if local_cat.empty:
+                log.warning(f"  [FIX-20] {category}: sin datos tras whitelist filter")
+                return
+
         precio_mediano = float(local_cat["price_pen"].median())
         peso_kg        = CATEGORY_WEIGHTS.get(category, 0.5)
+
+        # [FIX-17] Solo necesitamos mediana local como referencia de mercado
+        _local_p10 = float(local_cat["price_pen"].quantile(0.10))
+        _local_p90 = float(local_cat["price_pen"].quantile(0.90))
 
         # [S2] Tendencia de precios locales
         trend = compute_trend(local_cat, category)
@@ -671,21 +812,40 @@ class PricingAgent:
         import_cat = import_cat[import_cat["price_usd"] > 0]
 
         # [FIX-3] Filtrar productos de bajo precio (ruido Kaggle/histórico)
+        # [FIX-13] Filtrar productos de precio excesivo (PCs completos en cat CPU, etc.)
+        PRICE_USD_MAX = {
+            "CPU": 600, "GPU": 1500, "RAM": 400, "SSD": 500,
+            "Motherboard": 800, "PSU": 400, "Cooler": 300,
+            "Case": 400, "Monitor": 1200, "Keyboard": 300,
+            "Mouse": 200, "Headset": 400, "Webcam": 300,
+        }
         n_before = len(import_cat)
         import_cat = import_cat[import_cat["price_usd"] >= PRICE_USD_MIN]
+        _max_usd = PRICE_USD_MAX.get(category, 9999)
+        import_cat = import_cat[import_cat["price_usd"] <= _max_usd]
         n_filtered = n_before - len(import_cat)
 
         if import_cat.empty:
             return
 
+        _precio_mediano_usd = precio_mediano / usd_pen
         log.info(
             f"  {category:15s}: "
             f"{len(import_cat):4d} productos "
             f"(+{n_filtered} filtrados <${PRICE_USD_MIN:.0f}) | "
-            f"precio local S/ {precio_mediano:.0f} | "
+            f"precio local S/ {precio_mediano:.0f} (${_precio_mediano_usd:.0f} USD) | "
             f"trend={trend.signal} "
             f"(n={trend.n_points}, slope={trend.slope_pct*100:.3f}%/día)"
         )
+
+        # [FIX-14] Deduplicar: 1 producto por título normalizado
+        import_cat["_title_key"] = (
+            import_cat["title"]
+            .str.lower()
+            .str.replace(r"[^a-z0-9 ]", " ", regex=True)
+            .str.split().str[:6].str.join(" ")
+        )
+        import_cat = import_cat.drop_duplicates(subset="_title_key", keep="first")
 
         for _, row in import_cat.iterrows():
             try:
@@ -696,10 +856,31 @@ class PricingAgent:
                 if price_usd <= 0 or not title:
                     continue
 
-                # [S1] ROI
+
+                # [FIX-19] Filtro calidad de título: descartar si < 4 tokens reales
+                _title_tokens = [t for t in title.lower().split()
+                                 if len(t) > 1 and not t.isdigit()]
+                if len(_title_tokens) < 4:
+                    continue
+
+                # [S1] ROI — [FIX-17] precio local = mediana de mercado local
+                # Justificación: el rango de precios de importación (S/465-1912)
+                # está por debajo del rango local (S/1079-9102), por lo que el
+                # matching dinámico por percentil colapsa siempre al P10.
+                # La mediana local es el precio de referencia correcto: representa
+                # cuánto paga el consumidor peruano por ese tipo de producto.
+                # [FIX-19] Price-band matching: precio local del segmento equivalente
+                _local_prices_series = local_cat["price_pen"]
+                _precio_local = self._get_price_band_ref(
+                    local_prices=_local_prices_series,
+                    import_usd=price_usd,
+                    usd_pen=usd_pen,
+                    precio_mediano=precio_mediano,
+                )
+
                 roi = calculate_roi(
                     price_import_usd=price_usd,
-                    price_local_pen=precio_mediano,
+                    price_local_pen=_precio_local,
                     shipping_origen_usd=ship_usd,
                     peso_kg=peso_kg,
                     title=title,
@@ -709,7 +890,13 @@ class PricingAgent:
                     usd_pen_rate=usd_pen,
                 )
 
-                roi_signal = "BUY" if roi.conviene_importar else "NO_BUY"
+                # [FIX-15] WAIT: ROI positivo pero tendencia bajando → esperar mejor precio
+                if roi.conviene_importar and trend.signal == "DOWN":
+                    roi_signal = "WAIT"
+                elif roi.conviene_importar:
+                    roi_signal = "BUY"
+                else:
+                    roi_signal = "NO_BUY"
 
                 # [S3] Obsolescencia — [FIX-1] pasar pipe precargado
                 obs = compute_obsolescence(
@@ -731,7 +918,7 @@ class PricingAgent:
                     category=category,
                     source_import=str(row.get("source", "")),
                     price_import_usd=price_usd,
-                    price_local_pen=precio_mediano,
+                    price_local_pen=_precio_local,
                     costo_total_pen=roi.costo_total_pen,
                     usd_pen=usd_pen,
                     roi_pct=roi.roi_pct,
@@ -876,13 +1063,9 @@ def main():
         "--budget", type=float, default=None,
         help="Presupuesto total en S/. para asignación knapsack (opcional)"
     )
-    parser.add_argument(
-        "--budget", type=float, default=None,
-        help="Presupuesto total en S/. para asignacion knapsack (opcional)"
-    )
     args = parser.parse_args()
 
-    agent = PricingAgent(master_csv=args.master)
+    agent = PricingAgent(master_csv=args.master, category=args.category or "")
     df    = agent.run()
 
     # -- Asignacion de presupuesto --
@@ -893,27 +1076,15 @@ def main():
     df      = pd.DataFrame(records)
 
 
-    # -- Asignacion de presupuesto --
-    budget = get_budget(args.budget)
-    log.info(f'[BUDGET] Presupuesto total: S/. {budget:,.2f}')
-    records = df.to_dict('records')
-    records = allocate_budget(records, budget)
-
     if df.empty:
         print("❌ Sin resultados")
         return
 
     # Mostrar top N
-    filter_df = df
-    if args.category:
-        filter_df = df[
-            df["category"].str.upper() == args.category.upper()
-        ]
-
     print(f"\n{'═'*70}")
     print(f"  TOP {args.top} DECISIONES PE5 v{VERSION}")
     print(f"{'═'*70}")
-    top = filter_df.head(args.top)
+    top = df.head(args.top)
     for _, r in top.iterrows():
         icon = {"BUY": "✅", "WAIT": "⏳", "LIQUIDATE": "🔴", "HOLD": "⬜"}.get(
             r["decision"], "?"

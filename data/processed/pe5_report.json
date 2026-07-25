@@ -1,86 +1,90 @@
 {
-  "version": "1.0",
-  "timestamp": "2026-07-24T14:36:58.263934+00:00",
-  "total_analyzed": 168805,
-  "decisions": {
-    "WAIT": 85485,
-    "HOLD": 42357,
-    "BUY": 40844,
-    "LIQUIDATE": 119
+  "version": "1.1",
+  "timestamp": "2026-07-25T03:17:36.420791+00:00",
+  "total_analyzed": 1338,
+  "price_filter": ">= $50 USD",
+  "trend_config": {
+    "min_points": 7,
+    "threshold": 0.01
   },
-  "pct_buy": 24.2,
-  "pct_wait": 50.6,
-  "pct_liquidate": 0.1,
-  "pct_hold": 25.1,
-  "best_roi_pct": 2122.88,
-  "best_ahorro_pen": 3606.27,
+  "decisions": {
+    "LIQUIDATE": 546,
+    "BUY": 426,
+    "HOLD": 366
+  },
+  "pct_buy": 31.8,
+  "pct_wait": 0.0,
+  "pct_liquidate": 40.8,
+  "pct_hold": 27.4,
+  "best_roi_pct": 864.94,
+  "best_ahorro_pen": 2778.74,
   "top_buy": [
     {
-      "title": "MSI Summit E13 AI EVO Intel Core Ultra 7 16GB RAM Motherboard",
-      "category": "LAPTOP",
-      "roi_pct": 134.02,
-      "score_final": 80.0,
-      "ahorro_pen": 2404.7
+      "title": "New PCA-6106-B REV.B2 ISA bus slot industrial passive backplane, CPU card, supporting ATX and AT power interfaces, IPC 6 * ISA",
+      "category": "CPU",
+      "roi_pct": 845.19,
+      "score_final": 76.84,
+      "ahorro_pen": 2772.02
     },
     {
-      "title": "Gateway Ultra Slim 15.6\" FHD Laptop Intel Core i3-1115G4 4GB 128GB Win11H",
-      "category": "LAPTOP",
-      "roi_pct": 309.45,
-      "score_final": 80.0,
-      "ahorro_pen": 3173.49
+      "title": "ID-COOLING",
+      "category": "CPU",
+      "roi_pct": 815.87,
+      "score_final": 76.18,
+      "ahorro_pen": 2761.53
     },
     {
-      "title": "Toshiba Portege X30-F Intel Core i7 16GB RAM 512GB Ultra-Light Laptop",
-      "category": "LAPTOP",
-      "roi_pct": 292.16,
-      "score_final": 80.0,
-      "ahorro_pen": 3128.26
+      "title": "1PCS   New   T9900   CPU  6M   Cache/3.06GHz/1066/Dual-Core Socket 479 Laptop processor forGM45 PM45",
+      "category": "CPU",
+      "roi_pct": 712.13,
+      "score_final": 73.67,
+      "ahorro_pen": 2718.29
     },
     {
-      "title": "Toshiba Portege X30-E Intel Core i7 8GB RAM 256GB SSD  Ultra-Light Laptop | GOOD",
-      "category": "LAPTOP",
-      "roi_pct": 309.45,
-      "score_final": 80.0,
-      "ahorro_pen": 3173.49
+      "title": "942012-001 942012-601 For HP Pavilion Gaming 690-078ccn 590-P010 Motherboard 100% Tested 17514-1",
+      "category": "CPU",
+      "roi_pct": 706.66,
+      "score_final": 73.53,
+      "ahorro_pen": 2715.7
     },
     {
-      "title": "Gateway Ultra Slim 15.6\" FHD Laptop Intel Core i3-1115G4 4GB 128GB Win11H",
-      "category": "LAPTOP",
-      "roi_pct": 309.45,
-      "score_final": 80.0,
-      "ahorro_pen": 3173.49
+      "title": "ARCTIC",
+      "category": "CPU",
+      "roi_pct": 685.51,
+      "score_final": 72.98,
+      "ahorro_pen": 2705.35
     }
   ],
   "top_liquidate": [
     {
-      "title": "LOT Samsung 8GB 4GB 2GB 1GB 2RX8 DDR4/DDR3/DDR2 Desktop Memory RAM 288/240PIN GS",
-      "category": "RAM",
-      "obs_score": 0.7,
-      "score_final": 42.0
-    },
-    {
-      "title": "Thermalright MC-2 ARGB Black RAM Cooler, RGB Strip, Dual 3200RPM Silent Fans, Black Active Cooling Design. Compatible with DDR, DDR2, DDR3, DDR4，DDR5 Memory. Adopts Simple Buckle Structure for Fast",
-      "category": "RAM",
-      "obs_score": 0.7,
-      "score_final": 42.0
-    },
-    {
-      "title": "LOT Samsung 16GB 8GB 4GB 2GB 1GB 2RX8 DDR4/DDR3/DDR2 Desktop Memory RAM 240PIN $",
-      "category": "RAM",
-      "obs_score": 0.7,
-      "score_final": 42.0
-    },
-    {
-      "title": "New 5xESD DIMM RAM Memory Trays with Lid /Fits 50pcs DDR/DDR2/DDR3/DDR4 Desktop",
-      "category": "RAM",
-      "obs_score": 0.7,
-      "score_final": 42.0
-    },
-    {
-      "title": "Intel Core i7-8700K Desktop Processor 6 Cores up to 4.7GHz Turbo Unlocked LGA1151 300 Series 95W",
+      "title": "QIYIDA X99 Motherboard set LGA 2011-3 Xeon E5 2680 V4 CPU DDR4 8GBx1PCS=8GB NVME NGFF M.2 SATA3.0 USB3.0 X99 C612chip",
       "category": "CPU",
-      "obs_score": 0.7,
-      "score_final": 42.0
+      "obs_score": 0.9999934434890747,
+      "score_final": 57.22
+    },
+    {
+      "title": "QIYIDA X99 motherboard D4 TPM2.0 LGA 2011 3 with M.2 slot Support X99 C612chip DDR4 Memory SATA3.0 USB3.0 PCI16X",
+      "category": "CPU",
+      "obs_score": 0.9999935626983643,
+      "score_final": 56.97
+    },
+    {
+      "title": "Fully Tested 100%Working Mainboard For iPhone X/XR/XS/XS Max With Face ID 64g/256g Cleaned iCloud And Unlocked Phone Motherboard",
+      "category": "CPU",
+      "obs_score": 0.9976288676261902,
+      "score_final": 56.91
+    },
+    {
+      "title": "100% New SR043 i7-2640M i7 2640M SR0D2 I7-2677M I7 2677M SR0D3 i7-2637M i7 2637M BGA Chipset",
+      "category": "CPU",
+      "obs_score": 0.999993085861206,
+      "score_final": 56.91
+    },
+    {
+      "title": "intel Core i7-4770 Quad-Core Desktop Processor 3.4 GHZ LGA 1150 8 MB Cache BX80646I74770 (Renewed)",
+      "category": "CPU",
+      "obs_score": 0.9999935626983643,
+      "score_final": 56.89
     }
   ],
   "pe3_r2": 0.9549,

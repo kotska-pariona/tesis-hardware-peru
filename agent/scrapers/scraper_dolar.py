@@ -50,7 +50,7 @@ FALLBACK_RATE_UPDATED = "2026-07-11"
 
 CACHE_TTL_HOURS = 4
 # [D1] /tmp — no se versiona en git, persiste durante el run de GitHub Actions
-CACHE_FILE = Path("/tmp/.dolar_cache.json")
+CACHE_FILE = Path(__file__).parent.parent.parent / "data" / "raw" / ".dolar_cache.json"
 
 HEADERS = {
     "User-Agent": (
@@ -161,46 +161,47 @@ def _parse_price(text: str) -> Optional[float]:
 # ──────────────────────────────────────────────
 # FUENTE 1: SUNAT (oficial)
 # ──────────────────────────────────────────────
-def _fetch_sunat(session: requests.Session) -> Optional[dict]:
-    """Tipo de cambio oficial SUNAT. No disponible sábado/domingo."""
-    weekday = date.today().weekday()
-    if weekday >= 5:
-        logger.info("[Dolar/SUNAT] Fin de semana — SUNAT no publica tipo de cambio")
+def _fetch_apisnetpe(session: requests.Session) -> Optional[dict]:
+    """[D10] apis.net.pe — SUNAT oficial, tiempo real, sin auth."""
+    url = "https://api.apis.net.pe/v1/tipo-cambio-sunat"
+    try:
+        resp = session.get(url, headers=HEADERS, timeout=TIMEOUT)
+        resp.raise_for_status()
+        data = resp.json()
+        compra = float(data["compra"])
+        venta  = float(data["venta"])
+        return {
+            "source": "sunat_oficial",
+            "buy":    compra,
+            "sell":   venta,
+            "mid":    round((compra + venta) / 2, 4),
+            "date":   data.get("fecha", ""),
+        }
+    except Exception:
         return None
 
-    url    = "https://e-consulta.sunat.gob.pe/cl-at-ittipcam/tcS01Alias"
-    today  = date.today()
-    params = {
-        "accion": "buscar",
-        "moneda": "02",
-        "fecha":  today.strftime("%d/%m/%Y"),
-    }
+
+def _fetch_sunat(session: requests.Session) -> Optional[dict]:
+    """[D10] BCRP API REST — reemplaza endpoint SUNAT roto. Serie PD04638PD = TC venta."""
+    from datetime import date as _date
+    hoy = _date.today().strftime("%Y-%m-%d")
+    url = f"https://estadisticas.bcrp.gob.pe/estadisticas/series/api/PD04638PD/json/{hoy}/{hoy}/ing"
     try:
-        resp = session.get(url, params=params, headers=HEADERS, timeout=TIMEOUT)  # [D10]
+        resp = session.get(url, headers=HEADERS, timeout=TIMEOUT)
         resp.raise_for_status()
-        soup = BeautifulSoup(resp.text, "html.parser")
-        for row in soup.select("table tr"):
-            cells = row.select("td")
-            if len(cells) >= 3:
-                compra = _parse_price(cells[1].get_text(strip=True))
-                venta  = _parse_price(cells[2].get_text(strip=True))
-                if compra and venta and 3.0 < compra < 5.0 and 3.0 < venta < 5.0:
-                    return {
-                        "source":    "sunat",
-                        "buy":       compra,
-                        "sell":      venta,
-                        "mid":       round((compra + venta) / 2, 4),
-                        "date":      today.isoformat(),
-                        "timestamp": datetime.now(timezone.utc).isoformat(),
-                    }
-    except requests.RequestException as e:
-        logger.debug(f"[Dolar/SUNAT] Error: {e}")
-    return None
+        data = resp.json()
+        venta = float(data["periods"][0]["values"][0])
+        return {
+            "source": "bcrp_api",
+            "buy":    round(venta - 0.04, 4),
+            "sell":   round(venta,        4),
+            "mid":    round(venta - 0.02, 4),
+            "date":   hoy,
+        }
+    except Exception:
+        return None
 
 
-# ──────────────────────────────────────────────
-# FUENTE 2: SBS Perú
-# ──────────────────────────────────────────────
 def _fetch_sbs(session: requests.Session) -> Optional[dict]:
     """Tipo de cambio SBS. Selectores con fallback progresivo."""
     url = "https://www.sbs.gob.pe/app/pp/sistip_portal/paginas/publicacion/tipocambio.aspx"
@@ -349,15 +350,15 @@ def _fetch_dolarpe(session: requests.Session) -> Optional[dict]:
 # SCRAPER PRINCIPAL
 # ──────────────────────────────────────────────
 SOURCES = [
-    ("SUNAT",            _fetch_sunat),
+    ("SUNAT oficial",    _fetch_apisnetpe),          # apis.net.pe — tiempo real ✅
+    ("SUNAT/BCRP",       _fetch_sunat),              # BCRP serie (retraso 1-2d)
     ("SBS Perú",         _fetch_sbs),
     ("ExchangeRate-API", _fetch_exchangerate_api),
     ("Frankfurter/BCE",  _fetch_frankfurter),
-    ("dolarpe.com",      _fetch_dolarpe),
 ]
 
 
-def get_exchange_rate(batch_id: str) -> dict:
+def get_exchange_rate(batch_id: str = None) -> dict:
     """
     Obtiene el tipo de cambio USD/PEN con fallback automático.
     Usa caché si el dato tiene menos de CACHE_TTL_HOURS horas.
