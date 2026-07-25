@@ -352,77 +352,77 @@ def _save_budget(budget):
     )
 
 
-def allocate_budget(decisions, budget):
+def allocate_budget(decisions: list[dict], budget: float) -> list[dict]:
     """
-    Asigna unidades de compra proporcionales al score (estrategia X).
+    [FIX-6] Knapsack greedy por ROI/precio para maximizar retorno
+    sin sobrestock.
 
-    units_i = floor( (score_i / sum_scores) * (budget / price_i) )
-    min 1 unidad si score >= MIN_SCORE_TO_BUY
-    max MAX_UNITS_PER_SKU unidades por SKU
+    Estrategia:
+      1. Filtrar solo BUY con score >= MIN_SCORE_TO_BUY
+      2. Calcular demanda_max por SKU desde available_qty / sold_quantity
+      3. Ordenar por roi_pen_por_sol (ROI S/. por cada S/. invertido) DESC
+      4. Asignar unidades greedy hasta agotar presupuesto o demanda
     """
-    for d in decisions:
-        d["units_to_buy"]    = 0
-        d["budget_assigned"] = 0.0
-        d["budget_pct"]      = 0.0
+    import math as _math
 
-    buys = [
-        d for d in decisions
-        if d.get("decision") == "BUY"
-        and float(d.get("price_pen", 0) or 0) > 0
-        and float(d.get("score", 0) or 0) >= MIN_SCORE_TO_BUY
-    ]
+    HORIZONTE_DIAS = 30   # ventana de reposición en días
 
-    if not buys:
-        log.warning("[BUDGET] Sin productos BUY elegibles.")
+    buys = [d for d in decisions
+            if d["decision"] == "BUY" and float(d.get("score", 0)) >= MIN_SCORE_TO_BUY]
+
+    if not buys or budget <= 0:
         return decisions
 
-    sum_scores = sum(float(d["score"]) for d in buys)
-    remaining  = budget
+    # Inicializar campos
+    for d in decisions:
+        d.setdefault("units_to_buy",    0)
+        d.setdefault("budget_assigned", 0.0)
+        d.setdefault("budget_pct",      0.0)
 
-    # Primera pasada — proporcional
-    for d in sorted(buys, key=lambda x: float(x["score"]), reverse=True):
+    # Calcular demanda máxima por SKU
+    for d in buys:
+        avail = int(d.get("available_qty") or 0)
+        sold  = float(d.get("sold_quantity") or 0)
+        # Unidades vendibles en horizonte (mínimo 1, máximo available_qty o MAX_UNITS_PER_SKU)
+        demand = max(1, _math.floor((sold / 30.0) * HORIZONTE_DIAS)) if sold > 0 else 1
+        d["_demand_max"] = min(
+            max(avail, 1) if avail > 0 else MAX_UNITS_PER_SKU,
+            MAX_UNITS_PER_SKU,
+            demand
+        )
+        # ROI en S/. por cada S/. invertido (eficiencia de capital)
+        price = float(d.get("price_pen") or 1)
+        roi_pct = float(d.get("roi_pct") or 0)
+        d["_roi_efficiency"] = (roi_pct / 100.0) / price if price > 0 else 0.0
+
+    # Ordenar por eficiencia de capital DESC
+    buys_sorted = sorted(buys, key=lambda x: x["_roi_efficiency"], reverse=True)
+
+    remaining = budget
+    for d in buys_sorted:
         if remaining <= 0:
             break
-        price = float(d["price_pen"])
-        score = float(d["score"])
-        budget_share = (score / sum_scores) * budget
-        units = int(budget_share / price)
-        units = max(1, min(units, MAX_UNITS_PER_SKU))
-        cost  = units * price
-        if cost <= remaining:
+        price    = float(d.get("price_pen") or 0)
+        if price <= 0:
+            continue
+        max_units = d["_demand_max"]
+        affordable = int(remaining / price)
+        units = min(max_units, affordable)
+        if units >= 1:
             d["units_to_buy"]    = units
-            d["budget_assigned"] = round(cost, 2)
-            remaining -= cost
-        else:
-            units = int(remaining / price)
-            if units >= 1:
-                d["units_to_buy"]    = units
-                d["budget_assigned"] = round(units * price, 2)
-                remaining -= units * price
-
-    # Segunda pasada — sobrante a top SKUs
-    for d in sorted(
-        [x for x in buys if x["units_to_buy"] < MAX_UNITS_PER_SKU],
-        key=lambda x: float(x["score"]), reverse=True
-    ):
-        if remaining <= 0:
-            break
-        price = float(d["price_pen"])
-        add   = min(int(remaining / price), MAX_UNITS_PER_SKU - d["units_to_buy"])
-        if add >= 1:
-            d["units_to_buy"]    += add
-            d["budget_assigned"]  = round(d["budget_assigned"] + add * price, 2)
-            remaining -= add * price
+            d["budget_assigned"] = round(units * price, 2)
+            d["budget_pct"]      = 0.0   # se recalcula abajo
+            remaining -= units * price
 
     total_assigned = sum(d["budget_assigned"] for d in buys)
     for d in buys:
-        d["budget_pct"] = round(d["budget_assigned"] / budget * 100, 2)
+        d["budget_pct"] = round(d["budget_assigned"] / budget * 100, 2) if budget > 0 else 0.0
 
     log.info(
-        f"[BUDGET] Total S/. {budget:,.2f} | "
+        f"[BUDGET-KNAPSACK] Total S/. {budget:,.2f} | "
         f"Asignado S/. {total_assigned:,.2f} | "
         f"Sobrante S/. {remaining:,.2f} | "
-        f"SKUs: {len([d for d in buys if d['units_to_buy'] > 0])}"
+        f"SKUs con compra: {len([d for d in buys if d['units_to_buy'] > 0])}"
     )
     return decisions
 
@@ -871,6 +871,10 @@ def main():
     parser.add_argument(
         "--category", type=str, default=None,
         help="Filtrar por categoría (CPU, GPU, RAM, etc.)"
+    )
+    parser.add_argument(
+        "--budget", type=float, default=None,
+        help="Presupuesto total en S/. para asignación knapsack (opcional)"
     )
     args = parser.parse_args()
 
