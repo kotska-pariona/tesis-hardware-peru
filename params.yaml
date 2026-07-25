@@ -1,0 +1,11 @@
+data:
+  raw_dir: data/raw
+  master: data/raw/MASTER_hardware_peru.csv
+preprocessing:
+  test_size: 0.15
+  val_size: 0.10
+  zscore_window: 90
+models:
+  pe3_mape_target: 0.01
+  pe4_f1_target: 0.93
+  pe5_budget_pen: 5000
