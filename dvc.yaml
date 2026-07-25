@@ -1,23 +1,46 @@
 stages:
-  preprocess:
-    cmd: python preprocessing/mice_imputer.py
+  split:
+    cmd: >-
+      python preprocessing/temporal_split.py
+      --input data/raw/MASTER_hardware_peru.csv
+      --output-dir data/splits
+      --train-ratio ${preprocessing.train_ratio}
+      --val-ratio ${preprocessing.val_ratio}
     deps:
       - data/raw/MASTER_hardware_peru.csv
-      - preprocessing/mice_imputer.py
+      - preprocessing/temporal_split.py
     params:
       - params.yaml:
-        - preprocessing.test_size
-        - preprocessing.val_size
+        - preprocessing.train_ratio
+        - preprocessing.val_ratio
     outs:
-      - data/processed/
+      - data/splits/
 
   feature_engineering:
-    cmd: python preprocessing/feature_engineering.py
+    cmd: >-
+      python preprocessing/feature_engineering.py
+      --input-dir data/splits
+      --output-dir data/features
     deps:
-      - data/processed/
+      - data/splits/
       - preprocessing/feature_engineering.py
     params:
       - params.yaml:
         - preprocessing.zscore_window
     outs:
-      - data/splits/
+      - data/features/
+
+  preprocess:
+    cmd: >-
+      python preprocessing/mice_imputer.py
+      --input-dir data/features
+      --output-dir data/processed
+      --max-iter ${preprocessing.mice_max_iter}
+    deps:
+      - data/features/
+      - preprocessing/mice_imputer.py
+    params:
+      - params.yaml:
+        - preprocessing.mice_max_iter
+    outs:
+      - data/processed/
