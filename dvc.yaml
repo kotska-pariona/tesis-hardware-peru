@@ -14,8 +14,7 @@ stages:
         - preprocessing.train_ratio
         - preprocessing.val_ratio
     outs:
-      - path: data/splits/
-        push: false
+      - data/splits/
 
   feature_engineering:
     cmd: >-
@@ -29,8 +28,7 @@ stages:
       - params.yaml:
         - preprocessing.zscore_window
     outs:
-      - path: data/features/
-        push: false
+      - data/features/
 
   preprocess:
     cmd: >-
@@ -45,5 +43,4 @@ stages:
       - params.yaml:
         - preprocessing.mice_max_iter
     outs:
-      - path: data/processed/
-        push: false
+      - data/processed/
