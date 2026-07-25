@@ -51,9 +51,9 @@ stages:
     deps:
     - path: data/features/
       hash: md5
-      md5: 3dde3094f39f34fa50113735db789a08.dir
-      size: 396460642
-      nfiles: 19
+      md5: 79ded0a5b6e560e44b8b12b1950cfefa.dir
+      size: 169731138
+      nfiles: 4
     - path: preprocessing/mice_imputer.py
       hash: md5
       md5: fbd3fe28eef5b4bd4753fd655ed3ff95
@@ -64,6 +64,6 @@ stages:
     outs:
     - path: data/processed/
       hash: md5
-      md5: 62fbf3ee1dac67c9efa01217c9f78ab7.dir
-      size: 130871293
-      nfiles: 8
+      md5: d751713988987e9331980363e24189ce.dir
+      size: 0
+      nfiles: 0

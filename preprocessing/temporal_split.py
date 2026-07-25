@@ -182,9 +182,9 @@ def run_temporal_split(
     output_dir.mkdir(parents=True, exist_ok=True)
     test_ratio = 1.0 - train_ratio - val_ratio
 
-    print("═" * 60)
+    print("=" * 60)
     print("  TEMPORAL SPLIT v1.0 — Etapa II")
-    print("═" * 60)
+    print("=" * 60)
     print(f"\n🎯 Proporciones objetivo: train={train_ratio:.1%} | "
           f"val={val_ratio:.1%} | test={test_ratio:.1%}")
 
@@ -270,9 +270,9 @@ def run_temporal_split(
         json.dump(report, f, indent=2, ensure_ascii=False)
     print(f"📋 Reporte de split: {report_path.name}")
 
-    print("\n" + "═" * 60)
+    print("\n" + "=" * 60)
     print("  ✅ Split temporal completado — listo para mice_imputer.py")
-    print("═" * 60)
+    print("=" * 60)
 
     return report
 
