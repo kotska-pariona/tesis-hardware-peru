@@ -7,8 +7,8 @@ stages:
     deps:
     - path: data/raw/MASTER_hardware_peru.csv
       hash: md5
-      md5: 0bd520983c383699479cfc00570bc5d2
-      size: 140060693
+      md5: 0720df9e1a9618edb66431a3437e10c6
+      size: 140587276
     - path: preprocessing/temporal_split.py
       hash: md5
       md5: b2e59218699195567b28399f31b35b18
@@ -20,18 +20,18 @@ stages:
     outs:
     - path: data/splits/
       hash: md5
-      md5: 711f9359f0bfd4fba0e6a037ac6b8d6c.dir
-      size: 140062544
-      nfiles: 4
+      md5: d751713988987e9331980363e24189ce.dir
+      size: 0
+      nfiles: 0
   feature_engineering:
     cmd: python preprocessing/feature_engineering.py --input-dir data/splits 
       --output-dir data/features
     deps:
     - path: data/splits/
       hash: md5
-      md5: 711f9359f0bfd4fba0e6a037ac6b8d6c.dir
-      size: 140062544
-      nfiles: 4
+      md5: d751713988987e9331980363e24189ce.dir
+      size: 0
+      nfiles: 0
     - path: preprocessing/feature_engineering.py
       hash: md5
       md5: 66bd0f4d055eefd6af47ad1fcd3a2031
