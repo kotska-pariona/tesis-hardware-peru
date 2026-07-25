@@ -876,6 +876,10 @@ def main():
         "--budget", type=float, default=None,
         help="Presupuesto total en S/. para asignación knapsack (opcional)"
     )
+    parser.add_argument(
+        "--budget", type=float, default=None,
+        help="Presupuesto total en S/. para asignacion knapsack (opcional)"
+    )
     args = parser.parse_args()
 
     agent = PricingAgent(master_csv=args.master)
