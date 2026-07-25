@@ -83,3 +83,9 @@ setup_dashboard.sh
 config/budget.json
 venv/
 venv_pe4/
+diag_*.txt
+data/splits/
+tash
+newegg_raw_*.csv
+sync_and_fix.sh
+data/MASTER_hardware_peru_REBUILT.csv

@@ -1,0 +1,3 @@
+L348: repr='    df = normalize_categories(df)\r\n'
+Insertado en L349: '    df = recategorize_noise(df)\r\n'
+OK - llamada insertada
