@@ -1,0 +1,5 @@
+outs:
+- md5: 05a11499d1f8d673324d54fcee44ad95
+  size: 2520384
+  hash: md5
+  path: zscore_normalizer.pkl
