@@ -1,6 +1,1 @@
 [core]
-    remote = models_only
-['remote "gdrive"']
-    url = gdrive://1vNhCV8mpdf8_rEy4ZY_ZxBaYA3CJ4G4L
-['remote "models_only"']
-    url = gdrive://TU_FOLDER_ID_MODELOS
