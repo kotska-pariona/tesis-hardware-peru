@@ -96,3 +96,4 @@ data/raw/batch_*.csv
 data/splits/*.csv
 data/features/*.csv
 models/test_predictions*.csv
+service_account.json
