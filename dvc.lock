@@ -7,8 +7,8 @@ stages:
     deps:
     - path: data/raw/MASTER_hardware_peru.csv
       hash: md5
-      md5: 0720df9e1a9618edb66431a3437e10c6
-      size: 140587276
+      md5: 5ce6332c2cfc9c86d4397b93ad6abc50
+      size: 118196271
     - path: preprocessing/temporal_split.py
       hash: md5
       md5: bee59dfb2ffde320e51b3b93230c428b
@@ -20,18 +20,18 @@ stages:
     outs:
     - path: data/splits/
       hash: md5
-      md5: 70d334b66f6a6a30ee4ab1e7844546c7.dir
-      size: 140591094
-      nfiles: 5
+      md5: 53cad70d4e5461b81eba06cb17a4779e.dir
+      size: 118197781
+      nfiles: 4
   feature_engineering:
     cmd: python preprocessing/feature_engineering.py --input-dir data/splits 
       --output-dir data/features
     deps:
     - path: data/splits/
       hash: md5
-      md5: 70d334b66f6a6a30ee4ab1e7844546c7.dir
-      size: 140591094
-      nfiles: 5
+      md5: 53cad70d4e5461b81eba06cb17a4779e.dir
+      size: 118197781
+      nfiles: 4
     - path: preprocessing/feature_engineering.py
       hash: md5
       md5: 66bd0f4d055eefd6af47ad1fcd3a2031
@@ -42,8 +42,8 @@ stages:
     outs:
     - path: data/features/
       hash: md5
-      md5: 4e400dce783a1ac9d8ac6848f241108b.dir
-      size: 335470539
+      md5: 7e0037df75983621cc92ebdc14781f10.dir
+      size: 280854319
       nfiles: 7
   preprocess:
     cmd: python preprocessing/mice_imputer.py --input-dir data/features 
@@ -51,8 +51,8 @@ stages:
     deps:
     - path: data/features/
       hash: md5
-      md5: 4e400dce783a1ac9d8ac6848f241108b.dir
-      size: 335470539
+      md5: 7e0037df75983621cc92ebdc14781f10.dir
+      size: 280854319
       nfiles: 7
     - path: preprocessing/mice_imputer.py
       hash: md5
@@ -64,6 +64,6 @@ stages:
     outs:
     - path: data/processed/
       hash: md5
-      md5: b2de90091d621f55134725746787b931.dir
-      size: 223181521
+      md5: 662f5ade6b1c1022579ee15597845595.dir
+      size: 188613323
       nfiles: 5
