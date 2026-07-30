@@ -1,0 +1,5 @@
+outs:
+- md5: 5ce6332c2cfc9c86d4397b93ad6abc50
+  size: 118196271
+  hash: md5
+  path: MASTER_hardware_peru.csv
