@@ -1,0 +1,27 @@
+OE4 — Clasificador Obsolescencia | E5-large + MLP
+Fecha: 2026-07-30 11:08:18
+=======================================================
+
+Stratified K-Fold (k=5) F1-macro por fold:
+  Fold 1: 0.8667
+  Fold 2: 0.9379
+  Fold 3: 0.8586
+  Fold 4: 0.8063
+  Fold 5: 0.5982
+  Media : 0.8135 ± 0.1155
+
+=======================================================
+Evaluación sobre corpus completo:
+
+              precision    recall  f1-score   support
+
+     VIGENTE     1.0000    1.0000    1.0000        57
+   EN_RIESGO     1.0000    1.0000    1.0000        13
+    OBSOLETO     1.0000    1.0000    1.0000        12
+
+    accuracy                         1.0000        82
+   macro avg     1.0000    1.0000    1.0000        82
+weighted avg     1.0000    1.0000    1.0000        82
+
+Accuracy : 1.0000
+F1-macro : 1.0000

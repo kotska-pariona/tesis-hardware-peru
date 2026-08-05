@@ -1,0 +1,4 @@
+perfil,roi_base_pct,mc_media_pct,mc_std_pp,mc_p5_pct,mc_p95_pct,prob_roi_positivo_pct,prob_roi_mayor20_pct,be_fv_roi0,be_fv_roi10,factor_mas_sensible
+conservador,27.87,39.13,14.99,15.82,65.26,100.0,90.4,0.508,0.559,factor_venta
+moderado,70.61,74.83,19.58,44.87,108.33,100.0,99.8,0.422,0.464,factor_venta
+agresivo,104.06,98.49,21.52,63.29,135.51,100.0,100.0,0.368,0.404,factor_venta

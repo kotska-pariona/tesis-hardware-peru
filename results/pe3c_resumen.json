@@ -1,0 +1,178 @@
+{
+  "oe": "OE3-C",
+  "timestamp": "2026-07-30T02:35:56.482298",
+  "modelo_importacion": {
+    "igv_ipm_pct": 20.0,
+    "escenarios": {
+      "opt": {
+        "label": "Optimista (casilla/courier experto)",
+        "envio_pct": 4.0,
+        "envio_fijo_usd": 10.0,
+        "despacho_usd": 0.0,
+        "arancel_extra_pct": 0.0
+      },
+      "base": {
+        "label": "Base (consumidor típico)",
+        "envio_pct": 7.000000000000001,
+        "envio_fijo_usd": 15.0,
+        "despacho_usd": 50.0,
+        "arancel_extra_pct": 0.0
+      },
+      "cons": {
+        "label": "Conservador (máximo costo)",
+        "envio_pct": 10.0,
+        "envio_fijo_usd": 20.0,
+        "despacho_usd": 60.0,
+        "arancel_extra_pct": 6.0
+      }
+    }
+  },
+  "resultados_globales": {
+    "opt": {
+      "brecha_mediana_ajustada_pct": 25.57,
+      "pct_conviene_local": 33.31,
+      "pct_conviene_importar": 66.69,
+      "overhead_mediano_pct": 29.8
+    },
+    "base": {
+      "brecha_mediana_ajustada_pct": 10.19,
+      "pct_conviene_local": 42.45,
+      "pct_conviene_importar": 57.55,
+      "overhead_mediano_pct": 46.8
+    },
+    "cons": {
+      "brecha_mediana_ajustada_pct": -1.96,
+      "pct_conviene_local": 51.45,
+      "pct_conviene_importar": 48.55,
+      "overhead_mediano_pct": 65.9
+    }
+  },
+  "por_categoria": {
+    "case": {
+      "gap_raw_median": 27.08,
+      "gap_opt_median": -13.21,
+      "gap_base_median": -19.44,
+      "gap_cons_median": -29.08,
+      "pct_conviene_local_base": 63.24,
+      "n_pares": 68
+    },
+    "ssd": {
+      "gap_raw_median": 40.13,
+      "gap_opt_median": 7.49,
+      "gap_base_median": -4.94,
+      "gap_cons_median": -19.55,
+      "pct_conviene_local_base": 53.09,
+      "n_pares": 81
+    },
+    "monitores": {
+      "gap_raw_median": 46.85,
+      "gap_opt_median": 12.87,
+      "gap_base_median": -1.36,
+      "gap_cons_median": -12.09,
+      "pct_conviene_local_base": 50.99,
+      "n_pares": 2177
+    },
+    "psu": {
+      "gap_raw_median": 48.62,
+      "gap_opt_median": 7.76,
+      "gap_base_median": 0.22,
+      "gap_cons_median": -12.12,
+      "pct_conviene_local_base": 49.87,
+      "n_pares": 385
+    },
+    "cpu": {
+      "gap_raw_median": 53.38,
+      "gap_opt_median": 18.78,
+      "gap_base_median": 1.68,
+      "gap_cons_median": -8.81,
+      "pct_conviene_local_base": 49.15,
+      "n_pares": 468
+    },
+    "gpu": {
+      "gap_raw_median": 45.99,
+      "gap_opt_median": 15.35,
+      "gap_base_median": 4.47,
+      "gap_cons_median": -4.92,
+      "pct_conviene_local_base": 44.14,
+      "n_pares": 290
+    },
+    "laptops": {
+      "gap_raw_median": 46.81,
+      "gap_opt_median": 16.39,
+      "gap_base_median": 7.79,
+      "gap_cons_median": -1.77,
+      "pct_conviene_local_base": 47.01,
+      "n_pares": 251
+    },
+    "ram": {
+      "gap_raw_median": 70.88,
+      "gap_opt_median": 24.58,
+      "gap_base_median": 8.47,
+      "gap_cons_median": -4.09,
+      "pct_conviene_local_base": 38.49,
+      "n_pares": 291
+    },
+    "tarjetas_video": {
+      "gap_raw_median": 52.86,
+      "gap_opt_median": 20.44,
+      "gap_base_median": 9.32,
+      "gap_cons_median": -1.15,
+      "pct_conviene_local_base": 43.42,
+      "n_pares": 479
+    },
+    "motherboard": {
+      "gap_raw_median": 61.79,
+      "gap_opt_median": 20.15,
+      "gap_base_median": 10.62,
+      "gap_cons_median": -2.5,
+      "pct_conviene_local_base": 42.8,
+      "n_pares": 472
+    },
+    "procesadores": {
+      "gap_raw_median": 83.68,
+      "gap_opt_median": 42.41,
+      "gap_base_median": 23.02,
+      "gap_cons_median": 10.08,
+      "pct_conviene_local_base": 31.11,
+      "n_pares": 585
+    },
+    "discos_ssd": {
+      "gap_raw_median": 87.31,
+      "gap_opt_median": 41.74,
+      "gap_base_median": 26.29,
+      "gap_cons_median": 12.58,
+      "pct_conviene_local_base": 35.53,
+      "n_pares": 318
+    },
+    "memorias_ram": {
+      "gap_raw_median": 111.93,
+      "gap_opt_median": 58.84,
+      "gap_base_median": 41.67,
+      "gap_cons_median": 25.52,
+      "pct_conviene_local_base": 21.09,
+      "n_pares": 749
+    },
+    "computadoras": {
+      "gap_raw_median": 95.33,
+      "gap_opt_median": 56.09,
+      "gap_base_median": 43.52,
+      "gap_cons_median": 28.69,
+      "pct_conviene_local_base": 37.61,
+      "n_pares": 561
+    },
+    "cooler": {
+      "gap_raw_median": 210.31,
+      "gap_opt_median": 102.93,
+      "gap_base_median": 86.33,
+      "gap_cons_median": 63.59,
+      "pct_conviene_local_base": 22.73,
+      "n_pares": 22
+    }
+  },
+  "figuras": [
+    "figures/pe3c_fig1_escenarios.png",
+    "figures/pe3c_fig2_categoria_real.png",
+    "figures/pe3c_fig3_overhead_precio.png",
+    "figures/pe3c_fig4_decision_map.png"
+  ]
+}

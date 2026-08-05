@@ -1,0 +1,21 @@
+{
+  "timestamp": "2026-07-30T03:11:15.813538",
+  "algoritmo": "NSGA-III",
+  "referencia": "Blank & Deb (2020) IEEE Access 10.1109/ACCESS.2020.2990567",
+  "pymoo_version": "0.6.2",
+  "presupuesto_usd": 5000.0,
+  "n_candidatos": 80,
+  "pop_size": 200,
+  "n_gen": 150,
+  "n_objetivos": 4,
+  "n_restricciones": 2,
+  "n_soluciones_pareto": 75,
+  "roi_min_pct": 65.87,
+  "roi_max_pct": 73.2,
+  "riesgo_min": 3.2508,
+  "riesgo_max": 6.5581,
+  "cats_min": 6,
+  "cats_max": 11,
+  "hhi_min": 0.1028,
+  "hhi_max": 0.2453
+}

@@ -1,0 +1,18 @@
+titulo,categoria,fuente_import,costo_unit_usd,precio_venta_usd,ganancia_unit_usd,roi_unitario_pct,roi_esperado_pct,cantidad,costo_total_usd,venta_total_usd,ganancia_total_usd,score_ponderado,match_score
+COMPUTADOR WORKSTATION Z2 INTEL CORE ULTRA 9 285 16GB DDR5 1,computadoras,amazon_usa,1286.52,2747.41,1323.52,113.5,102.9,2,2573.04,5494.82,2647.04,0.8021,94.7
+Laptop ROG Strix G16 G615JMR Intel Core i9-14900HX 16GB RAM ,laptops,ebay_usa,1352.0,2783.86,1292.67,105.9,95.6,2,2704.0,5567.72,2585.34,0.8536,85.4
+"MacBook Pro 14"" Chip M5, CPU 10 núcleos, GPU 10 núcleos, 1TB",gpu,ebay_usa,903.87,1780.3,787.41,97.0,87.1,1,903.87,1780.3,787.41,0.8814,100.0
+"Laptop Amd Ryzen Ia 7 350 32gb 1tb Ssd Yoga 7 2 En 1 14"" Ole",laptops,ebay_usa,772.9,1538.11,688.3,99.0,89.0,1,772.9,1538.11,688.3,0.866,100.0
+Tarjeta de video geforce RTX 3080 10GB gddr6x 320bits v2 OC ,tarjetas_video,amazon_usa,645.79,1260.36,551.55,95.2,85.4,1,645.79,1260.36,551.55,0.8714,100.0
+Memoria Predator Vesta Ii Rgb 32 Gb Ddr5-6000 Alto Rendimien,memorias_ram,ebay_usa,453.2,871.41,374.64,92.3,82.7,1,453.2,871.41,374.64,0.8821,100.0
+Procesador Ryzen 5 9600 3.80-5.20Ghz 32Mb 6C Am5 Con Gráfico,procesadores,ebay_usa,204.44,421.68,196.16,106.3,96.0,1,204.44,421.68,196.16,0.8924,96.0
+"Procesador Ryzen 5 7600X, 6 Núcleos, 4.7-5.3Ghz, 32Mb L3, Ar",procesadores,ebay_usa,204.17,415.26,190.33,103.4,93.2,1,204.17,415.26,190.33,0.8903,100.0
+Procesador Core i7 14700 2.10-5.40Ghz 33MB Smart Cache LGA17,cpu,aliexpress,197.76,406.72,188.62,105.7,95.4,1,197.76,406.72,188.62,0.9029,100.0
+Monitor gaming G Pro 27i de 27 2K QHD Fast IPS 180Hz 1Ms,monitores,ebay_usa,197.75,406.4,188.33,105.5,95.2,1,197.75,406.4,188.33,0.8754,100.0
+Monitor Curvo Gaming G34WQi de 34 WQHD 3440x1440 180Hz 1ms,monitores,ebay_usa,197.75,406.4,188.33,105.5,95.2,1,197.75,406.4,188.33,0.8754,100.0
+Procesador Core i7 14700KF 3.4 GHz-5.4 GHz Cache 33MB LGA170,cpu,aliexpress,197.76,399.32,181.59,101.9,91.8,1,197.76,399.32,181.59,0.8822,100.0
+DISCO DURO SOLIDO 1TB M.2 2230 NVMe PCIe 4.0 1TB SNV3SM3/1T0,ssd,amazon_usa,179.75,358.94,161.24,99.7,89.7,1,179.75,358.94,161.24,0.8965,100.0
+Disco duro Western Digital WD Purple 1TB SATA 6.0 Gbs 5400 6,discos_ssd,amazon_usa,179.77,357.66,160.01,99.0,89.0,1,179.77,357.66,160.01,0.8924,100.0
+Memoria Ram Hyperx Fury Impact 16Gb Ddr4 3200Mhz Sodimm Para,memorias_ram,amazon_usa,143.82,278.2,120.47,93.4,83.8,1,143.82,278.2,120.47,0.8885,100.0
+"Motherboard Z790 D DDR4 rev. 1.0 Chipset Intel Z790, LGA1700",motherboard,amazon_usa,120.62,225.41,93.52,86.9,77.5,1,120.62,225.41,93.52,0.7455,100.0
+Fuente de poder RM850x 850W 80 Plus Gold Certified ATX Black,psu,ebay_usa,120.72,213.44,82.05,76.8,68.0,1,120.72,213.44,82.05,0.6631,100.0

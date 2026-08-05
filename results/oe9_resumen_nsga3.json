@@ -1,0 +1,90 @@
+{
+  "version": "1.5-OE9-SOFT-CONSTRAINTS",
+  "timestamp": "2026-07-30T18:19:52.008717",
+  "input": "data\\features\\oe9_feature_matrix.csv",
+  "n_skus_catalogo": 82,
+  "budget_usd": 100000.0,
+  "rj_max": 0.5,
+  "n_min_skus": 3,
+  "problema": "BINARIO (0/1 por SKU) - SOFT CONSTRAINTS",
+  "n_generaciones": 200,
+  "tiempo_seg": 8.6,
+  "n_soluciones_pareto": 24,
+  "tipos_portafolio": {
+    "AGRESIVO": 11,
+    "OPTIMO": 7,
+    "ESTRELLA": 3,
+    "BALANCEADO": 3
+  },
+  "roi_stats": {
+    "min": 39.64,
+    "max": 83.79,
+    "mean": 54.93,
+    "median": 56.61
+  },
+  "capital_stats": {
+    "min": 126.64,
+    "max": 3510.64,
+    "mean": 1255.22,
+    "median": 1016.1
+  },
+  "ganancia_stats": {
+    "min": 76.15,
+    "max": 1448.68,
+    "mean": 614.18,
+    "median": 610.35
+  },
+  "rj_stats": {
+    "min": 0.0012,
+    "max": 0.9989,
+    "mean": 0.3323,
+    "median": 0.321
+  },
+  "top5_pareto": [
+    {
+      "sol_id": 13,
+      "tipo": "AGRESIVO",
+      "roi_pct": 83.79,
+      "rj_portafolio": 0.9989,
+      "n_skus": 1,
+      "capital_usd": 143.81,
+      "ganancia_usd": 120.5
+    },
+    {
+      "sol_id": 18,
+      "tipo": "AGRESIVO",
+      "roi_pct": 71.33,
+      "rj_portafolio": 0.8741,
+      "n_skus": 4,
+      "capital_usd": 634.35,
+      "ganancia_usd": 452.51
+    },
+    {
+      "sol_id": 7,
+      "tipo": "AGRESIVO",
+      "roi_pct": 70.83,
+      "rj_portafolio": 0.5001,
+      "n_skus": 3,
+      "capital_usd": 468.2,
+      "ganancia_usd": 331.61
+    },
+    {
+      "sol_id": 22,
+      "tipo": "AGRESIVO",
+      "roi_pct": 67.68,
+      "rj_portafolio": 0.8325,
+      "n_skus": 3,
+      "capital_usd": 490.54,
+      "ganancia_usd": 332.01
+    },
+    {
+      "sol_id": 23,
+      "tipo": "AGRESIVO",
+      "roi_pct": 66.58,
+      "rj_portafolio": 0.5833,
+      "n_skus": 6,
+      "capital_usd": 1137.12,
+      "ganancia_usd": 757.08
+    }
+  ]
+}

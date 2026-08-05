@@ -1,0 +1,13 @@
+{
+  "fecha_evaluacion": "2026-08-04T21:57:16.971583",
+  "oe3": {},
+  "oe4": {
+    "inference_ok": true,
+    "num_labels": 3,
+    "label_map": {
+      "0": "LABEL_0",
+      "1": "LABEL_1",
+      "2": "LABEL_2"
+    }
+  }
+}

@@ -1,0 +1,1940 @@
+[
+  {
+    "sol_id": 0,
+    "tipo": "ESTRELLA",
+    "roi_pct": 60.13,
+    "rj_portafolio": 0.0013,
+    "n_skus": 1,
+    "capital_usd": 126.64,
+    "ganancia_usd": 76.15,
+    "skus": [
+      {
+        "sku": 10057317,
+        "producto": "Placa madre Asrock Z890 PRO-A LGA1851, DDR5, ATX",
+        "categoria": "MOTHERBOARD",
+        "precio_costo_usd": 126.64,
+        "precio_venta_usd": 202.79,
+        "roi_pct": 60.13,
+        "r_j": 0.0013
+      }
+    ]
+  },
+  {
+    "sol_id": 1,
+    "tipo": "AGRESIVO",
+    "roi_pct": 62.63,
+    "rj_portafolio": 0.251,
+    "n_skus": 4,
+    "capital_usd": 965.22,
+    "ganancia_usd": 604.56,
+    "skus": [
+      {
+        "sku": 10067839,
+        "producto": "Tarjeta de video Asus Dual NVIDIA GeForce RTX 5060, 8GB GDDR",
+        "categoria": "GPU",
+        "precio_costo_usd": 318.64,
+        "precio_venta_usd": 498.13,
+        "roi_pct": 56.33,
+        "r_j": 0.0015
+      },
+      {
+        "sku": 10057314,
+        "producto": "Procesador Intel Core Ultra 7 265KF, 5.5GHZ, 12+8 CORES, LGA",
+        "categoria": "CPU",
+        "precio_costo_usd": 376.12,
+        "precio_venta_usd": 604.54,
+        "roi_pct": 60.73,
+        "r_j": 0.0022
+      },
+      {
+        "sku": 10057317,
+        "producto": "Placa madre Asrock Z890 PRO-A LGA1851, DDR5, ATX",
+        "categoria": "MOTHERBOARD",
+        "precio_costo_usd": 126.64,
+        "precio_venta_usd": 202.79,
+        "roi_pct": 60.13,
+        "r_j": 0.0013
+      },
+      {
+        "sku": 10048431,
+        "producto": "Memoria Ram para Laptop Kingston KCP 16GB DDR4 3200Mhz SODIM",
+        "categoria": "RAM",
+        "precio_costo_usd": 143.81,
+        "precio_venta_usd": 264.31,
+        "roi_pct": 83.79,
+        "r_j": 0.9989
+      }
+    ]
+  },
+  {
+    "sol_id": 2,
+    "tipo": "OPTIMO",
+    "roi_pct": 40.11,
+    "rj_portafolio": 0.0012,
+    "n_skus": 9,
+    "capital_usd": 1536.13,
+    "ganancia_usd": 616.14,
+    "skus": [
+      {
+        "sku": 10051005,
+        "producto": "Gabinete Antryx RX-250, USB3.0, FRGB FAN X4, panel lateral d",
+        "categoria": "CASE",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.0013
+      },
+      {
+        "sku": 10047314,
+        "producto": "Gabinete Antryx RX-460 Mesh Black USB 3.0, incluye 2 ventila",
+        "categoria": "CASE",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.0012
+      },
+      {
+        "sku": 10047308,
+        "producto": "Gabinete Antryx Xtreme Neo II Black, incluye 2 ventiladores ",
+        "categoria": "CASE",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.0012
+      },
+      {
+        "sku": 10047312,
+        "producto": "Gabinete Antryx Xtreme NC-257 Black, 1 ventilador ARGB, barr",
+        "categoria": "CASE",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.0012
+      },
+      {
+        "sku": 10051026,
+        "producto": "Cooler procesador Antryx Mirage 550 Plus, ARGB, fan 130mm x2",
+        "categoria": "COOLER",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.0012
+      },
+      {
+        "sku": 10051009,
+        "producto": "Gabinete Antryx Xtreme Slim XS-120 MATX USB 3.0, panel con p",
+        "categoria": "CASE",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.0012
+      },
+      {
+        "sku": 10041876,
+        "producto": "Sistema de enfriamiento líquido Triton Infinity 240, negro",
+        "categoria": "COOLER",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.0013
+      },
+      {
+        "sku": 10047317,
+        "producto": "Gabinete Antryx Xtreme E250 Plus Black, USB 3.0, con fuente ",
+        "categoria": "CASE",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.0013
+      },
+      {
+        "sku": 6681,
+        "producto": "Sistema de refrigeración líquida MSI MPG Coreliquid K240, AR",
+        "categoria": "COOLER",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.0013
+      }
+    ]
+  },
+  {
+    "sol_id": 3,
+    "tipo": "OPTIMO",
+    "roi_pct": 41.27,
+    "rj_portafolio": 0.126,
+    "n_skus": 24,
+    "capital_usd": 3510.64,
+    "ganancia_usd": 1448.68,
+    "skus": [
+      {
+        "sku": 10067164,
+        "producto": "Fuente de poder Antryx Kirin 850 GOLD, 850W, 80 Plus Gold, m",
+        "categoria": "PSU",
+        "precio_costo_usd": 60.99,
+        "precio_venta_usd": 83.57,
+        "roi_pct": 37.02,
+        "r_j": 0.4999
+      },
+      {
+        "sku": 10041904,
+        "producto": "Fuente de poder Seasonic Focus GX-1000W 80 Plus Gold Modular",
+        "categoria": "PSU",
+        "precio_costo_usd": 159.21,
+        "precio_venta_usd": 223.07,
+        "roi_pct": 40.11,
+        "r_j": 0.0013
+      },
+      {
+        "sku": 12208,
+        "producto": "Memoria ram Kingston Fury Beast 16GB (1x16GB), DDR4, 3200Mhz",
+        "categoria": "RAM",
+        "precio_costo_usd": 146.39,
+        "precio_venta_usd": 249.48,
+        "roi_pct": 70.42,
+        "r_j": 0.9987
+      },
+      {
+        "sku": 11745,
+        "producto": "Fuente de poder Antryx Kirin 750 GOLD, 750W, 80 Plus Gold, m",
+        "categoria": "PSU",
+        "precio_costo_usd": 60.99,
+        "precio_venta_usd": 83.57,
+        "roi_pct": 37.02,
+        "r_j": 0.0015
+      },
+      {
+        "sku": 10047321,
+        "producto": "Fuente de poder Antryx Kirin Gold Evo II 1000W, 80 Plus Gold",
+        "categoria": "PSU",
+        "precio_costo_usd": 60.99,
+        "precio_venta_usd": 83.57,
+        "roi_pct": 37.02,
+        "r_j": 0.0012
+      },
+      {
+        "sku": 10047322,
+        "producto": "Fuente de poder Antryx Kirin Gold Evo II 1200W, 80 Plus Gold",
+        "categoria": "PSU",
+        "precio_costo_usd": 60.99,
+        "precio_venta_usd": 83.57,
+        "roi_pct": 37.02,
+        "r_j": 0.0013
+      },
+      {
+        "sku": 10061042,
+        "producto": "Placa madre Asrock H610M-HDV/M.2 R2.0, DDR4, M.2, LGA1700 (r",
+        "categoria": "MOTHERBOARD",
+        "precio_costo_usd": 59.49,
+        "precio_venta_usd": 87.08,
+        "roi_pct": 46.38,
+        "r_j": 0.5002
+      },
+      {
+        "sku": 10048103,
+        "producto": "Placa madre MSI PRO B650M-P, socket AM5, DDR5 hasta 192GB, f",
+        "categoria": "MOTHERBOARD",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.0013
+      },
+      {
+        "sku": 4985,
+        "producto": "Unidad de estado sólido SSD Kingston SSD A400 960GB de capac",
+        "categoria": "SSD",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.0012
+      },
+      {
+        "sku": 4338,
+        "producto": "Unidad de estado sólido SSD Kingston A400 240GB de capacidad",
+        "categoria": "SSD",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.0016
+      },
+      {
+        "sku": 10042971,
+        "producto": "Gabinete Antryx Xtreme Slim Micro ATX/Mini-ITX, con fuente 3",
+        "categoria": "CASE",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.0012
+      },
+      {
+        "sku": 10051005,
+        "producto": "Gabinete Antryx RX-250, USB3.0, FRGB FAN X4, panel lateral d",
+        "categoria": "CASE",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.0013
+      },
+      {
+        "sku": 10047314,
+        "producto": "Gabinete Antryx RX-460 Mesh Black USB 3.0, incluye 2 ventila",
+        "categoria": "CASE",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.0012
+      },
+      {
+        "sku": 10047308,
+        "producto": "Gabinete Antryx Xtreme Neo II Black, incluye 2 ventiladores ",
+        "categoria": "CASE",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.0012
+      },
+      {
+        "sku": 10047312,
+        "producto": "Gabinete Antryx Xtreme NC-257 Black, 1 ventilador ARGB, barr",
+        "categoria": "CASE",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.0012
+      },
+      {
+        "sku": 10047311,
+        "producto": "Gabinete Antryx FX Cruiser Black, incluye 3 ventiladores ARG",
+        "categoria": "CASE",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.0013
+      },
+      {
+        "sku": 10041877,
+        "producto": "Sistema de enfriamiento líquido Triton Infinity 360, negro",
+        "categoria": "COOLER",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.0012
+      },
+      {
+        "sku": 10043282,
+        "producto": "Procesador AMD ATHLON 3000G 3.5Ghz, 2 CORES, AM4",
+        "categoria": "CPU",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.9989
+      },
+      {
+        "sku": 10051025,
+        "producto": "Cooler procesador Antryx Mirage 530, ARGB, fan 130mm",
+        "categoria": "COOLER",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.0012
+      },
+      {
+        "sku": 10051009,
+        "producto": "Gabinete Antryx Xtreme Slim XS-120 MATX USB 3.0, panel con p",
+        "categoria": "CASE",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.0012
+      },
+      {
+        "sku": 10051027,
+        "producto": "Cooler procesador Antryx Mirage Infinity black, ARGB",
+        "categoria": "COOLER",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.0014
+      },
+      {
+        "sku": 10041876,
+        "producto": "Sistema de enfriamiento líquido Triton Infinity 240, negro",
+        "categoria": "COOLER",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.0013
+      },
+      {
+        "sku": 10047333,
+        "producto": "Cooler para procesador Antryx Mirage 410 ARGB",
+        "categoria": "COOLER",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.0013
+      },
+      {
+        "sku": 10047317,
+        "producto": "Gabinete Antryx Xtreme E250 Plus Black, USB 3.0, con fuente ",
+        "categoria": "CASE",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.0013
+      }
+    ]
+  },
+  {
+    "sol_id": 4,
+    "tipo": "BALANCEADO",
+    "roi_pct": 40.08,
+    "rj_portafolio": 0.3338,
+    "n_skus": 9,
+    "capital_usd": 1414.98,
+    "ganancia_usd": 567.14,
+    "skus": [
+      {
+        "sku": 11750,
+        "producto": "Fuente de poder Seasonic A12, 600W, 80 Plus, blanco",
+        "categoria": "PSU",
+        "precio_costo_usd": 61.0,
+        "precio_venta_usd": 85.06,
+        "roi_pct": 39.44,
+        "r_j": 0.0014
+      },
+      {
+        "sku": 10041904,
+        "producto": "Fuente de poder Seasonic Focus GX-1000W 80 Plus Gold Modular",
+        "categoria": "PSU",
+        "precio_costo_usd": 159.21,
+        "precio_venta_usd": 223.07,
+        "roi_pct": 40.11,
+        "r_j": 0.0013
+      },
+      {
+        "sku": 10043282,
+        "producto": "Procesador AMD ATHLON 3000G 3.5Ghz, 2 CORES, AM4",
+        "categoria": "CPU",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.9989
+      },
+      {
+        "sku": 10051023,
+        "producto": "Cooler procesador Antryx Mirage 310N, fan 92mm",
+        "categoria": "COOLER",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.0012
+      },
+      {
+        "sku": 10051008,
+        "producto": "Gabinete Antryx RX-270, USB3.0, FRGB FAN X4, panel lateral d",
+        "categoria": "CASE",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.0012
+      },
+      {
+        "sku": 10067162,
+        "producto": "Placa madre Gigabyte B550M-K AM4, DDR4 (reempacado)",
+        "categoria": "MOTHERBOARD",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.9988
+      },
+      {
+        "sku": 10067161,
+        "producto": "Fuente de poder Seasonic A12 500W, 80 Plus White (reempacado",
+        "categoria": "PSU",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.5
+      },
+      {
+        "sku": 10051007,
+        "producto": "Gabinete Antryx RX-260 WHITE, USB3.0, FRGB FAN X4, panel lat",
+        "categoria": "CASE",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.0012
+      },
+      {
+        "sku": 10067158,
+        "producto": "Reacondicionado: Cooler para procesador Antryx Mirage 410 AR",
+        "categoria": "COOLER",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.5
+      }
+    ]
+  },
+  {
+    "sol_id": 5,
+    "tipo": "OPTIMO",
+    "roi_pct": 46.8,
+    "rj_portafolio": 0.1675,
+    "n_skus": 12,
+    "capital_usd": 1802.09,
+    "ganancia_usd": 843.39,
+    "skus": [
+      {
+        "sku": 10047106,
+        "producto": "Procesador AMD Ryzen 5 7600X 6 cores, 5.3Ghz, AM5",
+        "categoria": "CPU",
+        "precio_costo_usd": 197.74,
+        "precio_venta_usd": 332.7,
+        "roi_pct": 68.25,
+        "r_j": 0.5
+      },
+      {
+        "sku": 10067164,
+        "producto": "Fuente de poder Antryx Kirin 850 GOLD, 850W, 80 Plus Gold, m",
+        "categoria": "PSU",
+        "precio_costo_usd": 60.99,
+        "precio_venta_usd": 83.57,
+        "roi_pct": 37.02,
+        "r_j": 0.4999
+      },
+      {
+        "sku": 10048431,
+        "producto": "Memoria Ram para Laptop Kingston KCP 16GB DDR4 3200Mhz SODIM",
+        "categoria": "RAM",
+        "precio_costo_usd": 143.81,
+        "precio_venta_usd": 264.31,
+        "roi_pct": 83.79,
+        "r_j": 0.9989
+      },
+      {
+        "sku": 10051504,
+        "producto": "Unidad de estado sólido SSD Kingston NV3 2000GB M.2 PCIE4.0 ",
+        "categoria": "SSD",
+        "precio_costo_usd": 143.78,
+        "precio_venta_usd": 207.33,
+        "roi_pct": 44.2,
+        "r_j": 0.0013
+      },
+      {
+        "sku": 10047322,
+        "producto": "Fuente de poder Antryx Kirin Gold Evo II 1200W, 80 Plus Gold",
+        "categoria": "PSU",
+        "precio_costo_usd": 60.99,
+        "precio_venta_usd": 83.57,
+        "roi_pct": 37.02,
+        "r_j": 0.0013
+      },
+      {
+        "sku": 4985,
+        "producto": "Unidad de estado sólido SSD Kingston SSD A400 960GB de capac",
+        "categoria": "SSD",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.0012
+      },
+      {
+        "sku": 10047309,
+        "producto": "Gabinete Antryx Xtreme NC-253 Black, incluye una barra later",
+        "categoria": "CASE",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.0012
+      },
+      {
+        "sku": 10047315,
+        "producto": "Gabinete Antryx RX-430U Black USB 3.0, incluye 1 ventiladore",
+        "categoria": "CASE",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.0012
+      },
+      {
+        "sku": 6682,
+        "producto": "Sistema de refrigeración líquida MSI MPG Coreliquid K360, 36",
+        "categoria": "COOLER",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.0013
+      },
+      {
+        "sku": 10051007,
+        "producto": "Gabinete Antryx RX-260 WHITE, USB3.0, FRGB FAN X4, panel lat",
+        "categoria": "CASE",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.0012
+      },
+      {
+        "sku": 10041876,
+        "producto": "Sistema de enfriamiento líquido Triton Infinity 240, negro",
+        "categoria": "COOLER",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.0013
+      },
+      {
+        "sku": 10048420,
+        "producto": "Placa Madre MSI PRO A620M-E Socket AM5, DDR5, Micro-ATX, PCI",
+        "categoria": "MOTHERBOARD",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.0013
+      }
+    ]
+  },
+  {
+    "sol_id": 6,
+    "tipo": "AGRESIVO",
+    "roi_pct": 64.8,
+    "rj_portafolio": 0.5001,
+    "n_skus": 3,
+    "capital_usd": 470.79,
+    "ganancia_usd": 305.07,
+    "skus": [
+      {
+        "sku": 10047106,
+        "producto": "Procesador AMD Ryzen 5 7600X 6 cores, 5.3Ghz, AM5",
+        "categoria": "CPU",
+        "precio_costo_usd": 197.74,
+        "precio_venta_usd": 332.7,
+        "roi_pct": 68.25,
+        "r_j": 0.5
+      },
+      {
+        "sku": 10057317,
+        "producto": "Placa madre Asrock Z890 PRO-A LGA1851, DDR5, ATX",
+        "categoria": "MOTHERBOARD",
+        "precio_costo_usd": 126.64,
+        "precio_venta_usd": 202.79,
+        "roi_pct": 60.13,
+        "r_j": 0.0013
+      },
+      {
+        "sku": 10066291,
+        "producto": "Memoria RAM Kingston KVR 8GB, DDR4, 3200MT/s, CL22, SODIMM",
+        "categoria": "RAM",
+        "precio_costo_usd": 146.4,
+        "precio_venta_usd": 240.36,
+        "roi_pct": 64.18,
+        "r_j": 0.9989
+      }
+    ]
+  },
+  {
+    "sol_id": 7,
+    "tipo": "AGRESIVO",
+    "roi_pct": 70.83,
+    "rj_portafolio": 0.5001,
+    "n_skus": 3,
+    "capital_usd": 468.2,
+    "ganancia_usd": 331.61,
+    "skus": [
+      {
+        "sku": 10047106,
+        "producto": "Procesador AMD Ryzen 5 7600X 6 cores, 5.3Ghz, AM5",
+        "categoria": "CPU",
+        "precio_costo_usd": 197.74,
+        "precio_venta_usd": 332.7,
+        "roi_pct": 68.25,
+        "r_j": 0.5
+      },
+      {
+        "sku": 10057317,
+        "producto": "Placa madre Asrock Z890 PRO-A LGA1851, DDR5, ATX",
+        "categoria": "MOTHERBOARD",
+        "precio_costo_usd": 126.64,
+        "precio_venta_usd": 202.79,
+        "roi_pct": 60.13,
+        "r_j": 0.0013
+      },
+      {
+        "sku": 10048431,
+        "producto": "Memoria Ram para Laptop Kingston KCP 16GB DDR4 3200Mhz SODIM",
+        "categoria": "RAM",
+        "precio_costo_usd": 143.81,
+        "precio_venta_usd": 264.31,
+        "roi_pct": 83.79,
+        "r_j": 0.9989
+      }
+    ]
+  },
+  {
+    "sol_id": 8,
+    "tipo": "AGRESIVO",
+    "roi_pct": 64.09,
+    "rj_portafolio": 0.5002,
+    "n_skus": 5,
+    "capital_usd": 993.3,
+    "ganancia_usd": 636.58,
+    "skus": [
+      {
+        "sku": 10047106,
+        "producto": "Procesador AMD Ryzen 5 7600X 6 cores, 5.3Ghz, AM5",
+        "categoria": "CPU",
+        "precio_costo_usd": 197.74,
+        "precio_venta_usd": 332.7,
+        "roi_pct": 68.25,
+        "r_j": 0.5
+      },
+      {
+        "sku": 10057314,
+        "producto": "Procesador Intel Core Ultra 7 265KF, 5.5GHZ, 12+8 CORES, LGA",
+        "categoria": "CPU",
+        "precio_costo_usd": 376.12,
+        "precio_venta_usd": 604.54,
+        "roi_pct": 60.73,
+        "r_j": 0.0022
+      },
+      {
+        "sku": 10057317,
+        "producto": "Placa madre Asrock Z890 PRO-A LGA1851, DDR5, ATX",
+        "categoria": "MOTHERBOARD",
+        "precio_costo_usd": 126.64,
+        "precio_venta_usd": 202.79,
+        "roi_pct": 60.13,
+        "r_j": 0.0013
+      },
+      {
+        "sku": 12208,
+        "producto": "Memoria ram Kingston Fury Beast 16GB (1x16GB), DDR4, 3200Mhz",
+        "categoria": "RAM",
+        "precio_costo_usd": 146.39,
+        "precio_venta_usd": 249.48,
+        "roi_pct": 70.42,
+        "r_j": 0.9987
+      },
+      {
+        "sku": 10066291,
+        "producto": "Memoria RAM Kingston KVR 8GB, DDR4, 3200MT/s, CL22, SODIMM",
+        "categoria": "RAM",
+        "precio_costo_usd": 146.4,
+        "precio_venta_usd": 240.36,
+        "roi_pct": 64.18,
+        "r_j": 0.9989
+      }
+    ]
+  },
+  {
+    "sol_id": 9,
+    "tipo": "AGRESIVO",
+    "roi_pct": 54.29,
+    "rj_portafolio": 0.4288,
+    "n_skus": 7,
+    "capital_usd": 962.98,
+    "ganancia_usd": 522.79,
+    "skus": [
+      {
+        "sku": 10057317,
+        "producto": "Placa madre Asrock Z890 PRO-A LGA1851, DDR5, ATX",
+        "categoria": "MOTHERBOARD",
+        "precio_costo_usd": 126.64,
+        "precio_venta_usd": 202.79,
+        "roi_pct": 60.13,
+        "r_j": 0.0013
+      },
+      {
+        "sku": 12208,
+        "producto": "Memoria ram Kingston Fury Beast 16GB (1x16GB), DDR4, 3200Mhz",
+        "categoria": "RAM",
+        "precio_costo_usd": 146.39,
+        "precio_venta_usd": 249.48,
+        "roi_pct": 70.42,
+        "r_j": 0.9987
+      },
+      {
+        "sku": 10048431,
+        "producto": "Memoria Ram para Laptop Kingston KCP 16GB DDR4 3200Mhz SODIM",
+        "categoria": "RAM",
+        "precio_costo_usd": 143.81,
+        "precio_venta_usd": 264.31,
+        "roi_pct": 83.79,
+        "r_j": 0.9989
+      },
+      {
+        "sku": 10051504,
+        "producto": "Unidad de estado sólido SSD Kingston NV3 2000GB M.2 PCIE4.0 ",
+        "categoria": "SSD",
+        "precio_costo_usd": 143.78,
+        "precio_venta_usd": 207.33,
+        "roi_pct": 44.2,
+        "r_j": 0.0013
+      },
+      {
+        "sku": 11746,
+        "producto": "Fuente de poder Antryx Kirin 850 GOLD, 850W, 80 Plus Gold, m",
+        "categoria": "PSU",
+        "precio_costo_usd": 60.99,
+        "precio_venta_usd": 83.57,
+        "roi_pct": 37.02,
+        "r_j": 0.0014
+      },
+      {
+        "sku": 10043282,
+        "producto": "Procesador AMD ATHLON 3000G 3.5Ghz, 2 CORES, AM4",
+        "categoria": "CPU",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.9989
+      },
+      {
+        "sku": 10051026,
+        "producto": "Cooler procesador Antryx Mirage 550 Plus, ARGB, fan 130mm x2",
+        "categoria": "COOLER",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.0012
+      }
+    ]
+  },
+  {
+    "sol_id": 10,
+    "tipo": "OPTIMO",
+    "roi_pct": 39.64,
+    "rj_portafolio": 0.0012,
+    "n_skus": 3,
+    "capital_usd": 402.36,
+    "ganancia_usd": 159.5,
+    "skus": [
+      {
+        "sku": 10047321,
+        "producto": "Fuente de poder Antryx Kirin Gold Evo II 1000W, 80 Plus Gold",
+        "categoria": "PSU",
+        "precio_costo_usd": 60.99,
+        "precio_venta_usd": 83.57,
+        "roi_pct": 37.02,
+        "r_j": 0.0012
+      },
+      {
+        "sku": 10042971,
+        "producto": "Gabinete Antryx Xtreme Slim Micro ATX/Mini-ITX, con fuente 3",
+        "categoria": "CASE",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.0012
+      },
+      {
+        "sku": 10041877,
+        "producto": "Sistema de enfriamiento líquido Triton Infinity 360, negro",
+        "categoria": "COOLER",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.0012
+      }
+    ]
+  },
+  {
+    "sol_id": 11,
+    "tipo": "ESTRELLA",
+    "roi_pct": 58.93,
+    "rj_portafolio": 0.0017,
+    "n_skus": 3,
+    "capital_usd": 821.41,
+    "ganancia_usd": 484.06,
+    "skus": [
+      {
+        "sku": 10067839,
+        "producto": "Tarjeta de video Asus Dual NVIDIA GeForce RTX 5060, 8GB GDDR",
+        "categoria": "GPU",
+        "precio_costo_usd": 318.64,
+        "precio_venta_usd": 498.13,
+        "roi_pct": 56.33,
+        "r_j": 0.0015
+      },
+      {
+        "sku": 10057314,
+        "producto": "Procesador Intel Core Ultra 7 265KF, 5.5GHZ, 12+8 CORES, LGA",
+        "categoria": "CPU",
+        "precio_costo_usd": 376.12,
+        "precio_venta_usd": 604.54,
+        "roi_pct": 60.73,
+        "r_j": 0.0022
+      },
+      {
+        "sku": 10057317,
+        "producto": "Placa madre Asrock Z890 PRO-A LGA1851, DDR5, ATX",
+        "categoria": "MOTHERBOARD",
+        "precio_costo_usd": 126.64,
+        "precio_venta_usd": 202.79,
+        "roi_pct": 60.13,
+        "r_j": 0.0013
+      }
+    ]
+  },
+  {
+    "sol_id": 12,
+    "tipo": "AGRESIVO",
+    "roi_pct": 62.18,
+    "rj_portafolio": 0.3756,
+    "n_skus": 4,
+    "capital_usd": 1038.9,
+    "ganancia_usd": 645.96,
+    "skus": [
+      {
+        "sku": 10047106,
+        "producto": "Procesador AMD Ryzen 5 7600X 6 cores, 5.3Ghz, AM5",
+        "categoria": "CPU",
+        "precio_costo_usd": 197.74,
+        "precio_venta_usd": 332.7,
+        "roi_pct": 68.25,
+        "r_j": 0.5
+      },
+      {
+        "sku": 10067839,
+        "producto": "Tarjeta de video Asus Dual NVIDIA GeForce RTX 5060, 8GB GDDR",
+        "categoria": "GPU",
+        "precio_costo_usd": 318.64,
+        "precio_venta_usd": 498.13,
+        "roi_pct": 56.33,
+        "r_j": 0.0015
+      },
+      {
+        "sku": 10057314,
+        "producto": "Procesador Intel Core Ultra 7 265KF, 5.5GHZ, 12+8 CORES, LGA",
+        "categoria": "CPU",
+        "precio_costo_usd": 376.12,
+        "precio_venta_usd": 604.54,
+        "roi_pct": 60.73,
+        "r_j": 0.0022
+      },
+      {
+        "sku": 12208,
+        "producto": "Memoria ram Kingston Fury Beast 16GB (1x16GB), DDR4, 3200Mhz",
+        "categoria": "RAM",
+        "precio_costo_usd": 146.39,
+        "precio_venta_usd": 249.48,
+        "roi_pct": 70.42,
+        "r_j": 0.9987
+      }
+    ]
+  },
+  {
+    "sol_id": 13,
+    "tipo": "AGRESIVO",
+    "roi_pct": 83.79,
+    "rj_portafolio": 0.9989,
+    "n_skus": 1,
+    "capital_usd": 143.81,
+    "ganancia_usd": 120.5,
+    "skus": [
+      {
+        "sku": 10048431,
+        "producto": "Memoria Ram para Laptop Kingston KCP 16GB DDR4 3200Mhz SODIM",
+        "categoria": "RAM",
+        "precio_costo_usd": 143.81,
+        "precio_venta_usd": 264.31,
+        "roi_pct": 83.79,
+        "r_j": 0.9989
+      }
+    ]
+  },
+  {
+    "sol_id": 14,
+    "tipo": "OPTIMO",
+    "roi_pct": 42.34,
+    "rj_portafolio": 0.0844,
+    "n_skus": 12,
+    "capital_usd": 1902.72,
+    "ganancia_usd": 805.67,
+    "skus": [
+      {
+        "sku": 10041904,
+        "producto": "Fuente de poder Seasonic Focus GX-1000W 80 Plus Gold Modular",
+        "categoria": "PSU",
+        "precio_costo_usd": 159.21,
+        "precio_venta_usd": 223.07,
+        "roi_pct": 40.11,
+        "r_j": 0.0013
+      },
+      {
+        "sku": 12208,
+        "producto": "Memoria ram Kingston Fury Beast 16GB (1x16GB), DDR4, 3200Mhz",
+        "categoria": "RAM",
+        "precio_costo_usd": 146.39,
+        "precio_venta_usd": 249.48,
+        "roi_pct": 70.42,
+        "r_j": 0.9987
+      },
+      {
+        "sku": 11745,
+        "producto": "Fuente de poder Antryx Kirin 750 GOLD, 750W, 80 Plus Gold, m",
+        "categoria": "PSU",
+        "precio_costo_usd": 60.99,
+        "precio_venta_usd": 83.57,
+        "roi_pct": 37.02,
+        "r_j": 0.0015
+      },
+      {
+        "sku": 10047314,
+        "producto": "Gabinete Antryx RX-460 Mesh Black USB 3.0, incluye 2 ventila",
+        "categoria": "CASE",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.0012
+      },
+      {
+        "sku": 10047308,
+        "producto": "Gabinete Antryx Xtreme Neo II Black, incluye 2 ventiladores ",
+        "categoria": "CASE",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.0012
+      },
+      {
+        "sku": 10047311,
+        "producto": "Gabinete Antryx FX Cruiser Black, incluye 3 ventiladores ARG",
+        "categoria": "CASE",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.0013
+      },
+      {
+        "sku": 10051025,
+        "producto": "Cooler procesador Antryx Mirage 530, ARGB, fan 130mm",
+        "categoria": "COOLER",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.0012
+      },
+      {
+        "sku": 10051009,
+        "producto": "Gabinete Antryx Xtreme Slim XS-120 MATX USB 3.0, panel con p",
+        "categoria": "CASE",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.0012
+      },
+      {
+        "sku": 10051027,
+        "producto": "Cooler procesador Antryx Mirage Infinity black, ARGB",
+        "categoria": "COOLER",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.0014
+      },
+      {
+        "sku": 10041876,
+        "producto": "Sistema de enfriamiento líquido Triton Infinity 240, negro",
+        "categoria": "COOLER",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.0013
+      },
+      {
+        "sku": 10047333,
+        "producto": "Cooler para procesador Antryx Mirage 410 ARGB",
+        "categoria": "COOLER",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.0013
+      },
+      {
+        "sku": 10047317,
+        "producto": "Gabinete Antryx Xtreme E250 Plus Black, USB 3.0, con fuente ",
+        "categoria": "CASE",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.0013
+      }
+    ]
+  },
+  {
+    "sol_id": 15,
+    "tipo": "BALANCEADO",
+    "roi_pct": 40.37,
+    "rj_portafolio": 0.3082,
+    "n_skus": 13,
+    "capital_usd": 2070.8,
+    "ganancia_usd": 836.07,
+    "skus": [
+      {
+        "sku": 10051505,
+        "producto": "Unidad de estado sólido SSD Kingston NV3 500GB M.2 PCIE4.0 N",
+        "categoria": "SSD",
+        "precio_costo_usd": 143.78,
+        "precio_venta_usd": 207.33,
+        "roi_pct": 44.2,
+        "r_j": 0.0016
+      },
+      {
+        "sku": 11750,
+        "producto": "Fuente de poder Seasonic A12, 600W, 80 Plus, blanco",
+        "categoria": "PSU",
+        "precio_costo_usd": 61.0,
+        "precio_venta_usd": 85.06,
+        "roi_pct": 39.44,
+        "r_j": 0.0014
+      },
+      {
+        "sku": 10041904,
+        "producto": "Fuente de poder Seasonic Focus GX-1000W 80 Plus Gold Modular",
+        "categoria": "PSU",
+        "precio_costo_usd": 159.21,
+        "precio_venta_usd": 223.07,
+        "roi_pct": 40.11,
+        "r_j": 0.0013
+      },
+      {
+        "sku": 6682,
+        "producto": "Sistema de refrigeración líquida MSI MPG Coreliquid K360, 36",
+        "categoria": "COOLER",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.0013
+      },
+      {
+        "sku": 24382,
+        "producto": "Memoria ram para laptop Kingston KCP 8GB DDR4, 3200Mhz",
+        "categoria": "RAM",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.9989
+      },
+      {
+        "sku": 10043282,
+        "producto": "Procesador AMD ATHLON 3000G 3.5Ghz, 2 CORES, AM4",
+        "categoria": "CPU",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.9989
+      },
+      {
+        "sku": 10051023,
+        "producto": "Cooler procesador Antryx Mirage 310N, fan 92mm",
+        "categoria": "COOLER",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.0012
+      },
+      {
+        "sku": 10051008,
+        "producto": "Gabinete Antryx RX-270, USB3.0, FRGB FAN X4, panel lateral d",
+        "categoria": "CASE",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.0012
+      },
+      {
+        "sku": 10067162,
+        "producto": "Placa madre Gigabyte B550M-K AM4, DDR4 (reempacado)",
+        "categoria": "MOTHERBOARD",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.9988
+      },
+      {
+        "sku": 10047313,
+        "producto": "Gabinete Antryx Elegant 650 Black, incluye USB 3.0, panel fr",
+        "categoria": "CASE",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.0012
+      },
+      {
+        "sku": 10067161,
+        "producto": "Fuente de poder Seasonic A12 500W, 80 Plus White (reempacado",
+        "categoria": "PSU",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.5
+      },
+      {
+        "sku": 10051007,
+        "producto": "Gabinete Antryx RX-260 WHITE, USB3.0, FRGB FAN X4, panel lat",
+        "categoria": "CASE",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.0012
+      },
+      {
+        "sku": 10067158,
+        "producto": "Reacondicionado: Cooler para procesador Antryx Mirage 410 AR",
+        "categoria": "COOLER",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.5
+      }
+    ]
+  },
+  {
+    "sol_id": 16,
+    "tipo": "BALANCEADO",
+    "roi_pct": 43.12,
+    "rj_portafolio": 0.364,
+    "n_skus": 11,
+    "capital_usd": 1595.47,
+    "ganancia_usd": 687.9,
+    "skus": [
+      {
+        "sku": 10051505,
+        "producto": "Unidad de estado sólido SSD Kingston NV3 500GB M.2 PCIE4.0 N",
+        "categoria": "SSD",
+        "precio_costo_usd": 143.78,
+        "precio_venta_usd": 207.33,
+        "roi_pct": 44.2,
+        "r_j": 0.0016
+      },
+      {
+        "sku": 11750,
+        "producto": "Fuente de poder Seasonic A12, 600W, 80 Plus, blanco",
+        "categoria": "PSU",
+        "precio_costo_usd": 61.0,
+        "precio_venta_usd": 85.06,
+        "roi_pct": 39.44,
+        "r_j": 0.0014
+      },
+      {
+        "sku": 10041904,
+        "producto": "Fuente de poder Seasonic Focus GX-1000W 80 Plus Gold Modular",
+        "categoria": "PSU",
+        "precio_costo_usd": 159.21,
+        "precio_venta_usd": 223.07,
+        "roi_pct": 40.11,
+        "r_j": 0.0013
+      },
+      {
+        "sku": 12208,
+        "producto": "Memoria ram Kingston Fury Beast 16GB (1x16GB), DDR4, 3200Mhz",
+        "categoria": "RAM",
+        "precio_costo_usd": 146.39,
+        "precio_venta_usd": 249.48,
+        "roi_pct": 70.42,
+        "r_j": 0.9987
+      },
+      {
+        "sku": 10047322,
+        "producto": "Fuente de poder Antryx Kirin Gold Evo II 1200W, 80 Plus Gold",
+        "categoria": "PSU",
+        "precio_costo_usd": 60.99,
+        "precio_venta_usd": 83.57,
+        "roi_pct": 37.02,
+        "r_j": 0.0013
+      },
+      {
+        "sku": 10041877,
+        "producto": "Sistema de enfriamiento líquido Triton Infinity 360, negro",
+        "categoria": "COOLER",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.0012
+      },
+      {
+        "sku": 10043282,
+        "producto": "Procesador AMD ATHLON 3000G 3.5Ghz, 2 CORES, AM4",
+        "categoria": "CPU",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.9989
+      },
+      {
+        "sku": 10051008,
+        "producto": "Gabinete Antryx RX-270, USB3.0, FRGB FAN X4, panel lateral d",
+        "categoria": "CASE",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.0012
+      },
+      {
+        "sku": 10067162,
+        "producto": "Placa madre Gigabyte B550M-K AM4, DDR4 (reempacado)",
+        "categoria": "MOTHERBOARD",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.9988
+      },
+      {
+        "sku": 10067158,
+        "producto": "Reacondicionado: Cooler para procesador Antryx Mirage 410 AR",
+        "categoria": "COOLER",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.5
+      },
+      {
+        "sku": 27467,
+        "producto": "Cooler para CPU Be Quiet! Dark Rock Slim BK024, LGA1700, AM5",
+        "categoria": "COOLER",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.4999
+      }
+    ]
+  },
+  {
+    "sol_id": 17,
+    "tipo": "AGRESIVO",
+    "roi_pct": 64.34,
+    "rj_portafolio": 0.5002,
+    "n_skus": 7,
+    "capital_usd": 1455.76,
+    "ganancia_usd": 936.57,
+    "skus": [
+      {
+        "sku": 10047106,
+        "producto": "Procesador AMD Ryzen 5 7600X 6 cores, 5.3Ghz, AM5",
+        "categoria": "CPU",
+        "precio_costo_usd": 197.74,
+        "precio_venta_usd": 332.7,
+        "roi_pct": 68.25,
+        "r_j": 0.5
+      },
+      {
+        "sku": 10067839,
+        "producto": "Tarjeta de video Asus Dual NVIDIA GeForce RTX 5060, 8GB GDDR",
+        "categoria": "GPU",
+        "precio_costo_usd": 318.64,
+        "precio_venta_usd": 498.13,
+        "roi_pct": 56.33,
+        "r_j": 0.0015
+      },
+      {
+        "sku": 10057314,
+        "producto": "Procesador Intel Core Ultra 7 265KF, 5.5GHZ, 12+8 CORES, LGA",
+        "categoria": "CPU",
+        "precio_costo_usd": 376.12,
+        "precio_venta_usd": 604.54,
+        "roi_pct": 60.73,
+        "r_j": 0.0022
+      },
+      {
+        "sku": 10057317,
+        "producto": "Placa madre Asrock Z890 PRO-A LGA1851, DDR5, ATX",
+        "categoria": "MOTHERBOARD",
+        "precio_costo_usd": 126.64,
+        "precio_venta_usd": 202.79,
+        "roi_pct": 60.13,
+        "r_j": 0.0013
+      },
+      {
+        "sku": 12208,
+        "producto": "Memoria ram Kingston Fury Beast 16GB (1x16GB), DDR4, 3200Mhz",
+        "categoria": "RAM",
+        "precio_costo_usd": 146.39,
+        "precio_venta_usd": 249.48,
+        "roi_pct": 70.42,
+        "r_j": 0.9987
+      },
+      {
+        "sku": 10048431,
+        "producto": "Memoria Ram para Laptop Kingston KCP 16GB DDR4 3200Mhz SODIM",
+        "categoria": "RAM",
+        "precio_costo_usd": 143.81,
+        "precio_venta_usd": 264.31,
+        "roi_pct": 83.79,
+        "r_j": 0.9989
+      },
+      {
+        "sku": 10066291,
+        "producto": "Memoria RAM Kingston KVR 8GB, DDR4, 3200MT/s, CL22, SODIMM",
+        "categoria": "RAM",
+        "precio_costo_usd": 146.4,
+        "precio_venta_usd": 240.36,
+        "roi_pct": 64.18,
+        "r_j": 0.9989
+      }
+    ]
+  },
+  {
+    "sol_id": 18,
+    "tipo": "AGRESIVO",
+    "roi_pct": 71.33,
+    "rj_portafolio": 0.8741,
+    "n_skus": 4,
+    "capital_usd": 634.35,
+    "ganancia_usd": 452.51,
+    "skus": [
+      {
+        "sku": 10047106,
+        "producto": "Procesador AMD Ryzen 5 7600X 6 cores, 5.3Ghz, AM5",
+        "categoria": "CPU",
+        "precio_costo_usd": 197.74,
+        "precio_venta_usd": 332.7,
+        "roi_pct": 68.25,
+        "r_j": 0.5
+      },
+      {
+        "sku": 12208,
+        "producto": "Memoria ram Kingston Fury Beast 16GB (1x16GB), DDR4, 3200Mhz",
+        "categoria": "RAM",
+        "precio_costo_usd": 146.39,
+        "precio_venta_usd": 249.48,
+        "roi_pct": 70.42,
+        "r_j": 0.9987
+      },
+      {
+        "sku": 10048431,
+        "producto": "Memoria Ram para Laptop Kingston KCP 16GB DDR4 3200Mhz SODIM",
+        "categoria": "RAM",
+        "precio_costo_usd": 143.81,
+        "precio_venta_usd": 264.31,
+        "roi_pct": 83.79,
+        "r_j": 0.9989
+      },
+      {
+        "sku": 10066291,
+        "producto": "Memoria RAM Kingston KVR 8GB, DDR4, 3200MT/s, CL22, SODIMM",
+        "categoria": "RAM",
+        "precio_costo_usd": 146.4,
+        "precio_venta_usd": 240.36,
+        "roi_pct": 64.18,
+        "r_j": 0.9989
+      }
+    ]
+  },
+  {
+    "sol_id": 19,
+    "tipo": "OPTIMO",
+    "roi_pct": 39.91,
+    "rj_portafolio": 0.0963,
+    "n_skus": 21,
+    "capital_usd": 3150.66,
+    "ganancia_usd": 1257.44,
+    "skus": [
+      {
+        "sku": 10042119,
+        "producto": "Fuente de poder Teros TE-7175W 750W, 80 Plus Gold, F. modula",
+        "categoria": "PSU",
+        "precio_costo_usd": 82.11,
+        "precio_venta_usd": 116.72,
+        "roi_pct": 42.15,
+        "r_j": 0.0013
+      },
+      {
+        "sku": 10041904,
+        "producto": "Fuente de poder Seasonic Focus GX-1000W 80 Plus Gold Modular",
+        "categoria": "PSU",
+        "precio_costo_usd": 159.21,
+        "precio_venta_usd": 223.07,
+        "roi_pct": 40.11,
+        "r_j": 0.0013
+      },
+      {
+        "sku": 11745,
+        "producto": "Fuente de poder Antryx Kirin 750 GOLD, 750W, 80 Plus Gold, m",
+        "categoria": "PSU",
+        "precio_costo_usd": 60.99,
+        "precio_venta_usd": 83.57,
+        "roi_pct": 37.02,
+        "r_j": 0.0015
+      },
+      {
+        "sku": 10066165,
+        "producto": "Memoria RAM TeamGroup T-Force Vulcan Z 8GB DDR4 3200Mhz CL16",
+        "categoria": "RAM",
+        "precio_costo_usd": 56.46,
+        "precio_venta_usd": 74.91,
+        "roi_pct": 32.68,
+        "r_j": 0.9989
+      },
+      {
+        "sku": 10047321,
+        "producto": "Fuente de poder Antryx Kirin Gold Evo II 1000W, 80 Plus Gold",
+        "categoria": "PSU",
+        "precio_costo_usd": 60.99,
+        "precio_venta_usd": 83.57,
+        "roi_pct": 37.02,
+        "r_j": 0.0012
+      },
+      {
+        "sku": 10048103,
+        "producto": "Placa madre MSI PRO B650M-P, socket AM5, DDR5 hasta 192GB, f",
+        "categoria": "MOTHERBOARD",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.0013
+      },
+      {
+        "sku": 4985,
+        "producto": "Unidad de estado sólido SSD Kingston SSD A400 960GB de capac",
+        "categoria": "SSD",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.0012
+      },
+      {
+        "sku": 4338,
+        "producto": "Unidad de estado sólido SSD Kingston A400 240GB de capacidad",
+        "categoria": "SSD",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.0016
+      },
+      {
+        "sku": 10042120,
+        "producto": "Fuente de poder Teros TE-7160 600W, 80 Plus Bronze",
+        "categoria": "PSU",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.0013
+      },
+      {
+        "sku": 10051005,
+        "producto": "Gabinete Antryx RX-250, USB3.0, FRGB FAN X4, panel lateral d",
+        "categoria": "CASE",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.0013
+      },
+      {
+        "sku": 10047314,
+        "producto": "Gabinete Antryx RX-460 Mesh Black USB 3.0, incluye 2 ventila",
+        "categoria": "CASE",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.0012
+      },
+      {
+        "sku": 10047308,
+        "producto": "Gabinete Antryx Xtreme Neo II Black, incluye 2 ventiladores ",
+        "categoria": "CASE",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.0012
+      },
+      {
+        "sku": 10047312,
+        "producto": "Gabinete Antryx Xtreme NC-257 Black, 1 ventilador ARGB, barr",
+        "categoria": "CASE",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.0012
+      },
+      {
+        "sku": 10047311,
+        "producto": "Gabinete Antryx FX Cruiser Black, incluye 3 ventiladores ARG",
+        "categoria": "CASE",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.0013
+      },
+      {
+        "sku": 10043282,
+        "producto": "Procesador AMD ATHLON 3000G 3.5Ghz, 2 CORES, AM4",
+        "categoria": "CPU",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.9989
+      },
+      {
+        "sku": 10051026,
+        "producto": "Cooler procesador Antryx Mirage 550 Plus, ARGB, fan 130mm x2",
+        "categoria": "COOLER",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.0012
+      },
+      {
+        "sku": 10051009,
+        "producto": "Gabinete Antryx Xtreme Slim XS-120 MATX USB 3.0, panel con p",
+        "categoria": "CASE",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.0012
+      },
+      {
+        "sku": 10041876,
+        "producto": "Sistema de enfriamiento líquido Triton Infinity 240, negro",
+        "categoria": "COOLER",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.0013
+      },
+      {
+        "sku": 10048420,
+        "producto": "Placa Madre MSI PRO A620M-E Socket AM5, DDR5, Micro-ATX, PCI",
+        "categoria": "MOTHERBOARD",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.0013
+      },
+      {
+        "sku": 10047317,
+        "producto": "Gabinete Antryx Xtreme E250 Plus Black, USB 3.0, con fuente ",
+        "categoria": "CASE",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.0013
+      },
+      {
+        "sku": 6681,
+        "producto": "Sistema de refrigeración líquida MSI MPG Coreliquid K240, AR",
+        "categoria": "COOLER",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.0013
+      }
+    ]
+  },
+  {
+    "sol_id": 20,
+    "tipo": "OPTIMO",
+    "roi_pct": 40.03,
+    "rj_portafolio": 0.0013,
+    "n_skus": 14,
+    "capital_usd": 2268.37,
+    "ganancia_usd": 907.96,
+    "skus": [
+      {
+        "sku": 10041904,
+        "producto": "Fuente de poder Seasonic Focus GX-1000W 80 Plus Gold Modular",
+        "categoria": "PSU",
+        "precio_costo_usd": 159.21,
+        "precio_venta_usd": 223.07,
+        "roi_pct": 40.11,
+        "r_j": 0.0013
+      },
+      {
+        "sku": 11745,
+        "producto": "Fuente de poder Antryx Kirin 750 GOLD, 750W, 80 Plus Gold, m",
+        "categoria": "PSU",
+        "precio_costo_usd": 60.99,
+        "precio_venta_usd": 83.57,
+        "roi_pct": 37.02,
+        "r_j": 0.0015
+      },
+      {
+        "sku": 10048103,
+        "producto": "Placa madre MSI PRO B650M-P, socket AM5, DDR5 hasta 192GB, f",
+        "categoria": "MOTHERBOARD",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.0013
+      },
+      {
+        "sku": 4985,
+        "producto": "Unidad de estado sólido SSD Kingston SSD A400 960GB de capac",
+        "categoria": "SSD",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.0012
+      },
+      {
+        "sku": 10042120,
+        "producto": "Fuente de poder Teros TE-7160 600W, 80 Plus Bronze",
+        "categoria": "PSU",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.0013
+      },
+      {
+        "sku": 10051005,
+        "producto": "Gabinete Antryx RX-250, USB3.0, FRGB FAN X4, panel lateral d",
+        "categoria": "CASE",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.0013
+      },
+      {
+        "sku": 10047314,
+        "producto": "Gabinete Antryx RX-460 Mesh Black USB 3.0, incluye 2 ventila",
+        "categoria": "CASE",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.0012
+      },
+      {
+        "sku": 10047311,
+        "producto": "Gabinete Antryx FX Cruiser Black, incluye 3 ventiladores ARG",
+        "categoria": "CASE",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.0013
+      },
+      {
+        "sku": 10051026,
+        "producto": "Cooler procesador Antryx Mirage 550 Plus, ARGB, fan 130mm x2",
+        "categoria": "COOLER",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.0012
+      },
+      {
+        "sku": 10051009,
+        "producto": "Gabinete Antryx Xtreme Slim XS-120 MATX USB 3.0, panel con p",
+        "categoria": "CASE",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.0012
+      },
+      {
+        "sku": 10041876,
+        "producto": "Sistema de enfriamiento líquido Triton Infinity 240, negro",
+        "categoria": "COOLER",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.0013
+      },
+      {
+        "sku": 10048420,
+        "producto": "Placa Madre MSI PRO A620M-E Socket AM5, DDR5, Micro-ATX, PCI",
+        "categoria": "MOTHERBOARD",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.0013
+      },
+      {
+        "sku": 10047317,
+        "producto": "Gabinete Antryx Xtreme E250 Plus Black, USB 3.0, con fuente ",
+        "categoria": "CASE",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.0013
+      },
+      {
+        "sku": 6681,
+        "producto": "Sistema de refrigeración líquida MSI MPG Coreliquid K240, AR",
+        "categoria": "COOLER",
+        "precio_costo_usd": 170.68,
+        "precio_venta_usd": 239.14,
+        "roi_pct": 40.11,
+        "r_j": 0.0013
+      }
+    ]
+  },
+  {
+    "sol_id": 21,
+    "tipo": "ESTRELLA",
+    "roi_pct": 53.14,
+    "rj_portafolio": 0.1438,
+    "n_skus": 7,
+    "capital_usd": 762.12,
+    "ganancia_usd": 405.0,
+    "skus": [
+      {
+        "sku": 10042119,
+        "producto": "Fuente de poder Teros TE-7175W 750W, 80 Plus Gold, F. modula",
+        "categoria": "PSU",
+        "precio_costo_usd": 82.11,
+        "precio_venta_usd": 116.72,
+        "roi_pct": 42.15,
+        "r_j": 0.0013
+      },
+      {
+        "sku": 11750,
+        "producto": "Fuente de poder Seasonic A12, 600W, 80 Plus, blanco",
+        "categoria": "PSU",
+        "precio_costo_usd": 61.0,
+        "precio_venta_usd": 85.06,
+        "roi_pct": 39.44,
+        "r_j": 0.0014
+      },
+      {
+        "sku": 10057317,
+        "producto": "Placa madre Asrock Z890 PRO-A LGA1851, DDR5, ATX",
+        "categoria": "MOTHERBOARD",
+        "precio_costo_usd": 126.64,
+        "precio_venta_usd": 202.79,
+        "roi_pct": 60.13,
+        "r_j": 0.0013
+      },
+      {
+        "sku": 10051503,
+        "producto": "Unidad de estado sólido SSD Kingston NV3 1000GB M.2 PCIE4.0 ",
+        "categoria": "SSD",
+        "precio_costo_usd": 143.78,
+        "precio_venta_usd": 207.33,
+        "roi_pct": 44.2,
+        "r_j": 0.0013
+      },
+      {
+        "sku": 10048431,
+        "producto": "Memoria Ram para Laptop Kingston KCP 16GB DDR4 3200Mhz SODIM",
+        "categoria": "RAM",
+        "precio_costo_usd": 143.81,
+        "precio_venta_usd": 264.31,
+        "roi_pct": 83.79,
+        "r_j": 0.9989
+      },
+      {
+        "sku": 10051504,
+        "producto": "Unidad de estado sólido SSD Kingston NV3 2000GB M.2 PCIE4.0 ",
+        "categoria": "SSD",
+        "precio_costo_usd": 143.78,
+        "precio_venta_usd": 207.33,
+        "roi_pct": 44.2,
+        "r_j": 0.0013
+      },
+      {
+        "sku": 11746,
+        "producto": "Fuente de poder Antryx Kirin 850 GOLD, 850W, 80 Plus Gold, m",
+        "categoria": "PSU",
+        "precio_costo_usd": 60.99,
+        "precio_venta_usd": 83.57,
+        "roi_pct": 37.02,
+        "r_j": 0.0014
+      }
+    ]
+  },
+  {
+    "sol_id": 22,
+    "tipo": "AGRESIVO",
+    "roi_pct": 67.68,
+    "rj_portafolio": 0.8325,
+    "n_skus": 3,
+    "capital_usd": 490.54,
+    "ganancia_usd": 332.01,
+    "skus": [
+      {
+        "sku": 10047106,
+        "producto": "Procesador AMD Ryzen 5 7600X 6 cores, 5.3Ghz, AM5",
+        "categoria": "CPU",
+        "precio_costo_usd": 197.74,
+        "precio_venta_usd": 332.7,
+        "roi_pct": 68.25,
+        "r_j": 0.5
+      },
+      {
+        "sku": 12208,
+        "producto": "Memoria ram Kingston Fury Beast 16GB (1x16GB), DDR4, 3200Mhz",
+        "categoria": "RAM",
+        "precio_costo_usd": 146.39,
+        "precio_venta_usd": 249.48,
+        "roi_pct": 70.42,
+        "r_j": 0.9987
+      },
+      {
+        "sku": 10066291,
+        "producto": "Memoria RAM Kingston KVR 8GB, DDR4, 3200MT/s, CL22, SODIMM",
+        "categoria": "RAM",
+        "precio_costo_usd": 146.4,
+        "precio_venta_usd": 240.36,
+        "roi_pct": 64.18,
+        "r_j": 0.9989
+      }
+    ]
+  },
+  {
+    "sol_id": 23,
+    "tipo": "AGRESIVO",
+    "roi_pct": 66.58,
+    "rj_portafolio": 0.5833,
+    "n_skus": 6,
+    "capital_usd": 1137.12,
+    "ganancia_usd": 757.08,
+    "skus": [
+      {
+        "sku": 10047106,
+        "producto": "Procesador AMD Ryzen 5 7600X 6 cores, 5.3Ghz, AM5",
+        "categoria": "CPU",
+        "precio_costo_usd": 197.74,
+        "precio_venta_usd": 332.7,
+        "roi_pct": 68.25,
+        "r_j": 0.5
+      },
+      {
+        "sku": 10057314,
+        "producto": "Procesador Intel Core Ultra 7 265KF, 5.5GHZ, 12+8 CORES, LGA",
+        "categoria": "CPU",
+        "precio_costo_usd": 376.12,
+        "precio_venta_usd": 604.54,
+        "roi_pct": 60.73,
+        "r_j": 0.0022
+      },
+      {
+        "sku": 10057317,
+        "producto": "Placa madre Asrock Z890 PRO-A LGA1851, DDR5, ATX",
+        "categoria": "MOTHERBOARD",
+        "precio_costo_usd": 126.64,
+        "precio_venta_usd": 202.79,
+        "roi_pct": 60.13,
+        "r_j": 0.0013
+      },
+      {
+        "sku": 12208,
+        "producto": "Memoria ram Kingston Fury Beast 16GB (1x16GB), DDR4, 3200Mhz",
+        "categoria": "RAM",
+        "precio_costo_usd": 146.39,
+        "precio_venta_usd": 249.48,
+        "roi_pct": 70.42,
+        "r_j": 0.9987
+      },
+      {
+        "sku": 10048431,
+        "producto": "Memoria Ram para Laptop Kingston KCP 16GB DDR4 3200Mhz SODIM",
+        "categoria": "RAM",
+        "precio_costo_usd": 143.81,
+        "precio_venta_usd": 264.31,
+        "roi_pct": 83.79,
+        "r_j": 0.9989
+      },
+      {
+        "sku": 10066291,
+        "producto": "Memoria RAM Kingston KVR 8GB, DDR4, 3200MT/s, CL22, SODIMM",
+        "categoria": "RAM",
+        "precio_costo_usd": 146.4,
+        "precio_venta_usd": 240.36,
+        "roi_pct": 64.18,
+        "r_j": 0.9989
+      }
+    ]
+  }
+]

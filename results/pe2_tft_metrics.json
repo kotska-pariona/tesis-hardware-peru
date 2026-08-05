@@ -1,0 +1,26 @@
+{
+  "model": "TFT",
+  "oe": "OE2",
+  "timestamp": "2026-07-30T00:17:22.500784",
+  "config": {
+    "encoder_length": 7,
+    "prediction_length": 1,
+    "hidden_size": 64,
+    "batch_size": 128,
+    "max_epochs": 50,
+    "price_min": 0.5,
+    "price_max": 15000.0
+  },
+  "metrics": {
+    "mae": 158.8989,
+    "rmse": 277.4651,
+    "mape": 73.0016,
+    "r2": 0.8513,
+    "n_samples": 26542
+  },
+  "checkpoint": "C:\\Users\\MSI\\tesis-hardware-peru\\models\\pe2_tft\\tft-clean-epoch=01-val_loss=102.6485.ckpt",
+  "metas_tesis": {
+    "mape_lt_2pct": false,
+    "r2_gt_085": true
+  }
+}

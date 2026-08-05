@@ -1,0 +1,62 @@
+{
+  "model": "LightGBM",
+  "oe": "OE2",
+  "timestamp": "2026-07-30T01:43:13.141604",
+  "justificacion": "TFT descartado: solo 9 días de historia (necesita 30+). LightGBM elegido por robustez con datos tabulares escasos.",
+  "config": {
+    "num_boost_round": 2000,
+    "best_iteration": 451,
+    "features": [
+      "lag_1",
+      "lag_2",
+      "lag_3",
+      "ma_2",
+      "ma_3",
+      "ma_5",
+      "std_3",
+      "std_5",
+      "pct_change_1",
+      "pct_change_2",
+      "sku_mean",
+      "sku_std",
+      "sku_min",
+      "sku_max",
+      "day_of_week",
+      "day_of_month",
+      "month",
+      "is_weekend",
+      "sku_enc",
+      "source_enc",
+      "category_enc"
+    ],
+    "objective": "regression_l1",
+    "learning_rate": 0.05,
+    "num_leaves": 127
+  },
+  "naive_baseline": {
+    "test_mape": 0.8645,
+    "test_r2": 0.995914
+  },
+  "metrics_val": {
+    "mae": 3.8486,
+    "rmse": 45.2602,
+    "mape": 0.3596,
+    "wmape": 0.7488,
+    "r2": 0.996631,
+    "n": 29278
+  },
+  "metrics_test": {
+    "mae": 4.1075,
+    "rmse": 40.6752,
+    "mape": 0.6364,
+    "wmape": 0.876,
+    "r2": 0.996768,
+    "n": 56029
+  },
+  "metas_tesis": {
+    "mape_lt_2pct": true,
+    "wmape_lt_2pct": true,
+    "r2_gt_085": true
+  },
+  "checkpoint": "models\\pe2_lgbm\\lgbm_pe2.txt"
+}

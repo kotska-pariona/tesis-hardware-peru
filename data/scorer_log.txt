@@ -1,0 +1,85 @@
+[11:11:44] ============================================================
+[11:11:44]   obsolescencia_scorer.py — OE4 Scorer Producción
+[11:11:44]   Inicio: 2026-07-30 11:11:44
+[11:11:44] ============================================================
+[11:11:44] 🎮 Device: CUDA
+[11:11:44] 📦 Cargando clasificador: models\obsolescence_classifier.pt
+[11:11:44] ✅ Clasificador cargado | CV F1=0.8135±0.1155 | 2026-07-30
+[11:11:44] 🤖 Cargando embedder: intfloat/multilingual-e5-large (desde caché local)
+[11:11:54] ✅ Embedder cargado en 10.3s
+[11:11:54] 
+🔍 Clasificando texto individual:
+[11:11:54]    'Procesador Intel Core i9-14900K LGA1700 DDR4 125W'
+[11:12:01] 
+   ─────────────────────────────────────────────
+[11:12:01]    Label     : EN_RIESGO
+[11:12:01]    r_j       : 0.5001
+[11:12:01]    P(VIGENTE)  : 0.0007
+[11:12:01]    P(EN_RIESGO): 0.9983
+[11:12:01]    P(OBSOLETO) : 0.001
+[11:12:01]    ─────────────────────────────────────────────
+[11:12:31] ============================================================
+[11:12:31]   obsolescencia_scorer.py — OE4 Scorer Producción
+[11:12:31]   Inicio: 2026-07-30 11:12:31
+[11:12:31] ============================================================
+[11:12:31] 🎮 Device: CUDA
+[11:12:31] 📦 Cargando clasificador: models\obsolescence_classifier.pt
+[11:12:31] ✅ Clasificador cargado | CV F1=0.8135±0.1155 | 2026-07-30
+[11:12:31] 🤖 Cargando embedder: intfloat/multilingual-e5-large (desde caché local)
+[11:12:42] ✅ Embedder cargado en 10.8s
+[11:12:42] 
+📂 Cargando: data\precios_20260717_0313.csv
+[11:12:42]    82 registros | cols: ['batch_id', 'source', 'currency', 'category', 'sku', 'product_id', 'name', 'brand', 'price_pen', 'price_orig_pen', 'discount_pct', 'available_qty', 'url']
+[11:12:42]    Columna 'texto' construida desde columnas disponibles
+[11:12:42] ⚡ Scoring 82 productos...
+[11:12:53] 
+💾 Scores guardados: results\obsolescencia_scores_prod.csv
+[11:12:53] 
+📋 Top 10 productos por riesgo (r_j):
+[11:12:53]    Producto                                           Label    r_j
+[11:12:53]    -----------------------------------------------------------------
+[11:12:53]    Memoria RAM Kingston KVR 8GB, DDR4, 3200MT/s    OBSOLETO 0.9989
+[11:12:53]    Memoria RAM TeamGroup T-Force Vulcan Z 8GB D    OBSOLETO 0.9989
+[11:12:53]    Memoria ram Kingston Fury Beast 16GB (1x16GB    OBSOLETO 0.9989
+[11:12:53]    Memoria RAM Kingston Fury Beast 8GB (1x8GB),    OBSOLETO 0.9989
+[11:12:53]    Procesador AMD ATHLON 3000G 3.5Ghz, 2 CORES,    OBSOLETO 0.9989
+[11:12:53]    Memoria Ram para Laptop Kingston KCP 16GB DD    OBSOLETO 0.9989
+[11:12:53]    Memoria RAM TeamGroup Elite SODIMM 16GB DDR4    OBSOLETO 0.9989
+[11:12:53]    Placa madre Gigabyte B550M-K AM4, DDR4 (reem    OBSOLETO 0.9988
+[11:12:53]    Memoria ram para laptop Kingston KCP 8GB DDR    OBSOLETO 0.9988
+[11:12:53]    Placa madre Asrock A520M-HDV AM4, DDR4 MATX     OBSOLETO 0.9987
+[11:12:53] 
+============================================================
+[11:12:53] ✅ obsolescencia_scorer.py completado
+[11:12:53] 🔜 Siguiente: integrar feature_rj_OE9.csv en pipeline NSGA-III
+[11:12:53] ============================================================
+[11:13:44] ============================================================
+[11:13:44]   obsolescencia_scorer.py — OE4 Scorer Producción
+[11:13:44]   Inicio: 2026-07-30 11:13:44
+[11:13:44] ============================================================
+[11:13:44] 🎮 Device: CUDA
+[11:13:44] 📦 Cargando clasificador: models\obsolescence_classifier.pt
+[11:13:45] ✅ Clasificador cargado | CV F1=0.8135±0.1155 | 2026-07-30
+[11:13:45] 🤖 Cargando embedder: intfloat/multilingual-e5-large (desde caché local)
+[11:13:57] ✅ Embedder cargado en 12.9s
+[11:13:57] 
+⚠️  Sin --input especificado.
+[11:13:57]    Usando corpus de entrenamiento: data/embeddings_meta.csv
+[11:13:57] ⚡ Scoring 82 productos...
+[11:14:08] 
+💾 Scores guardados: results\obsolescencia_scores_prod.csv
+[11:14:08] 
+📤 Exportando feature r_j para OE9 (NSGA-III)...
+[11:14:08] 💾 Feature OE9 exportado: results\feature_rj_OE9.csv  (82 registros)
+[11:14:08] 
+📊 Distribución de clases (producción):
+[11:14:08]    VIGENTE     :  57 ( 69.5%) | r_j medio = 0.0013
+[11:14:08]    EN_RIESGO   :  13 ( 15.9%) | r_j medio = 0.5000
+[11:14:08]    OBSOLETO    :  12 ( 14.6%) | r_j medio = 0.9989
+[11:14:08] 
+   r_j global → min=0.0012 max=0.9989 media=0.2264
+[11:14:08] 
+============================================================
+[11:14:08] ✅ obsolescencia_scorer.py completado
+[11:14:08] 🔜 Siguiente: integrar feature_rj_OE9.csv en pipeline NSGA-III
+[11:14:08] ============================================================

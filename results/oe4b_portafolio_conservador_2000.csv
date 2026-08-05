@@ -1,0 +1,11 @@
+titulo,categoria,fuente_import,costo_unit_usd,precio_venta_usd,ganancia_unit_usd,roi_unitario_pct,roi_esperado_pct,cantidad,costo_total_usd,venta_total_usd,ganancia_total_usd,score_ponderado,match_score
+Procesador Ryzen 5 9600 3.80-5.20Ghz 32Mb 6C Am5 Con Gráfico,procesadores,ebay_usa,204.44,357.92,99.79,75.1,48.8,1,204.44,357.92,99.79,0.9328,96.0
+Procesador Core i7 14700 2.10-5.40Ghz 33MB Smart Cache LGA17,cpu,aliexpress,197.76,345.23,95.69,74.6,48.4,1,197.76,345.23,95.69,0.9415,100.0
+Monitor gaming G Pro 27i de 27 2K QHD Fast IPS 180Hz 1Ms,monitores,ebay_usa,197.75,344.95,95.46,74.4,48.3,1,197.75,344.95,95.46,0.9134,100.0
+Monitor Curvo Gaming G34WQi de 34 WQHD 3440x1440 180Hz 1ms,monitores,ebay_usa,197.75,344.95,95.46,74.4,48.3,1,197.75,344.95,95.46,0.9134,100.0
+"Procesador Ryzen 5 7600X, 6 Núcleos, 4.7-5.3Ghz, 32Mb L3, Ar",procesadores,ebay_usa,204.17,352.47,95.43,72.6,46.7,1,204.17,352.47,95.43,0.9212,100.0
+Procesador Core i7 14700KF 3.4 GHz-5.4 GHz Cache 33MB LGA170,cpu,aliexpress,197.76,338.94,90.34,71.4,45.7,1,197.76,338.94,90.34,0.9082,100.0
+DISCO DURO SOLIDO 1TB M.2 2230 NVMe PCIe 4.0 1TB SNV3SM3/1T0,ssd,amazon_usa,179.75,304.66,79.21,69.5,44.1,1,179.75,304.66,79.21,0.9151,100.0
+Disco duro Western Digital WD Purple 1TB SATA 6.0 Gbs 5400 6,discos_ssd,amazon_usa,179.77,303.58,78.27,68.9,43.5,1,179.77,303.58,78.27,0.9086,100.0
+TARJETA DE VIDEO GALAX GEFORCE RTX 3060TI 8GB P-N 36ISM6MD1G,tarjetas_video,amazon_usa,296.96,438.87,76.08,47.8,25.6,1,296.96,438.87,76.08,0.6509,90.0
+Memoria Ram Hyperx Fury Impact 16Gb Ddr4 3200Mhz Sodimm Para,memorias_ram,amazon_usa,143.82,236.13,56.89,64.2,39.6,1,143.82,236.13,56.89,0.8863,100.0

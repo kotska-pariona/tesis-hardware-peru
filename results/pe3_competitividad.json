@@ -1,0 +1,52 @@
+{
+  "oe": "OE3",
+  "timestamp": "2026-07-30T01:49:18.999717",
+  "dataset": {
+    "total_registros": 44748,
+    "skus_unicos": 44744,
+    "fuentes": [
+      "aliexpress",
+      "amazon_usa",
+      "coolbox_pe",
+      "ebay_usa",
+      "exchangerate_api",
+      "falabella",
+      "falabella_pe",
+      "hiraoka",
+      "hiraoka_pe"
+    ],
+    "fecha_min": "2026-07-11",
+    "fecha_max": "2026-07-25"
+  },
+  "competitividad": {
+    "total_skus_analizados": 44744,
+    "skus_mejor_precio_local": 16080,
+    "skus_mejor_precio_importacion": 28664,
+    "pct_local_gana": 35.94,
+    "pct_import_gana": 64.06,
+    "tienda_mas_competitiva": "ebay_usa",
+    "wins_por_fuente": {
+      "ebay_usa": 23374,
+      "falabella_pe": 15406,
+      "amazon_usa": 4880,
+      "coolbox_pe": 413,
+      "aliexpress": 410,
+      "hiraoka_pe": 260,
+      "hiraoka": 1
+    }
+  },
+  "brecha_local_vs_importacion": {
+    "skus_comparados": 1,
+    "gap_mediana_pct": -94.6,
+    "gap_media_pct": -94.6,
+    "skus_local_mas_barato": 1,
+    "skus_import_mas_barato": 0,
+    "pct_local_mas_barato": 100.0
+  },
+  "figuras": [
+    "figures/pe3_fig1_distribucion.png",
+    "figures/pe3_fig2_brecha.png",
+    "figures/pe3_fig3_categorias.png",
+    "figures/pe3_fig4_prediccion.png"
+  ]
+}
