@@ -97,3 +97,5 @@ data/splits/*.csv
 data/features/*.csv
 models/test_predictions*.csv
 service_account.json
+venv_pe4_clean/
+*.swp
