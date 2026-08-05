@@ -1,7 +1,7 @@
 {
   "model": "LightGBM",
   "oe": "OE2",
-  "timestamp": "2026-07-30T01:43:13.141604",
+  "timestamp": "2026-08-04T22:50:43.687258",
   "justificacion": "TFT descartado: solo 9 días de historia (necesita 30+). LightGBM elegido por robustez con datos tabulares escasos.",
   "config": {
     "num_boost_round": 2000,
