@@ -1,0 +1,77 @@
+[11:03:32] ============================================================
+[11:03:32]   classifier.py — OE4 MLP Classifier
+[11:03:32]   Inicio: 2026-07-30 11:03:32
+[11:03:32] ============================================================
+[11:03:32] 🎮 Device: CUDA
+[11:03:32] 📂 Datos cargados: X=(82, 1024), y=(82,)
+[11:03:32]    Distribución de clases:
+[11:03:32]    VIGENTE     :  57 (69.5%)
+[11:03:32]    EN_RIESGO   :  13 (15.9%)
+[11:03:32]    OBSOLETO    :  12 (14.6%)
+[11:03:32] 
+⚖️  Class weights: VIGENTE=0.480 | EN_RIESGO=2.103 | OBSOLETO=2.278
+[11:03:32] 
+🔁 Stratified K-Fold (k=5):
+[11:08:06] ============================================================
+[11:08:06]   classifier.py — OE4 MLP Classifier  [v2 — LayerNorm fix]
+[11:08:06]   Inicio: 2026-07-30 11:08:06
+[11:08:06] ============================================================
+[11:08:06] 🎮 Device: CUDA
+[11:08:06] 📂 Datos cargados: X=(82, 1024), y=(82,)
+[11:08:06]    Distribución de clases:
+[11:08:06]    VIGENTE     :  57 (69.5%)
+[11:08:06]    EN_RIESGO   :  13 (15.9%)
+[11:08:06]    OBSOLETO    :  12 (14.6%)
+[11:08:06] 
+⚖️  Class weights: VIGENTE=0.480 | EN_RIESGO=2.103 | OBSOLETO=2.278
+[11:08:06] 
+🔁 Stratified K-Fold (k=5):
+[11:08:14]    Fold 1 | Early stop epoch  49 | best F1=0.8667
+[11:08:14]    Fold 1/5 | val F1-macro = 0.8667 | train=65 val=17
+[11:08:15]    Fold 2 | Early stop epoch  36 | best F1=0.9379
+[11:08:15]    Fold 2/5 | val F1-macro = 0.9379 | train=65 val=17
+[11:08:15]    Fold 3 | Early stop epoch  33 | best F1=0.8586
+[11:08:15]    Fold 3/5 | val F1-macro = 0.8586 | train=66 val=16
+[11:08:16]    Fold 4 | Early stop epoch  59 | best F1=0.8063
+[11:08:16]    Fold 4/5 | val F1-macro = 0.8063 | train=66 val=16
+[11:08:16]    Fold 5 | Early stop epoch  30 | best F1=0.5982
+[11:08:16]    Fold 5/5 | val F1-macro = 0.5982 | train=66 val=16
+[11:08:16] 
+✅ CV completado:
+[11:08:16]    F1-macro media : 0.8135
+[11:08:16]    F1-macro std   : 0.1155
+[11:08:16]    Mejor fold F1  : 0.9379
+[11:08:16] 
+🔄 Reentrenando modelo final con corpus completo...
+[11:08:17]    Early stop en epoch 159 | best loss=0.0024
+[11:08:17] 
+💾 Modelo guardado: models\obsolescence_classifier.pt
+[11:08:18] 📊 Confusion matrix guardada: results\confusion_matrix.png
+[11:08:18] 📄 Classification report: results\classification_report.txt
+[11:08:18] 💾 Scores r_j guardados: results\obsolescencia_scores.csv  (82 registros)
+[11:08:18] 
+📋 Top 10 SKUs por riesgo de obsolescencia (r_j):
+[11:08:18]    Producto                                           Label    r_j
+[11:08:18]    -----------------------------------------------------------------
+[11:08:18]    Memoria RAM Kingston Fury Beast 8GB (1x8GB),    OBSOLETO 0.9989
+[11:08:18]    Memoria RAM TeamGroup Elite SODIMM 16GB DDR4    OBSOLETO 0.9989
+[11:08:18]    Procesador AMD Ryzen 5 5600G, 3.9Ghz, 6 core    OBSOLETO 0.9989
+[11:08:18]    Placa madre Asrock H610M-HDV/M.2 R2.0, DDR4,    OBSOLETO 0.9989
+[11:08:18]    Memoria RAM Kingston KVR 8GB, DDR4, 3200MT/s    OBSOLETO 0.9989
+[11:08:18]    Memoria ram para laptop Kingston KCP 8GB DDR    OBSOLETO 0.9989
+[11:08:18]    Procesador AMD ATHLON 3000G 3.5Ghz, 2 CORES,    OBSOLETO 0.9989
+[11:08:18]    Memoria RAM TeamGroup T-Force Vulcan Z 8GB D    OBSOLETO 0.9989
+[11:08:18]    Memoria Ram para Laptop Kingston KCP 16GB DD    OBSOLETO 0.9989
+[11:08:18]    Placa madre Gigabyte B550M-K AM4, DDR4 (reem    OBSOLETO 0.9988
+[11:08:18] 
+============================================================
+[11:08:18] ✅ classifier.py completado  [v2]
+[11:08:18]    Modelo   : models\obsolescence_classifier.pt
+[11:08:18]    Scores   : results\obsolescencia_scores.csv
+[11:08:18]    Reporte  : results\classification_report.txt
+[11:08:18]    CM plot  : results\confusion_matrix.png
+[11:08:18] 
+   F1-macro CV : 0.8135 ± 0.1155
+[11:08:18] 
+🔜 Siguiente paso: integrar r_j en dashboard.py (OE9)
+[11:08:18] ============================================================

@@ -1,0 +1,58 @@
+{
+  "model": "TFT_v2_log1p",
+  "oe": "OE2",
+  "timestamp": "2026-07-30T01:14:02.115714",
+  "config": {
+    "encoder_length": 7,
+    "prediction_length": 1,
+    "hidden_size": 64,
+    "batch_size": 128,
+    "max_epochs": 60,
+    "log_transform": true
+  },
+  "metrics": {
+    "mae": 271.2195,
+    "rmse": 468.2415,
+    "mape": 381.3605,
+    "wmape": 57.6241,
+    "r2": 0.5765,
+    "by_price_range": {
+      "$5-$20   (accesorios)": {
+        "n": 2390,
+        "mape": 2425.99,
+        "wmape": 2144.39,
+        "r2": -5876.7217
+      },
+      "$20-$100 (periféricos)": {
+        "n": 7319,
+        "mape": 459.36,
+        "wmape": 361.12,
+        "r2": -82.4925
+      },
+      "$100-$500 (mid-range)": {
+        "n": 9224,
+        "mape": 73.3,
+        "wmape": 49.81,
+        "r2": -1.0491
+      },
+      "$500-$2k  (high-end)": {
+        "n": 6559,
+        "mape": 36.3,
+        "wmape": 37.75,
+        "r2": -0.6136
+      },
+      "$2k+      (premium)": {
+        "n": 1050,
+        "mape": 45.44,
+        "wmape": 45.93,
+        "r2": -0.9753
+      }
+    }
+  },
+  "checkpoint": "C:\\Users\\MSI\\tesis-hardware-peru\\models\\pe2_tft_v2\\tft-v2-epoch=00-val_loss=230.0829.ckpt",
+  "metas_tesis": {
+    "wmape_lt_5pct": false,
+    "mape_lt_5pct": false,
+    "r2_gt_085": false
+  }
+}

@@ -1,0 +1,53 @@
+[10:54:12] ============================================================
+[10:54:12]   e5_embedder.py — OE4 Embeddings E5-large
+[10:54:12]   Inicio: 2026-07-30 10:54:12
+[10:54:12] ============================================================
+[10:54:12] 🎮 GPU detectada: NVIDIA GeForce RTX 3050 Ti Laptop GPU (4.3 GB VRAM)
+[10:54:12] 📂 Corpus cargado: 82 registros | cols: ['texto', 'label', 'confianza', 'decision_src', 'keywords_match', 'label_lexico', 'label_numerico', 'producto', 'marca', 'categoria', 'fuente', 'precio_usd', 'descuento', 'fecha', 'sku', 'url', 'source_file', 'label_id']
+[10:54:13] ✅ Registros válidos: 82
+[10:54:13] 
+🤖 Cargando modelo: intfloat/multilingual-e5-large
+[10:54:13]    Primera vez: descarga ~2.2GB desde HuggingFace (~3-5 min)
+[10:54:13]    Siguiente vez: carga desde caché local (~10 seg)
+[10:56:45] ✅ Modelo cargado en 152.8s
+[10:56:45]    Dimensión de embeddings : 1024
+[10:56:45]    Device                  : CUDA
+[10:56:45]    Max sequence length     : 512
+[10:56:45] 
+⚡ Generando embeddings para 82 textos...
+[10:56:45]    Batch size : 16
+[10:56:45]    Prefijo E5 : 'query: '
+[10:56:52] 
+✅ Embeddings generados en 7.0s
+[10:56:52]    Shape    : (82, 1024)
+[10:56:52]    Dtype    : float32
+[10:56:52]    Norma L2 (muestra): 1.0000  ← debe ser ~1.0
+[10:56:52] 
+📐 Análisis de separabilidad por clase:
+[10:56:52]    VIGENTE     :  57 registros | centroide calculado
+[10:56:52]    EN_RIESGO   :  13 registros | centroide calculado
+[10:56:52]    OBSOLETO    :  12 registros | centroide calculado
+[10:56:52] 
+   📊 Cohesión intra-clase (sim coseno promedio con centroide):
+[10:56:52]    VIGENTE     : 0.9473 ± 0.0130
+[10:56:52]    EN_RIESGO   : 0.9540 ± 0.0128
+[10:56:52]    OBSOLETO    : 0.9574 ± 0.0094
+[10:56:52] 
+   📊 Separación inter-clase (sim coseno entre centroides):
+[10:56:52]    VIGENTE      ↔ EN_RIESGO   : 0.9778  ⚠️  similar
+[10:56:52]    VIGENTE      ↔ OBSOLETO    : 0.9640  ⚠️  similar
+[10:56:52]    EN_RIESGO    ↔ OBSOLETO    : 0.9738  ⚠️  similar
+[10:56:52] 
+   Stats guardadas en: data\embeddings_stats.txt
+[10:56:52] 
+💾 Embeddings guardados: data\embeddings_obsolescencia.npy  (0.3 MB)
+[10:56:52] 💾 Metadata guardada  : data\embeddings_meta.csv  (82 registros)
+[10:56:52] ✅ Verificación OK: shape (82, 1024) cargado correctamente
+[10:56:52] 
+============================================================
+[10:56:52] ✅ e5_embedder.py completado
+[10:56:52]    embeddings_obsolescencia.npy → (82, 1024)
+[10:56:52]    embeddings_meta.csv          → 82 registros
+[10:56:52] 
+🔜 Siguiente paso: ejecutar classifier.py
+[10:56:52] ============================================================

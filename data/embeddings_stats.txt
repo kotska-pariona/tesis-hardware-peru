@@ -1,0 +1,10 @@
+EMBEDDINGS QUALITY STATS
+Modelo: intfloat/multilingual-e5-large
+Shape: (82, 1024)
+
+VIGENTE cohesion: 0.9473 ± 0.0130
+EN_RIESGO cohesion: 0.9540 ± 0.0128
+OBSOLETO cohesion: 0.9574 ± 0.0094
+VIGENTE <-> EN_RIESGO: 0.9778
+VIGENTE <-> OBSOLETO: 0.9640
+EN_RIESGO <-> OBSOLETO: 0.9738

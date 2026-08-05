@@ -1,0 +1,554 @@
+{
+  "max_roi": {
+    "roi_pct": 73.2,
+    "riesgo": 3.9116,
+    "n_cats": 6,
+    "hhi": 0.2453,
+    "capital_usd": 3957.93,
+    "ganancia_usd": 2897.23,
+    "n_skus": 11,
+    "skus": [
+      {
+        "titulo": "Procesador Ryzen 5 9600 3.80-5.20Ghz 32Mb 6C Am5 Con Gráficos Radeon",
+        "categoria": "procesadores",
+        "cantidad": 3,
+        "costo_unit": 204.44,
+        "roi_esp": 76.37
+      },
+      {
+        "titulo": "Procesador Core i7 14700 2.10-5.40Ghz 33MB Smart Cache LGA1700",
+        "categoria": "cpu",
+        "cantidad": 2,
+        "costo_unit": 197.76,
+        "roi_esp": 75.86
+      },
+      {
+        "titulo": "Monitor Curvo Gaming G34WQi de 34 WQHD 3440x1440 180Hz 1ms",
+        "categoria": "monitores",
+        "cantidad": 4,
+        "costo_unit": 197.75,
+        "roi_esp": 75.73
+      },
+      {
+        "titulo": "Procesador Ryzen 7 7700X 4 5 a 5 4GHz 32MB L3 8-Core AM5 105W",
+        "categoria": "procesadores",
+        "cantidad": 2,
+        "costo_unit": 236.13,
+        "roi_esp": 74.01
+      },
+      {
+        "titulo": "Procesador Ryzen 5 7600X, 6 Núcleos, 4.7-5.3Ghz, 32Mb L3, Arquitectura Am5, 105W",
+        "categoria": "procesadores",
+        "cantidad": 2,
+        "costo_unit": 204.17,
+        "roi_esp": 73.92
+      },
+      {
+        "titulo": "Procesador Core i7 14700KF 3.4 GHz-5.4 GHz Cache 33MB LGA1700",
+        "categoria": "cpu",
+        "cantidad": 1,
+        "costo_unit": 197.76,
+        "roi_esp": 72.66
+      },
+      {
+        "titulo": "DISCO DURO SOLIDO 1TB M.2 2230 NVMe PCIe 4.0 1TB SNV3SM3/1T0",
+        "categoria": "ssd",
+        "cantidad": 2,
+        "costo_unit": 179.75,
+        "roi_esp": 70.75
+      },
+      {
+        "titulo": "Disco duro N300 NAS 8TB SATA 60Gbs 7200rpm 35",
+        "categoria": "discos_ssd",
+        "cantidad": 1,
+        "costo_unit": 171.12,
+        "roi_esp": 70.48
+      },
+      {
+        "titulo": "Disco duro Western Digital WD Purple 1TB SATA 6.0 Gbs 5400 64MB 3.5",
+        "categoria": "discos_ssd",
+        "cantidad": 1,
+        "costo_unit": 179.77,
+        "roi_esp": 70.12
+      },
+      {
+        "titulo": "Monitor gamer curvo 32 pulgadas QHD 180Hz 1ms UltraGear 32G600A-B",
+        "categoria": "monitores",
+        "cantidad": 1,
+        "costo_unit": 197.75,
+        "roi_esp": 66.48
+      },
+      {
+        "titulo": "MEMORIA VENGEANCE LPX 16GB DDR4 a 3200 MHz C16",
+        "categoria": "memorias_ram",
+        "cantidad": 1,
+        "costo_unit": 171.59,
+        "roi_esp": 59.57
+      }
+    ]
+  },
+  "min_riesgo": {
+    "roi_pct": 67.42,
+    "riesgo": 3.2508,
+    "n_cats": 8,
+    "hhi": 0.1749,
+    "capital_usd": 4265.74,
+    "ganancia_usd": 2875.8,
+    "n_skus": 15,
+    "skus": [
+      {
+        "titulo": "Monitor Curvo Gaming G34WQi de 34 WQHD 3440x1440 180Hz 1ms",
+        "categoria": "monitores",
+        "cantidad": 1,
+        "costo_unit": 197.75,
+        "roi_esp": 75.73
+      },
+      {
+        "titulo": "DISCO DURO SOLIDO 1TB M.2 2230 NVMe PCIe 4.0 1TB SNV3SM3/1T0",
+        "categoria": "ssd",
+        "cantidad": 2,
+        "costo_unit": 179.75,
+        "roi_esp": 70.75
+      },
+      {
+        "titulo": "Disco duro N300 NAS 8TB SATA 60Gbs 7200rpm 35",
+        "categoria": "discos_ssd",
+        "cantidad": 1,
+        "costo_unit": 171.12,
+        "roi_esp": 70.48
+      },
+      {
+        "titulo": "Disco duro Western Digital WD Purple 1TB SATA 6.0 Gbs 5400 64MB 3.5",
+        "categoria": "discos_ssd",
+        "cantidad": 1,
+        "costo_unit": 179.77,
+        "roi_esp": 70.12
+      },
+      {
+        "titulo": "Disco duro WD Purple 2TB SATA 6.0 Gbs 64MB 5400 3.5",
+        "categoria": "discos_ssd",
+        "cantidad": 3,
+        "costo_unit": 193.19,
+        "roi_esp": 69.66
+      },
+      {
+        "titulo": "Procesador Core I5-14600Kf 5.3Ghz, 24Mb De Caché, Socket Lga 1700 - Potencia Y Rendi",
+        "categoria": "cpu",
+        "cantidad": 2,
+        "costo_unit": 146.36,
+        "roi_esp": 68.79
+      },
+      {
+        "titulo": "PROCESADOR CORE I5-10600K 4.10GHZ-4.80GHZ P-N BX8070110600K",
+        "categoria": "cpu",
+        "cantidad": 2,
+        "costo_unit": 146.4,
+        "roi_esp": 67.64
+      },
+      {
+        "titulo": "Monitor gamer curvo 32 pulgadas QHD 180Hz 1ms UltraGear 32G600A-B",
+        "categoria": "monitores",
+        "cantidad": 2,
+        "costo_unit": 197.75,
+        "roi_esp": 66.48
+      },
+      {
+        "titulo": "Procesador Ryzen 5 7600X 4.70-5.30Ghz Cache L3 32MB Socket AM5",
+        "categoria": "procesadores",
+        "cantidad": 1,
+        "costo_unit": 197.75,
+        "roi_esp": 66.28
+      },
+      {
+        "titulo": "Procesador Core i5-12600 3.7GHz 4.9GHz Turbo 20MB LGA 1700",
+        "categoria": "cpu",
+        "cantidad": 1,
+        "costo_unit": 146.36,
+        "roi_esp": 65.89
+      },
+      {
+        "titulo": "Memoria Ram Hyperx Fury Impact 16Gb Ddr4 3200Mhz Sodimm Para Laptop - Alto Rendim",
+        "categoria": "memorias_ram",
+        "cantidad": 1,
+        "costo_unit": 143.82,
+        "roi_esp": 65.41
+      },
+      {
+        "titulo": "Placa Tuf Gaming Z790-Plus Wifi Ddr5 Chipset Intel Lga1700 Conectividad Wifi",
+        "categoria": "motherboard",
+        "cantidad": 2,
+        "costo_unit": 150.88,
+        "roi_esp": 64.95
+      },
+      {
+        "titulo": "Ssd Ae-Mw3Ss3 2Tb Sata Iii 6Gbps Soporta S.M.A.R.T Trim Ncq",
+        "categoria": "discos_ssd",
+        "cantidad": 2,
+        "costo_unit": 193.19,
+        "roi_esp": 64.84
+      },
+      {
+        "titulo": "Cpu Core I7-10700 Optiplex 5090 Sff, 16 Ram, 512 Ssd",
+        "categoria": "computadoras",
+        "cantidad": 1,
+        "costo_unit": 449.35,
+        "roi_esp": 64.25
+      },
+      {
+        "titulo": "MEMORIA VENGEANCE LPX 16GB DDR4 a 3200 MHz C16",
+        "categoria": "memorias_ram",
+        "cantidad": 1,
+        "costo_unit": 171.59,
+        "roi_esp": 59.57
+      }
+    ]
+  },
+  "max_diversif": {
+    "roi_pct": 67.94,
+    "riesgo": 6.5581,
+    "n_cats": 11,
+    "hhi": 0.105,
+    "capital_usd": 4772.79,
+    "ganancia_usd": 3242.58,
+    "n_skus": 14,
+    "skus": [
+      {
+        "titulo": "Procesador Ryzen 5 9600 3.80-5.20Ghz 32Mb 6C Am5 Con Gráficos Radeon",
+        "categoria": "procesadores",
+        "cantidad": 3,
+        "costo_unit": 204.44,
+        "roi_esp": 76.37
+      },
+      {
+        "titulo": "Procesador Core i7 14700 2.10-5.40Ghz 33MB Smart Cache LGA1700",
+        "categoria": "cpu",
+        "cantidad": 2,
+        "costo_unit": 197.76,
+        "roi_esp": 75.86
+      },
+      {
+        "titulo": "Monitor Curvo Gaming G34WQi de 34 WQHD 3440x1440 180Hz 1ms",
+        "categoria": "monitores",
+        "cantidad": 2,
+        "costo_unit": 197.75,
+        "roi_esp": 75.73
+      },
+      {
+        "titulo": "Procesador Core i7 14700KF 3.4 GHz-5.4 GHz Cache 33MB LGA1700",
+        "categoria": "cpu",
+        "cantidad": 1,
+        "costo_unit": 197.76,
+        "roi_esp": 72.66
+      },
+      {
+        "titulo": "DISCO DURO SOLIDO 1TB M.2 2230 NVMe PCIe 4.0 1TB SNV3SM3/1T0",
+        "categoria": "ssd",
+        "cantidad": 2,
+        "costo_unit": 179.75,
+        "roi_esp": 70.75
+      },
+      {
+        "titulo": "Disco duro N300 NAS 8TB SATA 60Gbs 7200rpm 35",
+        "categoria": "discos_ssd",
+        "cantidad": 1,
+        "costo_unit": 171.12,
+        "roi_esp": 70.48
+      },
+      {
+        "titulo": "Disco duro Western Digital WD Purple 1TB SATA 6.0 Gbs 5400 64MB 3.5",
+        "categoria": "discos_ssd",
+        "cantidad": 1,
+        "costo_unit": 179.77,
+        "roi_esp": 70.12
+      },
+      {
+        "titulo": "Monitor gamer curvo 32 pulgadas QHD 180Hz 1ms UltraGear 32G600A-B",
+        "categoria": "monitores",
+        "cantidad": 1,
+        "costo_unit": 197.75,
+        "roi_esp": 66.48
+      },
+      {
+        "titulo": "Placa Tuf Gaming Z790-Plus Wifi Ddr5 Chipset Intel Lga1700 Conectividad Wifi",
+        "categoria": "motherboard",
+        "cantidad": 2,
+        "costo_unit": 150.88,
+        "roi_esp": 64.95
+      },
+      {
+        "titulo": "Cpu Core I7-10700 Optiplex 5090 Sff, 16 Ram, 512 Ssd",
+        "categoria": "computadoras",
+        "cantidad": 1,
+        "costo_unit": 449.35,
+        "roi_esp": 64.25
+      },
+      {
+        "titulo": "Tarjeta de vídeo Zotac Gaming GeForce RTX 3070 Twin Edge OC, 8GB GDDR6",
+        "categoria": "gpu",
+        "cantidad": 1,
+        "costo_unit": 562.3,
+        "roi_esp": 62.45
+      },
+      {
+        "titulo": "TARJETA DE VIDEO PRIME RTX 5070 12GB ( PRIME-RTX5070-12G ) GDDR7 X3 FANES X3 192 BIT",
+        "categoria": "tarjetas_video",
+        "cantidad": 1,
+        "costo_unit": 631.16,
+        "roi_esp": 60.56
+      },
+      {
+        "titulo": "MEMORIA VENGEANCE LPX 16GB DDR4 a 3200 MHz C16",
+        "categoria": "memorias_ram",
+        "cantidad": 1,
+        "costo_unit": 171.59,
+        "roi_esp": 59.57
+      },
+      {
+        "titulo": "Memoria RAM Fury Beast 16GB DIMM RGB DDR5 6000Mhz CL36",
+        "categoria": "ram",
+        "cantidad": 1,
+        "costo_unit": 146.39,
+        "roi_esp": 53.38
+      }
+    ]
+  },
+  "min_concentracion": {
+    "roi_pct": 65.91,
+    "riesgo": 4.894,
+    "n_cats": 11,
+    "hhi": 0.1028,
+    "capital_usd": 4830.29,
+    "ganancia_usd": 3183.61,
+    "n_skus": 16,
+    "skus": [
+      {
+        "titulo": "Monitor Curvo Gaming G34WQi de 34 WQHD 3440x1440 180Hz 1ms",
+        "categoria": "monitores",
+        "cantidad": 2,
+        "costo_unit": 197.75,
+        "roi_esp": 75.73
+      },
+      {
+        "titulo": "DISCO DURO SOLIDO 1TB M.2 2230 NVMe PCIe 4.0 1TB SNV3SM3/1T0",
+        "categoria": "ssd",
+        "cantidad": 2,
+        "costo_unit": 179.75,
+        "roi_esp": 70.75
+      },
+      {
+        "titulo": "Disco duro N300 NAS 8TB SATA 60Gbs 7200rpm 35",
+        "categoria": "discos_ssd",
+        "cantidad": 1,
+        "costo_unit": 171.12,
+        "roi_esp": 70.48
+      },
+      {
+        "titulo": "Disco duro Western Digital WD Purple 1TB SATA 6.0 Gbs 5400 64MB 3.5",
+        "categoria": "discos_ssd",
+        "cantidad": 1,
+        "costo_unit": 179.77,
+        "roi_esp": 70.12
+      },
+      {
+        "titulo": "Disco duro WD Purple 2TB SATA 6.0 Gbs 64MB 5400 3.5",
+        "categoria": "discos_ssd",
+        "cantidad": 1,
+        "costo_unit": 193.19,
+        "roi_esp": 69.66
+      },
+      {
+        "titulo": "Procesador Core I5-14600Kf 5.3Ghz, 24Mb De Caché, Socket Lga 1700 - Potencia Y Rendi",
+        "categoria": "cpu",
+        "cantidad": 2,
+        "costo_unit": 146.36,
+        "roi_esp": 68.79
+      },
+      {
+        "titulo": "PROCESADOR CORE I5-10600K 4.10GHZ-4.80GHZ P-N BX8070110600K",
+        "categoria": "cpu",
+        "cantidad": 2,
+        "costo_unit": 146.4,
+        "roi_esp": 67.64
+      },
+      {
+        "titulo": "Monitor gamer curvo 32 pulgadas QHD 180Hz 1ms UltraGear 32G600A-B",
+        "categoria": "monitores",
+        "cantidad": 1,
+        "costo_unit": 197.75,
+        "roi_esp": 66.48
+      },
+      {
+        "titulo": "Procesador Ryzen 5 7600X 4.70-5.30Ghz Cache L3 32MB Socket AM5",
+        "categoria": "procesadores",
+        "cantidad": 1,
+        "costo_unit": 197.75,
+        "roi_esp": 66.28
+      },
+      {
+        "titulo": "Memoria Ram Hyperx Fury Impact 16Gb Ddr4 3200Mhz Sodimm Para Laptop - Alto Rendim",
+        "categoria": "memorias_ram",
+        "cantidad": 2,
+        "costo_unit": 143.82,
+        "roi_esp": 65.41
+      },
+      {
+        "titulo": "Placa Tuf Gaming Z790-Plus Wifi Ddr5 Chipset Intel Lga1700 Conectividad Wifi",
+        "categoria": "motherboard",
+        "cantidad": 2,
+        "costo_unit": 150.88,
+        "roi_esp": 64.95
+      },
+      {
+        "titulo": "Cpu Core I7-10700 Optiplex 5090 Sff, 16 Ram, 512 Ssd",
+        "categoria": "computadoras",
+        "cantidad": 1,
+        "costo_unit": 449.35,
+        "roi_esp": 64.25
+      },
+      {
+        "titulo": "Tarjeta de vídeo Zotac Gaming GeForce RTX 3070 Twin Edge OC, 8GB GDDR6",
+        "categoria": "gpu",
+        "cantidad": 1,
+        "costo_unit": 562.3,
+        "roi_esp": 62.45
+      },
+      {
+        "titulo": "TARJETA DE VIDEO PRIME RTX 5070 12GB ( PRIME-RTX5070-12G ) GDDR7 X3 FANES X3 192 BIT",
+        "categoria": "tarjetas_video",
+        "cantidad": 1,
+        "costo_unit": 631.16,
+        "roi_esp": 60.56
+      },
+      {
+        "titulo": "MEMORIA VENGEANCE LPX 16GB DDR4 a 3200 MHz C16",
+        "categoria": "memorias_ram",
+        "cantidad": 1,
+        "costo_unit": 171.59,
+        "roi_esp": 59.57
+      },
+      {
+        "titulo": "Memoria RAM Fury Beast 16GB DIMM RGB DDR5 6000Mhz CL36",
+        "categoria": "ram",
+        "cantidad": 1,
+        "costo_unit": 146.39,
+        "roi_esp": 53.38
+      }
+    ]
+  },
+  "equilibrado": {
+    "roi_pct": 69.0,
+    "riesgo": 5.0015,
+    "n_cats": 9,
+    "hhi": 0.1195,
+    "capital_usd": 4736.93,
+    "ganancia_usd": 3268.38,
+    "n_skus": 15,
+    "skus": [
+      {
+        "titulo": "Procesador Core i7 14700 2.10-5.40Ghz 33MB Smart Cache LGA1700",
+        "categoria": "cpu",
+        "cantidad": 2,
+        "costo_unit": 197.76,
+        "roi_esp": 75.86
+      },
+      {
+        "titulo": "Monitor Curvo Gaming G34WQi de 34 WQHD 3440x1440 180Hz 1ms",
+        "categoria": "monitores",
+        "cantidad": 2,
+        "costo_unit": 197.75,
+        "roi_esp": 75.73
+      },
+      {
+        "titulo": "Procesador Ryzen 7 7700X 4 5 a 5 4GHz 32MB L3 8-Core AM5 105W",
+        "categoria": "procesadores",
+        "cantidad": 2,
+        "costo_unit": 236.13,
+        "roi_esp": 74.01
+      },
+      {
+        "titulo": "Procesador Ryzen 5 7600X, 6 Núcleos, 4.7-5.3Ghz, 32Mb L3, Arquitectura Am5, 105W",
+        "categoria": "procesadores",
+        "cantidad": 1,
+        "costo_unit": 204.17,
+        "roi_esp": 73.92
+      },
+      {
+        "titulo": "Procesador Core i7 14700KF 3.4 GHz-5.4 GHz Cache 33MB LGA1700",
+        "categoria": "cpu",
+        "cantidad": 1,
+        "costo_unit": 197.76,
+        "roi_esp": 72.66
+      },
+      {
+        "titulo": "DISCO DURO SOLIDO 1TB M.2 2230 NVMe PCIe 4.0 1TB SNV3SM3/1T0",
+        "categoria": "ssd",
+        "cantidad": 2,
+        "costo_unit": 179.75,
+        "roi_esp": 70.75
+      },
+      {
+        "titulo": "Disco duro N300 NAS 8TB SATA 60Gbs 7200rpm 35",
+        "categoria": "discos_ssd",
+        "cantidad": 1,
+        "costo_unit": 171.12,
+        "roi_esp": 70.48
+      },
+      {
+        "titulo": "Disco duro Western Digital WD Purple 1TB SATA 6.0 Gbs 5400 64MB 3.5",
+        "categoria": "discos_ssd",
+        "cantidad": 1,
+        "costo_unit": 179.77,
+        "roi_esp": 70.12
+      },
+      {
+        "titulo": "Disco duro WD Purple 2TB SATA 6.0 Gbs 64MB 5400 3.5",
+        "categoria": "discos_ssd",
+        "cantidad": 1,
+        "costo_unit": 193.19,
+        "roi_esp": 69.66
+      },
+      {
+        "titulo": "Monitor gamer curvo 32 pulgadas QHD 180Hz 1ms UltraGear 32G600A-B",
+        "categoria": "monitores",
+        "cantidad": 2,
+        "costo_unit": 197.75,
+        "roi_esp": 66.48
+      },
+      {
+        "titulo": "Memoria Ram Hyperx Fury Impact 16Gb Ddr4 3200Mhz Sodimm Para Laptop - Alto Rendim",
+        "categoria": "memorias_ram",
+        "cantidad": 2,
+        "costo_unit": 143.82,
+        "roi_esp": 65.41
+      },
+      {
+        "titulo": "Placa Tuf Gaming Z790-Plus Wifi Ddr5 Chipset Intel Lga1700 Conectividad Wifi",
+        "categoria": "motherboard",
+        "cantidad": 2,
+        "costo_unit": 150.88,
+        "roi_esp": 64.95
+      },
+      {
+        "titulo": "Cpu Core I7-10700 Optiplex 5090 Sff, 16 Ram, 512 Ssd",
+        "categoria": "computadoras",
+        "cantidad": 1,
+        "costo_unit": 449.35,
+        "roi_esp": 64.25
+      },
+      {
+        "titulo": "Tarjeta de vídeo Zotac Gaming GeForce RTX 3070 Twin Edge OC, 8GB GDDR6",
+        "categoria": "gpu",
+        "cantidad": 1,
+        "costo_unit": 562.3,
+        "roi_esp": 62.45
+      },
+      {
+        "titulo": "MEMORIA VENGEANCE LPX 16GB DDR4 a 3200 MHz C16",
+        "categoria": "memorias_ram",
+        "cantidad": 1,
+        "costo_unit": 171.59,
+        "roi_esp": 59.57
+      }
+    ]
+  }
+}

@@ -1,0 +1,115 @@
+{
+  "oe": "OE4-A",
+  "version": "v3",
+  "perfil": "conservador",
+  "timestamp": "2026-07-30T02:53:24.533436",
+  "config": {
+    "label": "Conservador",
+    "factor_venta": 0.65,
+    "factor_rotacion": 0.85,
+    "costo_operativo": 0.05,
+    "margen_min_pct": 15.0,
+    "max_precio_unit": 300.0,
+    "min_score_match": 90,
+    "descripcion": "Vende −35% del precio lista, 85% rotación"
+  },
+  "nota": "factor_venta=0.65 (precio_venta = price_local × 0.65 − costo_op). ROI_esperado ajustado por rotación de stock.",
+  "totales": {
+    "productos_elegibles": 154,
+    "roi_unitario_med_pct": 45.9,
+    "roi_esperado_med_pct": 24.02,
+    "roi_unitario_max_pct": 75.07,
+    "ganancia_esp_med_unit": 40.47,
+    "costo_med_unit": 161.8
+  },
+  "por_categoria": {
+    "computadoras": {
+      "n": 2,
+      "roi_unit_med": 43.67,
+      "roi_esp_med": 22.12,
+      "roi_esp_max": 27.42,
+      "costo_med": 145.12,
+      "ganancia_esp_med": 32.11
+    },
+    "cpu": {
+      "n": 7,
+      "roi_unit_med": 61.72,
+      "roi_esp_med": 37.47,
+      "roi_esp_max": 48.39,
+      "costo_med": 197.76,
+      "ganancia_esp_med": 60.68
+    },
+    "discos_ssd": {
+      "n": 9,
+      "roi_unit_med": 45.26,
+      "roi_esp_med": 23.47,
+      "roi_esp_max": 43.54,
+      "costo_med": 179.77,
+      "ganancia_esp_med": 36.68
+    },
+    "memorias_ram": {
+      "n": 21,
+      "roi_unit_med": 48.93,
+      "roi_esp_med": 26.59,
+      "roi_esp_max": 39.56,
+      "costo_med": 145.12,
+      "ganancia_esp_med": 39.89
+    },
+    "monitores": {
+      "n": 51,
+      "roi_unit_med": 45.75,
+      "roi_esp_med": 23.89,
+      "roi_esp_max": 48.27,
+      "costo_med": 197.75,
+      "ganancia_esp_med": 42.97
+    },
+    "motherboard": {
+      "n": 33,
+      "roi_unit_med": 45.56,
+      "roi_esp_med": 23.73,
+      "roi_esp_max": 39.17,
+      "costo_med": 154.67,
+      "ganancia_esp_med": 32.89
+    },
+    "procesadores": {
+      "n": 18,
+      "roi_unit_med": 49.79,
+      "roi_esp_med": 27.32,
+      "roi_esp_max": 48.81,
+      "costo_med": 197.75,
+      "ganancia_esp_med": 51.8
+    },
+    "psu": {
+      "n": 4,
+      "roi_unit_med": 45.52,
+      "roi_esp_med": 23.7,
+      "roi_esp_max": 27.56,
+      "costo_med": 103.8,
+      "ganancia_esp_med": 21.82
+    },
+    "ram": {
+      "n": 4,
+      "roi_unit_med": 37.02,
+      "roi_esp_med": 16.48,
+      "roi_esp_max": 18.29,
+      "costo_med": 145.76,
+      "ganancia_esp_med": 23.8
+    },
+    "ssd": {
+      "n": 4,
+      "roi_unit_med": 49.78,
+      "roi_esp_med": 27.32,
+      "roi_esp_max": 44.07,
+      "costo_med": 179.76,
+      "ganancia_esp_med": 42.82
+    },
+    "tarjetas_video": {
+      "n": 1,
+      "roi_unit_med": 47.79,
+      "roi_esp_med": 25.62,
+      "roi_esp_max": 25.62,
+      "costo_med": 296.96,
+      "ganancia_esp_med": 76.08
+    }
+  }
+}

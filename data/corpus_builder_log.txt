@@ -1,0 +1,123 @@
+[10:36:24] ============================================================
+[10:36:24]   corpus_builder.py — OE4 Detección de Obsolescencia
+[10:36:24]   Inicio: 2026-07-30 10:36:24
+[10:36:24] ============================================================
+[10:36:24] 📂 Archivos encontrados: 1
+[10:36:24]    ✅ precios_20260717_0313.csv                →    82 registros | cols: ['batch_id', 'source', 'currency', 'category', 'sku', 'product_id', 'name', 'brand', 'price_pen', 'price_orig_pen', 'discount_pct', 'available_qty', 'url', '_source_file']
+[10:36:24] 
+📊 Total combinado: 82 registros de 1 fuentes
+[10:36:24] 
+🔧 Iniciando construcción del corpus...
+[10:36:24]    Columna producto   : name
+[10:36:24]    Columna precio     : None
+[10:36:24]    Columna fuente     : source
+[10:36:24]    Columna disponible : None
+[10:36:24]    Columna descuento  : None
+[10:36:24]    Columna fecha      : None
+[10:36:24]    Columna categoría  : category
+[10:36:24] 
+📝 Construyendo texto enriquecido...
+[10:36:24] 🏷️  Aplicando Weak Supervision...
+[10:36:24] 📦 Construyendo corpus final...
+[10:36:24]    Registros antes del filtro : 82
+[10:36:24]    Registros después (≥0.4): 82
+[10:36:24]    Descartados                : 0
+[10:36:24]    Duplicados eliminados      : 0
+[10:36:24] 
+============================================================
+[10:36:24] 📊 ESTADÍSTICAS DEL CORPUS
+[10:36:24] ============================================================
+[10:36:24] Total registros       : 82
+[10:36:24] Confianza promedio    : 0.634
+[10:36:24] Confianza mediana     : 0.400
+[10:36:24] 
+📌 Distribución de Labels:
+[10:36:24]    VIGENTE     :    63 ( 76.8%) ██████████████████████████████████████
+[10:36:24]    OBSOLETO    :    19 ( 23.2%) ███████████
+[10:36:24] 
+📌 Fuente de Decisión:
+[10:36:24]    default             : 50
+[10:36:24]    lexical             : 32
+[10:36:24] 
+📌 Registros por Fuente de Scraping:
+[10:36:24]    coolbox_pe          : 82
+[10:36:24] 
+⚠️  DESBALANCE DETECTADO: 'VIGENTE' domina con 77%
+[10:36:24]    → Se recomienda aplicar class_weight='balanced' en el clasificador
+[10:36:24]    → O usar oversampling (SMOTE) sobre embeddings
+[10:36:24] ============================================================
+[10:36:24] 
+✅ Corpus guardado en: data\corpus_obsolescencia.csv
+[10:36:24]    Columnas: ['texto', 'label', 'confianza', 'decision_src', 'label_lexico', 'label_numerico', 'producto', 'categoria', 'fuente', 'precio_usd', 'descuento', 'disponible', 'fecha', 'source_file', 'label_id']
+[10:36:24]    Shape   : (82, 15)
+[10:36:24] 
+🔜 Siguiente paso: ejecutar e5_embedder.py
+[10:41:01] ============================================================
+[10:41:01]   corpus_builder.py v2 — OE4 Detección de Obsolescencia
+[10:41:01]   Inicio: 2026-07-30 10:41:01
+[10:41:01] ============================================================
+[10:41:01] 📂 Archivos encontrados: 1
+[10:41:01]    ✅ precios_20260717_0313.csv                     →    82 registros
+[10:41:01] 
+📊 Total combinado: 82 registros de 1 archivo(s)
+[10:41:01] 
+🔧 Iniciando construcción del corpus...
+[10:41:01]    producto    : name
+[10:41:01]    precio      : price_pen  (PEN → se convertirá a USD ÷3.75)
+[10:41:01]    precio_orig : price_orig_pen
+[10:41:01]    fuente      : source
+[10:41:01]    disponible  : available_qty
+[10:41:01]    descuento   : discount_pct
+[10:41:01]    fecha       : batch_id  (batch_id → parseado)
+[10:41:01]    categoria   : category
+[10:41:01]    marca       : brand
+[10:41:01] 🏷️  Aplicando Weak Supervision...
+[10:41:01]    Antes filtro : 82 | Después: 82
+[10:41:01] 
+============================================================
+[10:41:01] 📊 ESTADÍSTICAS DEL CORPUS
+[10:41:01] ============================================================
+[10:41:01] Total registros       : 82
+[10:41:01] Confianza promedio    : 0.613
+[10:41:01] Confianza mediana     : 0.400
+[10:41:01] 
+📌 Distribución de Labels:
+[10:41:01]    VIGENTE     :   57 ( 69.5%) ██████████████████████████████████
+[10:41:01]    EN_RIESGO   :   13 ( 15.9%) ███████
+[10:41:01]    OBSOLETO    :   12 ( 14.6%) ███████
+[10:41:01] 
+📌 Keywords que activaron cada label:
+[10:41:01]    OBSOLETO: [('ddr4', 10), ('am4', 4), ('ryzen 5 5600g', 1)]
+[10:41:01]    EN_RIESGO: [('lga1700', 5), ('i5-13', 2), ('i3-14', 1), ('ryzen 5 7600', 1), ('ryzen 5 8600', 1)]
+[10:41:01]    VIGENTE: [('lga1851', 4), ('ddr5', 4), ('core ultra', 2), ('am5', 2), ('pcie 5.0', 2)]
+[10:41:01] 
+📌 Distribución por Categoría:
+[10:41:01]    CASE         | VIGENTE     : 22
+[10:41:01]    COOLER       | VIGENTE     : 10
+[10:41:01]    COOLER       | EN_RIESGO   : 2
+[10:41:01]    CPU          | EN_RIESGO   : 6
+[10:41:01]    CPU          | OBSOLETO    : 2
+[10:41:01]    CPU          | VIGENTE     : 2
+[10:41:01]    GPU          | VIGENTE     : 2
+[10:41:01]    MOTHERBOARD  | VIGENTE     : 4
+[10:41:01]    MOTHERBOARD  | EN_RIESGO   : 3
+[10:41:01]    MOTHERBOARD  | OBSOLETO    : 3
+[10:41:01]    PSU          | VIGENTE     : 10
+[10:41:01]    PSU          | EN_RIESGO   : 2
+[10:41:01]    RAM          | OBSOLETO    : 7
+[10:41:01]    SSD          | VIGENTE     : 7
+[10:41:01] 
+📌 Fuente de Decisión:
+[10:41:01]    default             : 48
+[10:41:01]    lexical             : 27
+[10:41:01]    numeric             : 3
+[10:41:01]    consensus           : 2
+[10:41:01]    lexical_wins        : 1
+[10:41:01]    numeric_wins        : 1
+[10:41:01] ============================================================
+[10:41:01] 
+✅ Corpus guardado en: data\corpus_obsolescencia.csv
+[10:41:01]    Shape   : (82, 18)
+[10:41:01]    Columnas: ['texto', 'label', 'confianza', 'decision_src', 'keywords_match', 'label_lexico', 'label_numerico', 'producto', 'marca', 'categoria', 'fuente', 'precio_usd', 'descuento', 'fecha', 'sku', 'url', 'source_file', 'label_id']
+[10:41:01] 
+🔜 Siguiente paso: ejecutar e5_embedder.py

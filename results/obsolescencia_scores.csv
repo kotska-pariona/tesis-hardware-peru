@@ -1,0 +1,83 @@
+sku,producto,marca,categoria,label,precio_usd,fuente,label_true,label_pred,p_vigente,p_en_riesgo,p_obsoleto,r_j,correcto
+12209,"Memoria RAM Kingston Fury Beast 8GB (1x8GB), DDR4, 3200Mhz, CL14",Kingston,RAM,OBSOLETO,98.4,coolbox_pe,OBSOLETO,OBSOLETO,0.0006,0.001,0.9984,0.9989,True
+10066164,Memoria RAM TeamGroup Elite SODIMM 16GB DDR4 3200Mhz CL22 1.2v,Teamgroup,RAM,OBSOLETO,106.4,coolbox_pe,OBSOLETO,OBSOLETO,0.0006,0.001,0.9984,0.9989,True
+11439,"Procesador AMD Ryzen 5 5600G, 3.9Ghz, 6 cores, AM4",amd,CPU,OBSOLETO,239.73,coolbox_pe,OBSOLETO,OBSOLETO,0.0006,0.0011,0.9983,0.9989,True
+21224,"Placa madre Asrock H610M-HDV/M.2 R2.0, DDR4, M.2, LGA1700",Asrock,MOTHERBOARD,OBSOLETO,114.4,coolbox_pe,OBSOLETO,OBSOLETO,0.0006,0.001,0.9984,0.9989,True
+10066291,"Memoria RAM Kingston KVR 8GB, DDR4, 3200MT/s, CL22, SODIMM",Kingston,RAM,OBSOLETO,98.4,coolbox_pe,OBSOLETO,OBSOLETO,0.0006,0.0011,0.9984,0.9989,True
+24382,"Memoria ram para laptop Kingston KCP 8GB DDR4, 3200Mhz",Kingston,RAM,OBSOLETO,79.73,coolbox_pe,OBSOLETO,OBSOLETO,0.0006,0.001,0.9984,0.9989,True
+10043282,"Procesador AMD ATHLON 3000G 3.5Ghz, 2 CORES, AM4",amd,CPU,OBSOLETO,58.4,coolbox_pe,OBSOLETO,OBSOLETO,0.0006,0.001,0.9984,0.9989,True
+10066165,Memoria RAM TeamGroup T-Force Vulcan Z 8GB DDR4 3200Mhz CL16 1.35v,Teamgroup,RAM,OBSOLETO,98.4,coolbox_pe,OBSOLETO,OBSOLETO,0.0006,0.0011,0.9984,0.9989,True
+10048431,Memoria Ram para Laptop Kingston KCP 16GB DDR4 3200Mhz SODIMM,Kingston,RAM,OBSOLETO,141.07,coolbox_pe,OBSOLETO,OBSOLETO,0.0006,0.001,0.9984,0.9989,True
+10067162,"Placa madre Gigabyte B550M-K AM4, DDR4 (reempacado)",Gigabyte,MOTHERBOARD,OBSOLETO,89.79,coolbox_pe,OBSOLETO,OBSOLETO,0.0006,0.0013,0.9981,0.9988,True
+10047116,"Placa madre Asrock A520M-HDV AM4, DDR4 MATX",Asrock,MOTHERBOARD,OBSOLETO,63.73,coolbox_pe,OBSOLETO,OBSOLETO,0.0007,0.001,0.9983,0.9988,True
+12208,"Memoria ram Kingston Fury Beast 16GB (1x16GB), DDR4, 3200Mhz, CL16",Kingston,RAM,OBSOLETO,186.4,coolbox_pe,OBSOLETO,OBSOLETO,0.0008,0.001,0.9982,0.9987,True
+22034,"Procesador Intel Core i3-13100F, 4.5Ghz, 4+4 cores, LGA1700",Intel,CPU,EN_RIESGO,146.4,coolbox_pe,EN_RIESGO,EN_RIESGO,0.0008,0.9981,0.0012,0.5002,True
+10061042,"Placa madre Asrock H610M-HDV/M.2 R2.0, DDR4, M.2, LGA1700 (reempacado)",Asrock,MOTHERBOARD,EN_RIESGO,85.79,coolbox_pe,EN_RIESGO,EN_RIESGO,0.0009,0.9977,0.0013,0.5002,True
+10054480,"Placa madre Advance MoDT ITX con Procesador (incorporado) Intel Core i5-13420H,  Wi-Fi HDMIx2/DP/VGA",Advance,MOTHERBOARD,EN_RIESGO,314.4,coolbox_pe,EN_RIESGO,EN_RIESGO,0.0007,0.9984,0.0009,0.5001,True
+10067161,"Fuente de poder Seasonic A12 500W, 80 Plus White (reempacado)",Antryx,PSU,EN_RIESGO,49.79,coolbox_pe,EN_RIESGO,EN_RIESGO,0.0008,0.9983,0.0008,0.5,True
+10047106,"Procesador AMD Ryzen 5 7600X 6 cores, 5.3Ghz, AM5",amd,CPU,EN_RIESGO,279.73,coolbox_pe,EN_RIESGO,EN_RIESGO,0.0008,0.9983,0.0009,0.5,True
+10067158,"Reacondicionado: Cooler para procesador Antryx Mirage 410 ARGB, Intel/Amd",Antryx,COOLER,EN_RIESGO,17.2,coolbox_pe,EN_RIESGO,EN_RIESGO,0.0008,0.9984,0.0008,0.5,True
+10054481,"Placa madre Advance MoDT ITX con Procesador (incorporado) Intel Core i7-13620H, Wi-Fi HDMIx2/DP/VGA",Advance,MOTHERBOARD,EN_RIESGO,359.73,coolbox_pe,EN_RIESGO,EN_RIESGO,0.0008,0.9984,0.0008,0.5,True
+10067164,"Fuente de poder Antryx Kirin 850 GOLD, 850W, 80 Plus Gold, modular (reempacado)",Antryx,PSU,EN_RIESGO,109.79,coolbox_pe,EN_RIESGO,EN_RIESGO,0.0011,0.9981,0.0008,0.4999,True
+27467,"Cooler para CPU Be Quiet! Dark Rock Slim BK024, LGA1700, AM5",Be Quiet,COOLER,EN_RIESGO,79.73,coolbox_pe,EN_RIESGO,EN_RIESGO,0.0009,0.9983,0.0008,0.4999,True
+22041,"Procesador Intel Core i5-13400F, 2.5GHZ, 6+4 cores, LGA1700",Intel,CPU,EN_RIESGO,253.07,coolbox_pe,EN_RIESGO,EN_RIESGO,0.0009,0.9983,0.0008,0.4999,True
+10044548,"Procesador AMD Ryzen 5 8600G (IA), 5Ghz, 6 cores, AM5,  65W",amd,CPU,EN_RIESGO,306.4,coolbox_pe,EN_RIESGO,EN_RIESGO,0.0009,0.9983,0.0008,0.4999,True
+10048087,"Procesador Intel Core i5-14400 6+4-Cores, 4.7 GHz, LGA1700",Intel,CPU,EN_RIESGO,306.4,coolbox_pe,EN_RIESGO,EN_RIESGO,0.0009,0.9984,0.0008,0.4999,True
+10048086,"Procesador Intel Core i3-14100 4-Cores, 4.7 GHz, LGA1700",Intel,CPU,EN_RIESGO,186.4,coolbox_pe,EN_RIESGO,EN_RIESGO,0.0009,0.9984,0.0007,0.4999,True
+10057314,"Procesador Intel Core Ultra 7 265KF, 5.5GHZ, 12+8 CORES, LGA1851",Intel,CPU,VIGENTE,426.4,coolbox_pe,VIGENTE,VIGENTE,0.9966,0.0026,0.0009,0.0022,True
+4338,"Unidad de estado sólido SSD Kingston A400 240GB de capacidad, 2.5"", SATA3",Kingston,SSD,VIGENTE,74.4,coolbox_pe,VIGENTE,VIGENTE,0.998,0.0009,0.0012,0.0016,True
+10051505,Unidad de estado sólido SSD Kingston NV3 500GB M.2 PCIE4.0 NVME,Kingston,SSD,VIGENTE,149.07,coolbox_pe,VIGENTE,VIGENTE,0.998,0.0009,0.0011,0.0016,True
+11745,"Fuente de poder Antryx Kirin 750 GOLD, 750W, 80 Plus Gold, modular",Antryx,PSU,VIGENTE,125.07,coolbox_pe,VIGENTE,VIGENTE,0.9978,0.0014,0.0008,0.0015,True
+10067839,"Tarjeta de video Asus Dual NVIDIA GeForce RTX 5060, 8GB GDDR7, PCI Express 5.0",Asus,GPU,VIGENTE,495.73,coolbox_pe,VIGENTE,VIGENTE,0.998,0.0009,0.0011,0.0015,True
+10057313,"Procesador Intel Core Ultra 5 225F, 4.9GHZ, 4+6 CORES, LGA1851",Intel,CPU,VIGENTE,306.4,coolbox_pe,VIGENTE,VIGENTE,0.9978,0.0015,0.0008,0.0015,True
+10057318,"Placa madre Asrock Prime B860M-A LGA1851, DDR5, MATX",Asrock,MOTHERBOARD,VIGENTE,186.4,coolbox_pe,VIGENTE,VIGENTE,0.9981,0.0009,0.001,0.0014,True
+11750,"Fuente de poder Seasonic A12, 600W, 80 Plus, blanco",Seasonic,PSU,VIGENTE,85.07,coolbox_pe,VIGENTE,VIGENTE,0.998,0.0012,0.0008,0.0014,True
+10047323,"Fuente de poder Seasonic A12 500W, 80 Plus White",Antryx,PSU,VIGENTE,66.4,coolbox_pe,VIGENTE,VIGENTE,0.9981,0.0011,0.0008,0.0014,True
+10051027,"Cooler procesador Antryx Mirage Infinity black, ARGB",Antryx,COOLER,VIGENTE,42.4,coolbox_pe,VIGENTE,VIGENTE,0.9982,0.0008,0.001,0.0014,True
+11746,"Fuente de poder Antryx Kirin 850 GOLD, 850W, 80 Plus Gold, modular",Antryx,PSU,VIGENTE,146.4,coolbox_pe,VIGENTE,VIGENTE,0.998,0.0012,0.0008,0.0014,True
+10067840,"Tarjeta de video Asus Dual NVIDIA GeForce RTX 5050, 8GB GDDR6, PCI Express 5.0",Asus,GPU,VIGENTE,426.4,coolbox_pe,VIGENTE,VIGENTE,0.9981,0.0009,0.001,0.0014,True
+10051005,"Gabinete Antryx RX-250, USB3.0, FRGB FAN X4, panel lateral de vidrio templado",Antryx,CASE,VIGENTE,53.07,coolbox_pe,VIGENTE,VIGENTE,0.9983,0.0009,0.0008,0.0013,True
+10051028,"Cooler procesador Antryx Mirage Infinity white, ARGB",Antryx,COOLER,VIGENTE,71.73,coolbox_pe,VIGENTE,VIGENTE,0.9982,0.0011,0.0007,0.0013,True
+10041876,"Sistema de enfriamiento líquido Triton Infinity 240, negro",Antryx,COOLER,VIGENTE,114.4,coolbox_pe,VIGENTE,VIGENTE,0.9983,0.0008,0.0008,0.0013,True
+10051006,"Gabinete Antryx RX-260 BLACK, USB3.0, FRGB FAN X4, panel lateral de vidrio templado",Antryx,CASE,VIGENTE,58.4,coolbox_pe,VIGENTE,VIGENTE,0.9983,0.0009,0.0009,0.0013,True
+6681,"Sistema de refrigeración líquida MSI MPG Coreliquid K240, ARGB, 240 mm, 2 FAN, pantalla LCD 2.4""",Msi,COOLER,VIGENTE,266.4,coolbox_pe,VIGENTE,VIGENTE,0.9983,0.0008,0.0009,0.0013,True
+10048420,"Placa Madre MSI PRO A620M-E Socket AM5, DDR5, Micro-ATX, PCIe 4.0, RAID SATA, Ranura M.2, HDMI 2.1, LAN Realtek",Msi,MOTHERBOARD,VIGENTE,106.4,coolbox_pe,VIGENTE,VIGENTE,0.9982,0.001,0.0008,0.0013,True
+10047318,"Gabinete Antryx Xtreme Micro XM-310 Black, USB 3.0, con fuente B500w",Antryx,CASE,VIGENTE,66.4,coolbox_pe,VIGENTE,VIGENTE,0.9983,0.0009,0.0008,0.0013,True
+10047333,Cooler para procesador Antryx Mirage 410 ARGB,Antryx,COOLER,VIGENTE,31.73,coolbox_pe,VIGENTE,VIGENTE,0.9983,0.0008,0.0009,0.0013,True
+10047317,"Gabinete Antryx Xtreme E250 Plus Black, USB 3.0, con fuente B450w",Antryx,CASE,VIGENTE,119.73,coolbox_pe,VIGENTE,VIGENTE,0.9983,0.0009,0.0009,0.0013,True
+10047311,"Gabinete Antryx FX Cruiser Black, incluye 3 ventiladores ARGB, panel lateral de vidrio templado, malla frontal, sin fuente",Antryx,CASE,VIGENTE,106.4,coolbox_pe,VIGENTE,VIGENTE,0.9983,0.0008,0.0009,0.0013,True
+10047306,"Gabinete Antryx RX-430U Black, incluye 1 ventiladores ARGB + barra de luz ARGB, panel lateral de vidrio templado, con fuente B600w",Antryx,CASE,VIGENTE,93.07,coolbox_pe,VIGENTE,VIGENTE,0.9983,0.0009,0.0008,0.0013,True
+6682,"Sistema de refrigeración líquida MSI MPG Coreliquid K360, 360mm, 3-FAN, pantalla LCD 2.4""",Msi,COOLER,VIGENTE,426.4,coolbox_pe,VIGENTE,VIGENTE,0.9983,0.0009,0.0009,0.0013,True
+10047322,"Fuente de poder Antryx Kirin Gold Evo II 1200W, 80 Plus Gold, modular ATV3.0, Pcie 5.0",Antryx,PSU,VIGENTE,239.73,coolbox_pe,VIGENTE,VIGENTE,0.9983,0.0008,0.0009,0.0013,True
+10042120,"Fuente de poder Teros TE-7160 600W, 80 Plus Bronze",Teros,PSU,VIGENTE,47.73,coolbox_pe,VIGENTE,VIGENTE,0.9982,0.0011,0.0007,0.0013,True
+4339,"Unidad de estado sólido SSD Kingston Ssd A400 480GB de capacidad , 2.5"", SATA3",Kingston,SSD,VIGENTE,117.07,coolbox_pe,VIGENTE,VIGENTE,0.9983,0.0009,0.0009,0.0013,True
+10041904,Fuente de poder Seasonic Focus GX-1000W 80 Plus Gold Modular PCIE5.0,Seasonic,PSU,VIGENTE,293.07,coolbox_pe,VIGENTE,VIGENTE,0.9983,0.0009,0.0009,0.0013,True
+10057981,Unidad de estado sólido SSD Kingston Fury Renegade G5 1TB M.2 PCIE5 NVME 2280,Kingston,SSD,VIGENTE,293.07,coolbox_pe,VIGENTE,VIGENTE,0.9983,0.0009,0.0008,0.0013,True
+10048103,"Placa madre MSI PRO B650M-P, socket AM5, DDR5 hasta 192GB, factor micro-ATX, 2x M.2 PCIe 4.0, LAN 2.5G, HDMI y DisplayPort",Msi,MOTHERBOARD,VIGENTE,133.07,coolbox_pe,VIGENTE,VIGENTE,0.9982,0.001,0.0008,0.0013,True
+10057317,"Placa madre Asrock Z890 PRO-A LGA1851, DDR5, ATX",Asrock,MOTHERBOARD,VIGENTE,266.4,coolbox_pe,VIGENTE,VIGENTE,0.9982,0.0009,0.0009,0.0013,True
+10051504,Unidad de estado sólido SSD Kingston NV3 2000GB M.2 PCIE4.0 NVME,Kingston,SSD,VIGENTE,266.4,coolbox_pe,VIGENTE,VIGENTE,0.9983,0.0009,0.0008,0.0013,True
+10042119,"Fuente de poder Teros TE-7175W 750W, 80 Plus Gold, F. modular",Teros,PSU,VIGENTE,74.4,coolbox_pe,VIGENTE,VIGENTE,0.9981,0.0011,0.0008,0.0013,True
+10041907,Fuente de poder Seasonic Vertex GX-1200W 80Plus Gold Modular PCIE5.0,Seasonic,PSU,VIGENTE,373.07,coolbox_pe,VIGENTE,VIGENTE,0.9983,0.0009,0.0008,0.0013,True
+10051503,Unidad de estado sólido SSD Kingston NV3 1000GB M.2 PCIE4.0 NVME,Kingston,SSD,VIGENTE,175.73,coolbox_pe,VIGENTE,VIGENTE,0.9982,0.0009,0.0009,0.0013,True
+10041867,"Gabinete Antryx RX-450, ATX/Full ATX/Micro ATX, ventilador ARGB/cinta LED, Panel lateral vidrio templado, sin fuente, negro",Antryx,CASE,VIGENTE,79.73,coolbox_pe,VIGENTE,VIGENTE,0.9984,0.0009,0.0007,0.0012,True
+10042971,"Gabinete Antryx Xtreme Slim Micro ATX/Mini-ITX, con fuente 300W",Antryx,CASE,VIGENTE,53.07,coolbox_pe,VIGENTE,VIGENTE,0.9984,0.0009,0.0007,0.0012,True
+10047309,"Gabinete Antryx Xtreme NC-253 Black, incluye una barra lateral ARGB, panel lateral de vidrio templado, con fuente B500w",Antryx,CASE,VIGENTE,79.73,coolbox_pe,VIGENTE,VIGENTE,0.9983,0.0009,0.0008,0.0012,True
+10047315,"Gabinete Antryx RX-430U Black USB 3.0, incluye 1 ventiladores ARGB, barra de luz ARGB, panel lateral de vidrio templado, sin fuente",Antryx,CASE,VIGENTE,69.07,coolbox_pe,VIGENTE,VIGENTE,0.9983,0.0009,0.0008,0.0012,True
+10047310,"Gabinete Antryx RX-460 white, incluye 2 ventiladores ARGB, panel lateral de vidrio templado, sin fuente",Antryx,CASE,VIGENTE,79.73,coolbox_pe,VIGENTE,VIGENTE,0.9984,0.0009,0.0008,0.0012,True
+10051009,"Gabinete Antryx Xtreme Slim XS-120 MATX USB 3.0, panel con proceso de estampado, con fuente 350W",Antryx,CASE,VIGENTE,66.4,coolbox_pe,VIGENTE,VIGENTE,0.9983,0.0009,0.0008,0.0012,True
+10047314,"Gabinete Antryx RX-460 Mesh Black USB 3.0, incluye 2 ventiladores ARGB, panel lateral de vidrio templado, sin fuente",Antryx,CASE,VIGENTE,71.73,coolbox_pe,VIGENTE,VIGENTE,0.9983,0.0009,0.0008,0.0012,True
+10051007,"Gabinete Antryx RX-260 WHITE, USB3.0, FRGB FAN X4, panel lateral de vidrio templado",Antryx,CASE,VIGENTE,63.73,coolbox_pe,VIGENTE,VIGENTE,0.9983,0.0009,0.0008,0.0012,True
+10041869,"Gabinete Antryx FX730 ARGB, ATX/M-ATX/ITX, 4 ventiladores, Panel lateral vidrio templado, sin fuente, blanco",Antryx,CASE,VIGENTE,106.4,coolbox_pe,VIGENTE,VIGENTE,0.9984,0.0009,0.0008,0.0012,True
+10047308,"Gabinete Antryx Xtreme Neo II Black, incluye 2 ventiladores Chrome Storm, panel lateral de vidrio templado, con fuente B500w",Antryx,CASE,VIGENTE,79.73,coolbox_pe,VIGENTE,VIGENTE,0.9984,0.0009,0.0007,0.0012,True
+10041873,"Gabinete Cooler Master Masterbox MB520 Mesh, Mini-ITX / Micro-ATX /ATX/SSI CEB, Panel lateral vidrio templado, sin fuente, blanco",Cooler Master,CASE,VIGENTE,117.07,coolbox_pe,VIGENTE,VIGENTE,0.9983,0.0009,0.0007,0.0012,True
+10047313,"Gabinete Antryx Elegant 650 Black, incluye USB 3.0, panel frontal con malla metálica, con fuente 350w",Antryx,CASE,VIGENTE,53.07,coolbox_pe,VIGENTE,VIGENTE,0.9983,0.0009,0.0007,0.0012,True
+10041874,"Gabinete Antryx XM-330 Xtreme, ITX/Micro ATX, Panel lateral vidrio templado, con fuente 500W",Antryx,CASE,VIGENTE,79.73,coolbox_pe,VIGENTE,VIGENTE,0.9984,0.0009,0.0007,0.0012,True
+10041872,"Gabinete Cooler Master HAF 700 EVO ARGB, Mini-ITX / Micro-ATX /ATX/SSI CEB/SSI EEB/E-ATX, Panel lateral vidrio templado, sin fuente, negro",Cooler Master,CASE,VIGENTE,533.07,coolbox_pe,VIGENTE,VIGENTE,0.9983,0.0009,0.0007,0.0012,True
+10051008,"Gabinete Antryx RX-270, USB3.0, FRGB FAN X4, panel lateral de vidrio templado",Antryx,CASE,VIGENTE,53.07,coolbox_pe,VIGENTE,VIGENTE,0.9984,0.0009,0.0007,0.0012,True
+10051023,"Cooler procesador Antryx Mirage 310N, fan 92mm",Antryx,COOLER,VIGENTE,61.07,coolbox_pe,VIGENTE,VIGENTE,0.9983,0.001,0.0007,0.0012,True
+10051026,"Cooler procesador Antryx Mirage 550 Plus, ARGB, fan 130mm x2",Antryx,COOLER,VIGENTE,69.07,coolbox_pe,VIGENTE,VIGENTE,0.9983,0.001,0.0007,0.0012,True
+10051025,"Cooler procesador Antryx Mirage 530, ARGB, fan 130mm",Antryx,COOLER,VIGENTE,66.4,coolbox_pe,VIGENTE,VIGENTE,0.9983,0.001,0.0007,0.0012,True
+10047321,"Fuente de poder Antryx Kirin Gold Evo II 1000W, 80 Plus Gold, modular ATV3.0, Pcie 5.0",Antryx,PSU,VIGENTE,199.73,coolbox_pe,VIGENTE,VIGENTE,0.9983,0.0009,0.0008,0.0012,True
+10041877,"Sistema de enfriamiento líquido Triton Infinity 360, negro",Antryx,COOLER,VIGENTE,146.4,coolbox_pe,VIGENTE,VIGENTE,0.9983,0.001,0.0007,0.0012,True
+4985,"Unidad de estado sólido SSD Kingston SSD A400 960GB de capacidad, 2.5"", SATA3",Kingston,SSD,VIGENTE,125.07,coolbox_pe,VIGENTE,VIGENTE,0.9983,0.0009,0.0008,0.0012,True
+10047312,"Gabinete Antryx Xtreme NC-257 Black, 1 ventilador ARGB, barra lateral ARGB, panel lateral de vidrio templado, con fuente B500w",Antryx,CASE,VIGENTE,87.73,coolbox_pe,VIGENTE,VIGENTE,0.9983,0.0009,0.0007,0.0012,True

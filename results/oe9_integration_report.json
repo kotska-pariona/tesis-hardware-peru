@@ -1,0 +1,257 @@
+{
+  "version": "2.1-fuzzy",
+  "timestamp": "2026-07-30T11:30:48.243227",
+  "total_skus": 82,
+  "fuzzy_threshold": 70,
+  "cobertura": {
+    "r_j": {
+      "n": 82,
+      "pct": 100.0
+    },
+    "roi_unitario_pct": {
+      "n": 34,
+      "pct": 41.5
+    },
+    "gap_pct": {
+      "n": 59,
+      "pct": 72.0
+    },
+    "in_pareto_front": {
+      "n": 4,
+      "pct": 4.9
+    },
+    "score_oe9": {
+      "n": 82,
+      "pct": 100.0
+    }
+  },
+  "fuzzy_scores": {
+    "fuzzy_score_roi": {
+      "n_matches": 34,
+      "mean": 82.8,
+      "min": 71.0,
+      "max": 100.0
+    },
+    "fuzzy_score_pe3c": {
+      "n_matches": 59,
+      "mean": 90.0,
+      "min": 70.4,
+      "max": 100.0
+    },
+    "fuzzy_score_pareto": {
+      "n_matches": 4,
+      "mean": 73.6,
+      "min": 70.1,
+      "max": 75.9
+    }
+  },
+  "score_oe9_stats": {
+    "min": 0.0,
+    "max": 0.4816,
+    "mean": 0.1325,
+    "std": 0.1622,
+    "median": 0.0305
+  },
+  "label_dist": {
+    "VIGENTE": {
+      "n": 57,
+      "pct": 69.5
+    },
+    "EN_RIESGO": {
+      "n": 13,
+      "pct": 15.9
+    },
+    "OBSOLETO": {
+      "n": 12,
+      "pct": 14.6
+    }
+  },
+  "top15_oe9": [
+    {
+      "sku": "10047106",
+      "producto": "Procesador AMD Ryzen 5 7600X 6 cores, 5.3Ghz, AM5",
+      "score_oe9": "0.4816",
+      "r_j": "0.5",
+      "roi_unitario_pct": "68.25",
+      "gap_pct": "35.58935694560119",
+      "in_pareto_front": "True",
+      "label_obsolescencia": "EN_RIESGO",
+      "fuzzy_score_roi": "87.91208791208791",
+      "fuzzy_score_pe3c": "100.0"
+    },
+    {
+      "sku": "10051505",
+      "producto": "Unidad de estado sólido SSD Kingston NV3 500GB M.2 PCIE4.0 N",
+      "score_oe9": "0.463",
+      "r_j": "0.0016",
+      "roi_unitario_pct": "44.2",
+      "gap_pct": "206.1855670103093",
+      "in_pareto_front": "False",
+      "label_obsolescencia": "VIGENTE",
+      "fuzzy_score_roi": "81.08108108108108",
+      "fuzzy_score_pe3c": "81.08108108108108"
+    },
+    {
+      "sku": "10067839",
+      "producto": "Tarjeta de video Asus Dual NVIDIA GeForce RTX 5060, 8GB GDDR",
+      "score_oe9": "0.452",
+      "r_j": "0.0015",
+      "roi_unitario_pct": "56.33",
+      "gap_pct": "179.8171825930911",
+      "in_pareto_front": "False",
+      "label_obsolescencia": "VIGENTE",
+      "fuzzy_score_roi": "73.23943661971832",
+      "fuzzy_score_pe3c": "80.82191780821918"
+    },
+    {
+      "sku": "10067840",
+      "producto": "Tarjeta de video Asus Dual NVIDIA GeForce RTX 5050, 8GB GDDR",
+      "score_oe9": "0.452",
+      "r_j": "0.0014",
+      "roi_unitario_pct": "56.33",
+      "gap_pct": "179.8171825930911",
+      "in_pareto_front": "False",
+      "label_obsolescencia": "VIGENTE",
+      "fuzzy_score_roi": "71.83098591549295",
+      "fuzzy_score_pe3c": "80.82191780821918"
+    },
+    {
+      "sku": "10042119",
+      "producto": "Fuente de poder Teros TE-7175W 750W, 80 Plus Gold, F. modula",
+      "score_oe9": "0.4406",
+      "r_j": "0.0013",
+      "roi_unitario_pct": "42.15",
+      "gap_pct": "238.145774929916",
+      "in_pareto_front": "False",
+      "label_obsolescencia": "VIGENTE",
+      "fuzzy_score_roi": "80.0",
+      "fuzzy_score_pe3c": "80.0"
+    },
+    {
+      "sku": "10057314",
+      "producto": "Procesador Intel Core Ultra 7 265KF, 5.5GHZ, 12+8 CORES, LGA",
+      "score_oe9": "0.4294",
+      "r_j": "0.0022",
+      "roi_unitario_pct": "60.73",
+      "gap_pct": "135.75",
+      "in_pareto_front": "False",
+      "label_obsolescencia": "VIGENTE",
+      "fuzzy_score_roi": "75.40983606557377",
+      "fuzzy_score_pe3c": "100.0"
+    },
+    {
+      "sku": "11750",
+      "producto": "Fuente de poder Seasonic A12, 600W, 80 Plus, blanco",
+      "score_oe9": "0.4283",
+      "r_j": "0.0014",
+      "roi_unitario_pct": "39.44",
+      "gap_pct": "234.01069518716577",
+      "in_pareto_front": "False",
+      "label_obsolescencia": "VIGENTE",
+      "fuzzy_score_roi": "70.96774193548387",
+      "fuzzy_score_pe3c": "100.0"
+    },
+    {
+      "sku": "10057317",
+      "producto": "Placa madre Asrock Z890 PRO-A LGA1851, DDR5, ATX",
+      "score_oe9": "0.4132",
+      "r_j": "0.0013",
+      "roi_unitario_pct": "60.13",
+      "gap_pct": "139.1701312464335",
+      "in_pareto_front": "False",
+      "label_obsolescencia": "VIGENTE",
+      "fuzzy_score_roi": "100.0",
+      "fuzzy_score_pe3c": "100.0"
+    },
+    {
+      "sku": "10048087",
+      "producto": "Procesador Intel Core i5-14400 6+4-Cores, 4.7 GHz, LGA1700",
+      "score_oe9": "0.391",
+      "r_j": "0.4999",
+      "roi_unitario_pct": "32.63",
+      "gap_pct": "69.30341794923046",
+      "in_pareto_front": "True",
+      "label_obsolescencia": "EN_RIESGO",
+      "fuzzy_score_roi": "87.5",
+      "fuzzy_score_pe3c": "100.0"
+    },
+    {
+      "sku": "10067164",
+      "producto": "Fuente de poder Antryx Kirin 850 GOLD, 850W, 80 Plus Gold, m",
+      "score_oe9": "0.3719",
+      "r_j": "0.4999",
+      "roi_unitario_pct": "37.02",
+      "gap_pct": "261.0331442221558",
+      "in_pareto_front": "False",
+      "label_obsolescencia": "EN_RIESGO",
+      "fuzzy_score_roi": "100.0",
+      "fuzzy_score_pe3c": "100.0"
+    },
+    {
+      "sku": "10057318",
+      "producto": "Placa madre Asrock Prime B860M-A LGA1851, DDR5, MATX",
+      "score_oe9": "0.3633",
+      "r_j": "0.0014",
+      "roi_unitario_pct": "38.61",
+      "gap_pct": "156.6125",
+      "in_pareto_front": "False",
+      "label_obsolescencia": "VIGENTE",
+      "fuzzy_score_roi": "78.35051546391753",
+      "fuzzy_score_pe3c": "100.0"
+    },
+    {
+      "sku": "22034",
+      "producto": "Procesador Intel Core i3-13100F, 4.5Ghz, 4+4 cores, LGA1700",
+      "score_oe9": "0.3627",
+      "r_j": "0.5002",
+      "roi_unitario_pct": "32.63",
+      "gap_pct": "39.83110133919647",
+      "in_pareto_front": "True",
+      "label_obsolescencia": "EN_RIESGO",
+      "fuzzy_score_roi": "76.78571428571428",
+      "fuzzy_score_pe3c": "91.07142857142857"
+    },
+    {
+      "sku": "10041904",
+      "producto": "Fuente de poder Seasonic Focus GX-1000W 80 Plus Gold Modular",
+      "score_oe9": "0.3598",
+      "r_j": "0.0013",
+      "roi_unitario_pct": "40.11",
+      "gap_pct": "174.66598587354267",
+      "in_pareto_front": "False",
+      "label_obsolescencia": "VIGENTE",
+      "fuzzy_score_roi": "100.0",
+      "fuzzy_score_pe3c": "100.0"
+    },
+    {
+      "sku": "10051503",
+      "producto": "Unidad de estado sólido SSD Kingston NV3 1000GB M.2 PCIE4.0 ",
+      "score_oe9": "0.342",
+      "r_j": "0.0013",
+      "roi_unitario_pct": "44.2",
+      "gap_pct": "79.79624363261352",
+      "in_pareto_front": "False",
+      "label_obsolescencia": "VIGENTE",
+      "fuzzy_score_roi": "78.57142857142857",
+      "fuzzy_score_pe3c": "78.68852459016394"
+    },
+    {
+      "sku": "10048086",
+      "producto": "Procesador Intel Core i3-14100 4-Cores, 4.7 GHz, LGA1700",
+      "score_oe9": "0.3275",
+      "r_j": "0.4999",
+      "roi_unitario_pct": "32.63",
+      "gap_pct": "2.998201079352389",
+      "in_pareto_front": "True",
+      "label_obsolescencia": "EN_RIESGO",
+      "fuzzy_score_roi": "87.27272727272728",
+      "fuzzy_score_pe3c": "100.0"
+    }
+  ],
+  "pesos_score_oe9": {
+    "W_ROI": 0.4,
+    "W_GAP": 0.25,
+    "W_PARETO": 0.2,
+    "W_RJ": 0.15
+  }
+}

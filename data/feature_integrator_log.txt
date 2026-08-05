@@ -1,0 +1,210 @@
+[11:21:19] ============================================================
+[11:21:19]   feature_integrator.py — OE9 Feature Matrix Builder
+[11:21:19]   Inicio: 2026-07-30 11:21:19
+[11:21:19] ============================================================
+[11:21:19] ============================================================
+[11:21:19]   CARGA DE FUENTES
+[11:21:19] ============================================================
+[11:21:19] ✅ Cargado: feature_rj_OE9.csv                                82 filas × 10 cols
+[11:21:19] ✅ Cargado: oe4a_productos_roi_moderado.csv                1,089 filas × 41 cols
+[11:21:19] ✅ Cargado: oe4a_productos_roi_conservador.csv               154 filas × 41 cols
+[11:21:19] ✅ Cargado: oe4a_productos_roi_agresivo.csv                1,781 filas × 41 cols
+[11:21:19] ✅ Cargado: pe3c_matches_costo_real.csv                    7,197 filas × 29 cols
+[11:21:19] ✅ Cargado: oe5_pareto_front.csv                              75 filas × 11 cols
+[11:21:19] 
+============================================================
+[11:21:19]   INTEGRACIÓN DE FEATURES
+[11:21:19] ============================================================
+[11:21:19] 
+📌 Base (r_j)           :   82 SKUs
+[11:21:19] 📌 Join ROI             :    6/82 SKUs con match
+[11:21:19] 📌 Join PE3c (gap)      :   32/82 SKUs con match
+[11:21:19] 📌 Join Pareto          :    0/82 SKUs en frente Pareto
+[11:21:19] 
+⚙️  Calculando score_oe9 compuesto...
+[11:21:19]    score_oe9 → min=0.0000 max=0.5331 media=0.0421
+[11:21:19] 
+💾 Matriz guardada: data\features\oe9_feature_matrix.csv
+[11:21:19]    Shape: 82 SKUs × 29 features
+[11:21:19] 📄 Reporte: results\oe9_integration_report.json
+[11:21:20] 📊 Heatmap: results\oe9_feature_heatmap.png
+[11:21:20] 
+============================================================
+[11:21:20] 📋 TOP 15 SKUs por score_oe9:
+[11:21:20]    Producto                                      Label   score    r_j    ROI%  Pareto
+[11:21:20]    --------------------------------------------------------------------------------
+[11:21:20]    Placa madre Asrock Z890 PRO-A LGA1851,      VIGENTE  0.5331 0.0013    60.1       —
+[11:21:20]    Fuente de poder Antryx Kirin 850 GOLD,    EN_RIESGO  0.4561 0.4999    37.0       —
+[11:21:20]    Fuente de poder Seasonic Focus GX-1000W     VIGENTE  0.4423 0.0013    40.1       —
+[11:21:20]    Memoria RAM TeamGroup T-Force Vulcan Z     OBSOLETO  0.3880 0.9989    32.7       —
+[11:21:20]    Unidad de estado sólido SSD Kingston Fu     VIGENTE  0.3435 0.0013    24.1       —
+[11:21:20]    Fuente de poder Seasonic A12, 600W, 80      VIGENTE  0.2239 0.0014     N/A       —
+[11:21:20]    Placa madre Asrock H610M-HDV/M.2 R2.0,     OBSOLETO  0.2049 0.9989    46.4       —
+[11:21:20]    Placa madre Asrock Prime B860M-A LGA185     VIGENTE  0.1498 0.0014     N/A       —
+[11:21:20]    Procesador Intel Core Ultra 7 265KF, 5.     VIGENTE  0.1297 0.0022     N/A       —
+[11:21:20]    Placa madre MSI PRO B650M-P, socket AM5     VIGENTE  0.1274 0.0013     N/A       —
+[11:21:20]    Procesador Intel Core Ultra 5 225F, 4.9     VIGENTE  0.1134 0.0015     N/A       —
+[11:21:20]    Fuente de poder Antryx Kirin 750 GOLD,      VIGENTE  0.0925 0.0015     N/A       —
+[11:21:20]    Fuente de poder Seasonic A12 500W, 80 P     VIGENTE  0.0884 0.0014     N/A       —
+[11:21:20]    Fuente de poder Antryx Kirin Gold Evo I     VIGENTE  0.0863 0.0012     N/A       —
+[11:21:20]    Gabinete Antryx Xtreme Slim Micro ATX/M     VIGENTE  0.0305 0.0012     N/A       —
+[11:21:20] 
+📊 Cobertura de features:
+[11:21:20]    r_j                        82/82 (100.0%) ████████████████████
+[11:21:20]    roi_unitario_pct            6/82 (  7.3%) █
+[11:21:20]    gap_pct                    32/82 ( 39.0%) ███████
+[11:21:20]    in_pareto_front             0/82 (  0.0%) 
+[11:21:20]    score_oe9                  82/82 (100.0%) ████████████████████
+[11:21:20] 
+============================================================
+[11:21:20] ✅ feature_integrator.py completado
+[11:21:20]    Matriz  : data\features\oe9_feature_matrix.csv
+[11:21:20]    Reporte : results\oe9_integration_report.json
+[11:21:20]    Heatmap : results\oe9_feature_heatmap.png
+[11:21:20] 
+🔜 Siguiente: python oe9_llm_nsga3.py --input data\features\oe9_feature_matrix.csv
+[11:21:20] ============================================================
+[11:29:20] ============================================================
+[11:29:20]   feature_integrator.py v2.1 — Fuzzy Join por Título
+[11:29:20]   Inicio : 2026-07-30 11:29:20
+[11:29:20]   Umbral : 80
+[11:29:20] ============================================================
+[11:29:20] ============================================================
+[11:29:20]   CARGA DE FUENTES
+[11:29:21] ============================================================
+[11:29:21] ✅ Cargado: feature_rj_OE9.csv                                82 filas × 10 cols
+[11:29:21] ✅ Cargado: oe4a_productos_roi_moderado.csv                1,089 filas × 41 cols
+[11:29:21] ✅ Cargado: oe4a_productos_roi_conservador.csv               154 filas × 41 cols
+[11:29:21] ✅ Cargado: oe4a_productos_roi_agresivo.csv                1,781 filas × 41 cols
+[11:29:21] ✅ Cargado: pe3c_matches_costo_real.csv                    7,197 filas × 29 cols
+[11:29:21] ✅ Cargado: oe5_pareto_front.csv                              75 filas × 11 cols
+[11:29:21] 
+============================================================
+[11:29:21]   INTEGRACIÓN DE FEATURES (v2 — fuzzy join)
+[11:29:21] ============================================================
+[11:29:21] 
+📌 Base (r_j): 82 SKUs
+[11:29:21] 
+🔗 Fuzzy join: rj.producto ↔ roi.title_local (umbral=80)
+[11:29:21]    → 18/82 matches (score ≥ 80)
+[11:29:21] 
+🔗 Fuzzy join: rj.producto ↔ roi_con.title_local (umbral=80)
+[11:29:21]    → 2/82 matches (score ≥ 80)
+[11:29:21] 
+🔗 Fuzzy join: rj.producto ↔ roi_agr.title_local (umbral=80)
+[11:29:21]    → 28/82 matches (score ≥ 80)
+[11:29:21] 
+🔗 Fuzzy join: rj.producto ↔ pe3c.title_local (umbral=80)
+[11:29:21]    → 41/82 matches (score ≥ 80)
+[11:29:21] 
+🔗 Fuzzy join Pareto: expandir skus_top3 → match vs producto (umbral=80)
+[11:29:21]    Títulos únicos en Pareto: 9
+[11:29:21]    → 0/82 productos en frente de Pareto
+[11:29:21] 
+💾 Matriz: data\features\oe9_feature_matrix.csv  [82 × 32]
+[11:29:21] 📄 Reporte: results\oe9_integration_report.json
+[11:29:22] 📊 Gráfico: results\oe9_feature_heatmap.png
+[11:29:22] 
+=================================================================
+[11:29:22] 📋 TOP 15 SKUs por score_oe9:
+[11:29:22]    Producto                                    Label   score    r_j    ROI%   Gap%  Par  fROI
+[11:29:22]    -------------------------------------------------------------------------------------
+[11:29:22]    Unidad de estado sólido SSD Kingston      VIGENTE  0.5269 0.0016    44.2  206.2    —    81
+[11:29:22]    Fuente de poder Teros TE-7175W 750W,      VIGENTE  0.4918 0.0013    42.1  238.1    —    80
+[11:29:22]    Placa madre Asrock Z890 PRO-A LGA1851     VIGENTE  0.4805 0.0013    60.1  139.2    —   100
+[11:29:22]    Fuente de poder Antryx Kirin 850 GOLD   EN_RIESGO  0.4192 0.4999    37.0  261.0    —   100
+[11:29:22]    Fuente de poder Seasonic Focus GX-100     VIGENTE  0.4061 0.0013    40.1  174.7    —   100
+[11:29:22]    Unidad de estado sólido SSD Kingston      VIGENTE  0.3646 0.0013    44.2  -36.6    —    80
+[11:29:22]    Procesador AMD Ryzen 5 7600X 6 cores,   EN_RIESGO  0.3591 0.5000    68.2   35.6    —    88
+[11:29:22]    Memoria RAM TeamGroup T-Force Vulcan     OBSOLETO  0.3426 0.9989    32.7  201.0    —   100
+[11:29:22]    Fuente de poder Antryx Kirin 750 GOLD     VIGENTE  0.3367 0.0015    37.0   96.8    —    86
+[11:29:22]    Unidad de estado sólido SSD Kingston      VIGENTE  0.3053 0.0013    24.1   55.2    —   100
+[11:29:22]    Fuente de poder Seasonic Vertex GX-12     VIGENTE  0.2660 0.0013    40.1   28.4    —    82
+[11:29:22]    Fuente de poder Antryx Kirin 850 GOLD     VIGENTE  0.2465 0.0014    37.0   -2.6    —    92
+[11:29:22]    Procesador Intel Core i5-14400 6+4-Co   EN_RIESGO  0.2389 0.4999    32.6   69.3    —    88
+[11:29:22]    Fuente de poder Seasonic A12, 600W, 8     VIGENTE  0.2239 0.0014     N/A  234.0    —   N/A
+[11:29:22]    Procesador Intel Core i5-13400F, 2.5G   EN_RIESGO  0.2107 0.4999    32.6   39.8    —    82
+[11:29:22] 
+📊 Cobertura final:
+[11:29:22]    r_j                        82/82 (100.0%) ████████████████████
+[11:29:22]    roi_unitario_pct           18/82 ( 22.0%) ████
+[11:29:22]    gap_pct                    41/82 ( 50.0%) ██████████
+[11:29:22]    in_pareto_front             0/82 (  0.0%) 
+[11:29:22]    score_oe9                  82/82 (100.0%) ████████████████████
+[11:29:22] 
+============================================================
+[11:29:22] ✅ Completado.
+[11:29:22] 🔜 Siguiente: python oe9_llm_nsga3.py --input data\features\oe9_feature_matrix.csv
+[11:29:22] ============================================================
+[11:30:47] ============================================================
+[11:30:47]   feature_integrator.py v2.1 — Fuzzy Join por Título
+[11:30:47]   Inicio : 2026-07-30 11:30:47
+[11:30:47]   Umbral : 70
+[11:30:47] ============================================================
+[11:30:47] ============================================================
+[11:30:47]   CARGA DE FUENTES
+[11:30:47] ============================================================
+[11:30:47] ✅ Cargado: feature_rj_OE9.csv                                82 filas × 10 cols
+[11:30:47] ✅ Cargado: oe4a_productos_roi_moderado.csv                1,089 filas × 41 cols
+[11:30:47] ✅ Cargado: oe4a_productos_roi_conservador.csv               154 filas × 41 cols
+[11:30:47] ✅ Cargado: oe4a_productos_roi_agresivo.csv                1,781 filas × 41 cols
+[11:30:47] ✅ Cargado: pe3c_matches_costo_real.csv                    7,197 filas × 29 cols
+[11:30:47] ✅ Cargado: oe5_pareto_front.csv                              75 filas × 11 cols
+[11:30:47] 
+============================================================
+[11:30:47]   INTEGRACIÓN DE FEATURES (v2 — fuzzy join)
+[11:30:47] ============================================================
+[11:30:47] 
+📌 Base (r_j): 82 SKUs
+[11:30:47] 
+🔗 Fuzzy join: rj.producto ↔ roi.title_local (umbral=70)
+[11:30:47]    → 34/82 matches (score ≥ 70)
+[11:30:47] 
+🔗 Fuzzy join: rj.producto ↔ roi_con.title_local (umbral=70)
+[11:30:47]    → 15/82 matches (score ≥ 70)
+[11:30:47] 
+🔗 Fuzzy join: rj.producto ↔ roi_agr.title_local (umbral=70)
+[11:30:47]    → 43/82 matches (score ≥ 70)
+[11:30:47] 
+🔗 Fuzzy join: rj.producto ↔ pe3c.title_local (umbral=70)
+[11:30:48]    → 59/82 matches (score ≥ 70)
+[11:30:48] 
+🔗 Fuzzy join Pareto: expandir skus_top3 → match vs producto (umbral=70)
+[11:30:48]    Títulos únicos en Pareto: 9
+[11:30:48]    → 4/82 productos en frente de Pareto
+[11:30:48] 
+💾 Matriz: data\features\oe9_feature_matrix.csv  [82 × 32]
+[11:30:48] 📄 Reporte: results\oe9_integration_report.json
+[11:30:48] 📊 Gráfico: results\oe9_feature_heatmap.png
+[11:30:48] 
+=================================================================
+[11:30:48] 📋 TOP 15 SKUs por score_oe9:
+[11:30:48]    Producto                                    Label   score    r_j    ROI%   Gap%  Par  fROI
+[11:30:48]    -------------------------------------------------------------------------------------
+[11:30:48]    Procesador AMD Ryzen 5 7600X 6 cores,   EN_RIESGO  0.4816 0.5000    68.2   35.6    ✅    88
+[11:30:48]    Unidad de estado sólido SSD Kingston      VIGENTE  0.4630 0.0016    44.2  206.2    —    81
+[11:30:48]    Tarjeta de video Asus Dual NVIDIA GeF     VIGENTE  0.4520 0.0015    56.3  179.8    —    73
+[11:30:48]    Tarjeta de video Asus Dual NVIDIA GeF     VIGENTE  0.4520 0.0014    56.3  179.8    —    72
+[11:30:48]    Fuente de poder Teros TE-7175W 750W,      VIGENTE  0.4406 0.0013    42.1  238.1    —    80
+[11:30:48]    Procesador Intel Core Ultra 7 265KF,      VIGENTE  0.4294 0.0022    60.7  135.8    —    75
+[11:30:48]    Fuente de poder Seasonic A12, 600W, 8     VIGENTE  0.4283 0.0014    39.4  234.0    —    71
+[11:30:48]    Placa madre Asrock Z890 PRO-A LGA1851     VIGENTE  0.4132 0.0013    60.1  139.2    —   100
+[11:30:48]    Procesador Intel Core i5-14400 6+4-Co   EN_RIESGO  0.3910 0.4999    32.6   69.3    ✅    88
+[11:30:48]    Fuente de poder Antryx Kirin 850 GOLD   EN_RIESGO  0.3719 0.4999    37.0  261.0    —   100
+[11:30:48]    Placa madre Asrock Prime B860M-A LGA1     VIGENTE  0.3633 0.0014    38.6  156.6    —    78
+[11:30:48]    Procesador Intel Core i3-13100F, 4.5G   EN_RIESGO  0.3627 0.5002    32.6   39.8    ✅    77
+[11:30:48]    Fuente de poder Seasonic Focus GX-100     VIGENTE  0.3598 0.0013    40.1  174.7    —   100
+[11:30:48]    Unidad de estado sólido SSD Kingston      VIGENTE  0.3420 0.0013    44.2   79.8    —    79
+[11:30:48]    Procesador Intel Core i3-14100 4-Core   EN_RIESGO  0.3275 0.4999    32.6    3.0    ✅    87
+[11:30:48] 
+📊 Cobertura final:
+[11:30:48]    r_j                        82/82 (100.0%) ████████████████████
+[11:30:48]    roi_unitario_pct           34/82 ( 41.5%) ████████
+[11:30:48]    gap_pct                    59/82 ( 72.0%) ██████████████
+[11:30:48]    in_pareto_front             4/82 (  4.9%) 
+[11:30:48]    score_oe9                  82/82 (100.0%) ████████████████████
+[11:30:48] 
+============================================================
+[11:30:48] ✅ Completado.
+[11:30:48] 🔜 Siguiente: python oe9_llm_nsga3.py --input data\features\oe9_feature_matrix.csv
+[11:30:48] ============================================================

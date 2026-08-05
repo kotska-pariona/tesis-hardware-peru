@@ -1,0 +1,41 @@
+{
+  "perfil": "moderado",
+  "roi_base_pct": 70.61,
+  "factor_mas_sensible": "factor_venta",
+  "montecarlo": {
+    "n_sim": 1000,
+    "media_pct": 74.83,
+    "std_pp": 19.58,
+    "p5_pct": 44.87,
+    "p95_pct": 108.33,
+    "prob_roi_pos_pct": 100.0,
+    "prob_roi_20_pct": 99.8
+  },
+  "breakeven": {
+    "fv_roi_0": 0.422,
+    "fv_roi_10": 0.464,
+    "margen_seguridad_pct": 41.4
+  },
+  "oat_rangos": {
+    "factor_venta": {
+      "roi_min": 45.02,
+      "roi_max": 96.21,
+      "rango_pp": 51.19
+    },
+    "factor_rotacion": {
+      "roi_min": 51.66,
+      "roi_max": 89.57,
+      "rango_pp": 37.91
+    },
+    "overhead_import": {
+      "roi_min": 60.39,
+      "roi_max": 82.23,
+      "rango_pp": 21.84
+    },
+    "costo_operativo": {
+      "roi_min": 67.06,
+      "roi_max": 74.17,
+      "rango_pp": 7.11
+    }
+  }
+}

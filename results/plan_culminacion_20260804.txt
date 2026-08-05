@@ -1,0 +1,15 @@
+PLAN DE CULMINACIÓN — HDS-ROI v6.0
+Generado: 2026-08-04 22:09:07
+Semana: 10/22 | Restantes: 12
+
+PASO 0 (HOY):    Limpieza Git + DVC sync
+PASO 1 (Sem 10): OE8 SUS — BLOQUEADOR CRÍTICO
+PASO 2 (Sem 11): OE9 LLM operator + Delta HV
+PASO 3 (Sem 12): OE1 Pipeline 1.5M
+PASO 4 (Sem 13): Ablación A-G
+PASO 5 (Sem 14): Tests estadísticos
+PASO 6 (Sem 15): Dashboard final
+PASO 7 (Sem 16): Redacción tesis
+PASO 8 (Sem 21): Artículo Q1
+
+ENTREGA: 31 octubre 2026
