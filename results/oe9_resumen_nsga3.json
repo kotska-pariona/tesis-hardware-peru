@@ -1,19 +1,19 @@
 {
   "version": "1.5-OE9-SOFT-CONSTRAINTS",
-  "timestamp": "2026-08-06T15:49:25.115545",
+  "timestamp": "2026-08-07T14:00:07.955161",
   "input": "data\\features\\oe9_feature_matrix.csv",
   "n_skus_catalogo": 42,
-  "budget_usd": 6441.0,
+  "budget_usd": 100000.0,
   "rj_max": 0.5,
   "n_min_skus": 3,
   "problema": "BINARIO (0/1 por SKU) - SOFT CONSTRAINTS",
-  "n_generaciones": 300,
-  "tiempo_seg": 11.5,
+  "n_generaciones": 200,
+  "tiempo_seg": 7.4,
   "n_soluciones_pareto": 23,
   "tipos_portafolio": {
     "AGRESIVO": 7,
-    "OPTIMO": 7,
-    "ESTRELLA": 5,
+    "OPTIMO": 6,
+    "ESTRELLA": 6,
     "BALANCEADO": 4
   },
   "roi_stats": {
@@ -25,24 +25,24 @@
   "capital_stats": {
     "min": 33.49,
     "max": 1874.02,
-    "mean": 782.57,
+    "mean": 783.29,
     "median": 717.28
   },
   "ganancia_stats": {
     "min": 87.42,
     "max": 1549.94,
-    "mean": 746.38,
+    "mean": 747.75,
     "median": 713.67
   },
   "rj_stats": {
     "min": 0.0053,
     "max": 0.9613,
-    "mean": 0.2756,
-    "median": 0.2289
+    "mean": 0.2705,
+    "median": 0.2044
   },
   "top5_pareto": [
     {
-      "sol_id": 13,
+      "sol_id": 8,
       "tipo": "AGRESIVO",
       "roi_pct": 261.03,
       "rj_portafolio": 0.9613,
@@ -51,7 +51,7 @@
       "ganancia_usd": 87.42
     },
     {
-      "sol_id": 0,
+      "sol_id": 2,
       "tipo": "AGRESIVO",
       "roi_pct": 243.98,
       "rj_portafolio": 0.6479,
@@ -60,16 +60,7 @@
       "ganancia_usd": 271.99
     },
     {
-      "sol_id": 6,
-      "tipo": "OPTIMO",
-      "roi_pct": 222.6,
-      "rj_portafolio": 0.1579,
-      "n_skus": 2,
-      "capital_usd": 85.94,
-      "ganancia_usd": 191.3
-    },
-    {
-      "sol_id": 20,
+      "sol_id": 9,
       "tipo": "AGRESIVO",
       "roi_pct": 222.6,
       "rj_portafolio": 0.4671,
@@ -78,7 +69,16 @@
       "ganancia_usd": 546.36
     },
     {
-      "sol_id": 1,
+      "sol_id": 21,
+      "tipo": "OPTIMO",
+      "roi_pct": 222.6,
+      "rj_portafolio": 0.1579,
+      "n_skus": 2,
+      "capital_usd": 85.94,
+      "ganancia_usd": 191.3
+    },
+    {
+      "sol_id": 13,
       "tipo": "ESTRELLA",
       "roi_pct": 201.37,
       "rj_portafolio": 0.1149,
