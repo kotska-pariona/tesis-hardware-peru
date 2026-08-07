@@ -102,3 +102,6 @@ venv_pe4_clean/
 data/raw/MASTER_hardware_peru.csv
 data/raw/MASTER_hardware_peru_CONSOLIDADO.csv
 data/raw/report_*.json
+data/raw/MASTER_hardware_peru.csv
+data/raw/MASTER_hardware_peru_CONSOLIDADO.csv
+data/raw/report_*.json
