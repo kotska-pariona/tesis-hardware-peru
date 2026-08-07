@@ -1,0 +1,14 @@
+{
+  "psu": 1.401,
+  "motherboard": 1.434,
+  "cooler": 1.36,
+  "case": 1.8,
+  "ram": 1.167,
+  "cpu": 1.942,
+  "ssd": 1.45,
+  "hdd": 1.4,
+  "gpu": 1.2,
+  "laptop": 1.55,
+  "monitor": 1.515,
+  "otro": 1.5
+}
