@@ -1,6 +1,181 @@
 [
   {
     "sol_id": 0,
+    "tipo": "BALANCEADO",
+    "roi_pct": 33.9,
+    "rj_portafolio": 0.3496,
+    "n_skus": 6,
+    "capital_usd": 827.39,
+    "ganancia_usd": 280.45,
+    "skus": [
+      {
+        "sku": 22034,
+        "producto": "Procesador Intel Core i3-13100F, 4.5Ghz, 4+4 cores, LGA1700",
+        "categoria": "CPU",
+        "precio_costo_usd": 200.12,
+        "precio_venta_usd": 279.83,
+        "roi_pct": 39.83,
+        "r_j": 0.0031
+      },
+      {
+        "sku": 10048431,
+        "producto": "Memoria Ram para Laptop Kingston KCP 16GB DDR4 3200Mhz SODIM",
+        "categoria": "RAM",
+        "precio_costo_usd": 99.0,
+        "precio_venta_usd": 155.36,
+        "roi_pct": 56.93,
+        "r_j": 0.0075
+      },
+      {
+        "sku": 10041907,
+        "producto": "Fuente de poder Seasonic Vertex GX-1200W 80Plus Gold Modular",
+        "categoria": "PSU",
+        "precio_costo_usd": 319.99,
+        "precio_venta_usd": 410.87,
+        "roi_pct": 28.4,
+        "r_j": 0.0423
+      },
+      {
+        "sku": 10061042,
+        "producto": "Placa madre Asrock H610M-HDV/M.2 R2.0, DDR4, M.2, LGA1700 (r",
+        "categoria": "MOTHERBOARD",
+        "precio_costo_usd": 88.91,
+        "precio_venta_usd": 94.48,
+        "roi_pct": 6.26,
+        "r_j": 0.0518
+      },
+      {
+        "sku": 4985,
+        "producto": "Unidad de estado sólido SSD Kingston SSD A400 960GB de capac",
+        "categoria": "SSD",
+        "precio_costo_usd": 29.37,
+        "precio_venta_usd": 49.86,
+        "roi_pct": 69.77,
+        "r_j": 0.997
+      },
+      {
+        "sku": 10041874,
+        "producto": "Gabinete Antryx XM-330 Xtreme, ITX/Micro ATX, Panel lateral ",
+        "categoria": "CASE",
+        "precio_costo_usd": 90.0,
+        "precio_venta_usd": 117.44,
+        "roi_pct": 30.49,
+        "r_j": 0.9961
+      }
+    ]
+  },
+  {
+    "sol_id": 1,
+    "tipo": "OPTIMO",
+    "roi_pct": 39.67,
+    "rj_portafolio": 0.0497,
+    "n_skus": 11,
+    "capital_usd": 1755.7,
+    "ganancia_usd": 696.49,
+    "skus": [
+      {
+        "sku": 10047106,
+        "producto": "Procesador AMD Ryzen 5 7600X 6 cores, 5.3Ghz, AM5",
+        "categoria": "CPU",
+        "precio_costo_usd": 228.13,
+        "precio_venta_usd": 309.32,
+        "roi_pct": 35.59,
+        "r_j": 0.0012
+      },
+      {
+        "sku": 10048087,
+        "producto": "Procesador Intel Core i5-14400 6+4-Cores, 4.7 GHz, LGA1700",
+        "categoria": "CPU",
+        "precio_costo_usd": 200.12,
+        "precio_venta_usd": 338.81,
+        "roi_pct": 69.3,
+        "r_j": 0.0002
+      },
+      {
+        "sku": 10057318,
+        "producto": "Placa madre Asrock Prime B860M-A LGA1851, DDR5, MATX",
+        "categoria": "MOTHERBOARD",
+        "precio_costo_usd": 80.0,
+        "precio_venta_usd": 205.29,
+        "roi_pct": 156.61,
+        "r_j": 0.02
+      },
+      {
+        "sku": 22034,
+        "producto": "Procesador Intel Core i3-13100F, 4.5Ghz, 4+4 cores, LGA1700",
+        "categoria": "CPU",
+        "precio_costo_usd": 200.12,
+        "precio_venta_usd": 279.83,
+        "roi_pct": 39.83,
+        "r_j": 0.0031
+      },
+      {
+        "sku": 10048086,
+        "producto": "Procesador Intel Core i3-14100 4-Cores, 4.7 GHz, LGA1700",
+        "categoria": "CPU",
+        "precio_costo_usd": 200.12,
+        "precio_venta_usd": 206.12,
+        "roi_pct": 3.0,
+        "r_j": 0.0009
+      },
+      {
+        "sku": 10047321,
+        "producto": "Fuente de poder Antryx Kirin Gold Evo II 1000W, 80 Plus Gold",
+        "categoria": "PSU",
+        "precio_costo_usd": 115.59,
+        "precio_venta_usd": 219.97,
+        "roi_pct": 90.3,
+        "r_j": 0.0249
+      },
+      {
+        "sku": 10066291,
+        "producto": "Memoria RAM Kingston KVR 8GB, DDR4, 3200MT/s, CL22, SODIMM",
+        "categoria": "RAM",
+        "precio_costo_usd": 149.99,
+        "precio_venta_usd": 175.92,
+        "roi_pct": 17.29,
+        "r_j": 0.139
+      },
+      {
+        "sku": 22041,
+        "producto": "Procesador Intel Core i5-13400F, 2.5GHZ, 6+4 cores, LGA1700",
+        "categoria": "CPU",
+        "precio_costo_usd": 200.12,
+        "precio_venta_usd": 279.83,
+        "roi_pct": 39.83,
+        "r_j": 0.0106
+      },
+      {
+        "sku": 10047323,
+        "producto": "Fuente de poder Seasonic A12 500W, 80 Plus White",
+        "categoria": "PSU",
+        "precio_costo_usd": 37.99,
+        "precio_venta_usd": 73.13,
+        "roi_pct": 92.5,
+        "r_j": 0.2481
+      },
+      {
+        "sku": 10043282,
+        "producto": "Procesador AMD ATHLON 3000G 3.5Ghz, 2 CORES, AM4",
+        "categoria": "CPU",
+        "precio_costo_usd": 253.53,
+        "precio_venta_usd": 265.09,
+        "roi_pct": 4.56,
+        "r_j": 0.0243
+      },
+      {
+        "sku": 10067162,
+        "producto": "Placa madre Gigabyte B550M-K AM4, DDR4 (reempacado)",
+        "categoria": "MOTHERBOARD",
+        "precio_costo_usd": 89.99,
+        "precio_venta_usd": 98.88,
+        "roi_pct": 9.88,
+        "r_j": 0.0746
+      }
+    ]
+  },
+  {
+    "sol_id": 2,
     "tipo": "AGRESIVO",
     "roi_pct": 243.98,
     "rj_portafolio": 0.6479,
@@ -38,31 +213,67 @@
     ]
   },
   {
-    "sol_id": 1,
-    "tipo": "ESTRELLA",
-    "roi_pct": 201.37,
-    "rj_portafolio": 0.1149,
-    "n_skus": 3,
-    "capital_usd": 121.13,
-    "ganancia_usd": 243.92,
+    "sol_id": 3,
+    "tipo": "OPTIMO",
+    "roi_pct": 82.71,
+    "rj_portafolio": 0.1614,
+    "n_skus": 7,
+    "capital_usd": 1874.02,
+    "ganancia_usd": 1549.94,
     "skus": [
       {
-        "sku": 10042119,
-        "producto": "Fuente de poder Teros TE-7175W 750W, 80 Plus Gold, F. modula",
-        "categoria": "PSU",
-        "precio_costo_usd": 49.94,
-        "precio_venta_usd": 168.87,
-        "roi_pct": 238.15,
-        "r_j": 0.2547
+        "sku": 10067840,
+        "producto": "Tarjeta de video Asus Dual NVIDIA GeForce RTX 5050, 8GB GDDR",
+        "categoria": "GPU",
+        "precio_costo_usd": 178.32,
+        "precio_venta_usd": 498.97,
+        "roi_pct": 179.82,
+        "r_j": 0.0
       },
       {
-        "sku": 10066165,
-        "producto": "Memoria RAM TeamGroup T-Force Vulcan Z 8GB DDR4 3200Mhz CL16",
-        "categoria": "RAM",
-        "precio_costo_usd": 36.0,
-        "precio_venta_usd": 108.37,
-        "roi_pct": 201.03,
-        "r_j": 0.0611
+        "sku": 10057314,
+        "producto": "Procesador Intel Core Ultra 7 265KF, 5.5GHZ, 12+8 CORES, LGA",
+        "categoria": "CPU",
+        "precio_costo_usd": 200.0,
+        "precio_venta_usd": 471.5,
+        "roi_pct": 135.75,
+        "r_j": 0.0037
+      },
+      {
+        "sku": 10051504,
+        "producto": "Unidad de estado sólido SSD Kingston NV3 2000GB M.2 PCIE4.0 ",
+        "categoria": "SSD",
+        "precio_costo_usd": 1192.07,
+        "precio_venta_usd": 1881.72,
+        "roi_pct": 57.85,
+        "r_j": 0.0747
+      },
+      {
+        "sku": 10047321,
+        "producto": "Fuente de poder Antryx Kirin Gold Evo II 1000W, 80 Plus Gold",
+        "categoria": "PSU",
+        "precio_costo_usd": 115.59,
+        "precio_venta_usd": 219.97,
+        "roi_pct": 90.3,
+        "r_j": 0.0249
+      },
+      {
+        "sku": 10048103,
+        "producto": "Placa madre MSI PRO B650M-P, socket AM5, DDR5 hasta 192GB, f",
+        "categoria": "MOTHERBOARD",
+        "precio_costo_usd": 62.85,
+        "precio_venta_usd": 146.55,
+        "roi_pct": 133.17,
+        "r_j": 0.0001
+      },
+      {
+        "sku": 10051005,
+        "producto": "Gabinete Antryx RX-250, USB3.0, FRGB FAN X4, panel lateral d",
+        "categoria": "CASE",
+        "precio_costo_usd": 90.0,
+        "precio_venta_usd": 117.44,
+        "roi_pct": 30.49,
+        "r_j": 0.9975
       },
       {
         "sku": 24382,
@@ -76,7 +287,390 @@
     ]
   },
   {
-    "sol_id": 2,
+    "sol_id": 4,
+    "tipo": "ESTRELLA",
+    "roi_pct": 181.76,
+    "rj_portafolio": 0.0204,
+    "n_skus": 3,
+    "capital_usd": 392.64,
+    "ganancia_usd": 713.67,
+    "skus": [
+      {
+        "sku": 10067839,
+        "producto": "Tarjeta de video Asus Dual NVIDIA GeForce RTX 5060, 8GB GDDR",
+        "categoria": "GPU",
+        "precio_costo_usd": 178.32,
+        "precio_venta_usd": 498.97,
+        "roi_pct": 179.82,
+        "r_j": 0.0
+      },
+      {
+        "sku": 10067840,
+        "producto": "Tarjeta de video Asus Dual NVIDIA GeForce RTX 5050, 8GB GDDR",
+        "categoria": "GPU",
+        "precio_costo_usd": 178.32,
+        "precio_venta_usd": 498.97,
+        "roi_pct": 179.82,
+        "r_j": 0.0
+      },
+      {
+        "sku": 10066165,
+        "producto": "Memoria RAM TeamGroup T-Force Vulcan Z 8GB DDR4 3200Mhz CL16",
+        "categoria": "RAM",
+        "precio_costo_usd": 36.0,
+        "precio_venta_usd": 108.37,
+        "roi_pct": 201.03,
+        "r_j": 0.0611
+      }
+    ]
+  },
+  {
+    "sol_id": 5,
+    "tipo": "ESTRELLA",
+    "roi_pct": 189.77,
+    "rj_portafolio": 0.1333,
+    "n_skus": 5,
+    "capital_usd": 442.23,
+    "ganancia_usd": 839.24,
+    "skus": [
+      {
+        "sku": 10051505,
+        "producto": "Unidad de estado sólido SSD Kingston NV3 500GB M.2 PCIE4.0 N",
+        "categoria": "SSD",
+        "precio_costo_usd": 97.97,
+        "precio_venta_usd": 299.97,
+        "roi_pct": 206.19,
+        "r_j": 0.3308
+      },
+      {
+        "sku": 10067839,
+        "producto": "Tarjeta de video Asus Dual NVIDIA GeForce RTX 5060, 8GB GDDR",
+        "categoria": "GPU",
+        "precio_costo_usd": 178.32,
+        "precio_venta_usd": 498.97,
+        "roi_pct": 179.82,
+        "r_j": 0.0
+      },
+      {
+        "sku": 10042119,
+        "producto": "Fuente de poder Teros TE-7175W 750W, 80 Plus Gold, F. modula",
+        "categoria": "PSU",
+        "precio_costo_usd": 49.94,
+        "precio_venta_usd": 168.87,
+        "roi_pct": 238.15,
+        "r_j": 0.2547
+      },
+      {
+        "sku": 10057318,
+        "producto": "Placa madre Asrock Prime B860M-A LGA1851, DDR5, MATX",
+        "categoria": "MOTHERBOARD",
+        "precio_costo_usd": 80.0,
+        "precio_venta_usd": 205.29,
+        "roi_pct": 156.61,
+        "r_j": 0.02
+      },
+      {
+        "sku": 10066165,
+        "producto": "Memoria RAM TeamGroup T-Force Vulcan Z 8GB DDR4 3200Mhz CL16",
+        "categoria": "RAM",
+        "precio_costo_usd": 36.0,
+        "precio_venta_usd": 108.37,
+        "roi_pct": 201.03,
+        "r_j": 0.0611
+      }
+    ]
+  },
+  {
+    "sol_id": 6,
+    "tipo": "ESTRELLA",
+    "roi_pct": 54.64,
+    "rj_portafolio": 0.032,
+    "n_skus": 5,
+    "capital_usd": 1781.3,
+    "ganancia_usd": 973.3,
+    "skus": [
+      {
+        "sku": 10048087,
+        "producto": "Procesador Intel Core i5-14400 6+4-Cores, 4.7 GHz, LGA1700",
+        "categoria": "CPU",
+        "precio_costo_usd": 200.12,
+        "precio_venta_usd": 338.81,
+        "roi_pct": 69.3,
+        "r_j": 0.0002
+      },
+      {
+        "sku": 22034,
+        "producto": "Procesador Intel Core i3-13100F, 4.5Ghz, 4+4 cores, LGA1700",
+        "categoria": "CPU",
+        "precio_costo_usd": 200.12,
+        "precio_venta_usd": 279.83,
+        "roi_pct": 39.83,
+        "r_j": 0.0031
+      },
+      {
+        "sku": 10048431,
+        "producto": "Memoria Ram para Laptop Kingston KCP 16GB DDR4 3200Mhz SODIM",
+        "categoria": "RAM",
+        "precio_costo_usd": 99.0,
+        "precio_venta_usd": 155.36,
+        "roi_pct": 56.93,
+        "r_j": 0.0075
+      },
+      {
+        "sku": 10051504,
+        "producto": "Unidad de estado sólido SSD Kingston NV3 2000GB M.2 PCIE4.0 ",
+        "categoria": "SSD",
+        "precio_costo_usd": 1192.07,
+        "precio_venta_usd": 1881.72,
+        "roi_pct": 57.85,
+        "r_j": 0.0747
+      },
+      {
+        "sku": 10067162,
+        "producto": "Placa madre Gigabyte B550M-K AM4, DDR4 (reempacado)",
+        "categoria": "MOTHERBOARD",
+        "precio_costo_usd": 89.99,
+        "precio_venta_usd": 98.88,
+        "roi_pct": 9.88,
+        "r_j": 0.0746
+      }
+    ]
+  },
+  {
+    "sol_id": 7,
+    "tipo": "BALANCEADO",
+    "roi_pct": 39.18,
+    "rj_portafolio": 0.2903,
+    "n_skus": 7,
+    "capital_usd": 989.06,
+    "ganancia_usd": 387.55,
+    "skus": [
+      {
+        "sku": 10047106,
+        "producto": "Procesador AMD Ryzen 5 7600X 6 cores, 5.3Ghz, AM5",
+        "categoria": "CPU",
+        "precio_costo_usd": 228.13,
+        "precio_venta_usd": 309.32,
+        "roi_pct": 35.59,
+        "r_j": 0.0012
+      },
+      {
+        "sku": 22034,
+        "producto": "Procesador Intel Core i3-13100F, 4.5Ghz, 4+4 cores, LGA1700",
+        "categoria": "CPU",
+        "precio_costo_usd": 200.12,
+        "precio_venta_usd": 279.83,
+        "roi_pct": 39.83,
+        "r_j": 0.0031
+      },
+      {
+        "sku": 10048431,
+        "producto": "Memoria Ram para Laptop Kingston KCP 16GB DDR4 3200Mhz SODIM",
+        "categoria": "RAM",
+        "precio_costo_usd": 99.0,
+        "precio_venta_usd": 155.36,
+        "roi_pct": 56.93,
+        "r_j": 0.0075
+      },
+      {
+        "sku": 10044548,
+        "producto": "Procesador AMD Ryzen 5 8600G (IA), 5Ghz, 6 cores, AM5,  65W",
+        "categoria": "CPU",
+        "precio_costo_usd": 253.53,
+        "precio_venta_usd": 338.81,
+        "roi_pct": 33.64,
+        "r_j": 0.0204
+      },
+      {
+        "sku": 21224,
+        "producto": "Placa madre Asrock H610M-HDV/M.2 R2.0, DDR4, M.2, LGA1700",
+        "categoria": "MOTHERBOARD",
+        "precio_costo_usd": 88.91,
+        "precio_venta_usd": 125.99,
+        "roi_pct": 41.71,
+        "r_j": 0.0065
+      },
+      {
+        "sku": 4985,
+        "producto": "Unidad de estado sólido SSD Kingston SSD A400 960GB de capac",
+        "categoria": "SSD",
+        "precio_costo_usd": 29.37,
+        "precio_venta_usd": 49.86,
+        "roi_pct": 69.77,
+        "r_j": 0.997
+      },
+      {
+        "sku": 10041874,
+        "producto": "Gabinete Antryx XM-330 Xtreme, ITX/Micro ATX, Panel lateral ",
+        "categoria": "CASE",
+        "precio_costo_usd": 90.0,
+        "precio_venta_usd": 117.44,
+        "roi_pct": 30.49,
+        "r_j": 0.9961
+      }
+    ]
+  },
+  {
+    "sol_id": 8,
+    "tipo": "AGRESIVO",
+    "roi_pct": 261.03,
+    "rj_portafolio": 0.9613,
+    "n_skus": 1,
+    "capital_usd": 33.49,
+    "ganancia_usd": 87.42,
+    "skus": [
+      {
+        "sku": 10067164,
+        "producto": "Fuente de poder Antryx Kirin 850 GOLD, 850W, 80 Plus Gold, m",
+        "categoria": "PSU",
+        "precio_costo_usd": 33.49,
+        "precio_venta_usd": 120.91,
+        "roi_pct": 261.03,
+        "r_j": 0.9613
+      }
+    ]
+  },
+  {
+    "sol_id": 9,
+    "tipo": "AGRESIVO",
+    "roi_pct": 222.6,
+    "rj_portafolio": 0.4671,
+    "n_skus": 5,
+    "capital_usd": 245.45,
+    "ganancia_usd": 546.36,
+    "skus": [
+      {
+        "sku": 10051505,
+        "producto": "Unidad de estado sólido SSD Kingston NV3 500GB M.2 PCIE4.0 N",
+        "categoria": "SSD",
+        "precio_costo_usd": 97.97,
+        "precio_venta_usd": 299.97,
+        "roi_pct": 206.19,
+        "r_j": 0.3308
+      },
+      {
+        "sku": 10042119,
+        "producto": "Fuente de poder Teros TE-7175W 750W, 80 Plus Gold, F. modula",
+        "categoria": "PSU",
+        "precio_costo_usd": 49.94,
+        "precio_venta_usd": 168.87,
+        "roi_pct": 238.15,
+        "r_j": 0.2547
+      },
+      {
+        "sku": 11750,
+        "producto": "Fuente de poder Seasonic A12, 600W, 80 Plus, blanco",
+        "categoria": "PSU",
+        "precio_costo_usd": 28.05,
+        "precio_venta_usd": 93.69,
+        "roi_pct": 234.01,
+        "r_j": 0.7276
+      },
+      {
+        "sku": 10067164,
+        "producto": "Fuente de poder Antryx Kirin 850 GOLD, 850W, 80 Plus Gold, m",
+        "categoria": "PSU",
+        "precio_costo_usd": 33.49,
+        "precio_venta_usd": 120.91,
+        "roi_pct": 261.03,
+        "r_j": 0.9613
+      },
+      {
+        "sku": 10066165,
+        "producto": "Memoria RAM TeamGroup T-Force Vulcan Z 8GB DDR4 3200Mhz CL16",
+        "categoria": "RAM",
+        "precio_costo_usd": 36.0,
+        "precio_venta_usd": 108.37,
+        "roi_pct": 201.03,
+        "r_j": 0.0611
+      }
+    ]
+  },
+  {
+    "sol_id": 10,
+    "tipo": "OPTIMO",
+    "roi_pct": 173.12,
+    "rj_portafolio": 0.2044,
+    "n_skus": 8,
+    "capital_usd": 753.04,
+    "ganancia_usd": 1303.67,
+    "skus": [
+      {
+        "sku": 10051505,
+        "producto": "Unidad de estado sólido SSD Kingston NV3 500GB M.2 PCIE4.0 N",
+        "categoria": "SSD",
+        "precio_costo_usd": 97.97,
+        "precio_venta_usd": 299.97,
+        "roi_pct": 206.19,
+        "r_j": 0.3308
+      },
+      {
+        "sku": 10067839,
+        "producto": "Tarjeta de video Asus Dual NVIDIA GeForce RTX 5060, 8GB GDDR",
+        "categoria": "GPU",
+        "precio_costo_usd": 178.32,
+        "precio_venta_usd": 498.97,
+        "roi_pct": 179.82,
+        "r_j": 0.0
+      },
+      {
+        "sku": 10067840,
+        "producto": "Tarjeta de video Asus Dual NVIDIA GeForce RTX 5050, 8GB GDDR",
+        "categoria": "GPU",
+        "precio_costo_usd": 178.32,
+        "precio_venta_usd": 498.97,
+        "roi_pct": 179.82,
+        "r_j": 0.0
+      },
+      {
+        "sku": 10042119,
+        "producto": "Fuente de poder Teros TE-7175W 750W, 80 Plus Gold, F. modula",
+        "categoria": "PSU",
+        "precio_costo_usd": 49.94,
+        "precio_venta_usd": 168.87,
+        "roi_pct": 238.15,
+        "r_j": 0.2547
+      },
+      {
+        "sku": 10067164,
+        "producto": "Fuente de poder Antryx Kirin 850 GOLD, 850W, 80 Plus Gold, m",
+        "categoria": "PSU",
+        "precio_costo_usd": 33.49,
+        "precio_venta_usd": 120.91,
+        "roi_pct": 261.03,
+        "r_j": 0.9613
+      },
+      {
+        "sku": 10057318,
+        "producto": "Placa madre Asrock Prime B860M-A LGA1851, DDR5, MATX",
+        "categoria": "MOTHERBOARD",
+        "precio_costo_usd": 80.0,
+        "precio_venta_usd": 205.29,
+        "roi_pct": 156.61,
+        "r_j": 0.02
+      },
+      {
+        "sku": 10048431,
+        "producto": "Memoria Ram para Laptop Kingston KCP 16GB DDR4 3200Mhz SODIM",
+        "categoria": "RAM",
+        "precio_costo_usd": 99.0,
+        "precio_venta_usd": 155.36,
+        "roi_pct": 56.93,
+        "r_j": 0.0075
+      },
+      {
+        "sku": 10066165,
+        "producto": "Memoria RAM TeamGroup T-Force Vulcan Z 8GB DDR4 3200Mhz CL16",
+        "categoria": "RAM",
+        "precio_costo_usd": 36.0,
+        "precio_venta_usd": 108.37,
+        "roi_pct": 201.03,
+        "r_j": 0.0611
+      }
+    ]
+  },
+  {
+    "sol_id": 11,
     "tipo": "OPTIMO",
     "roi_pct": 94.07,
     "rj_portafolio": 0.183,
@@ -195,7 +789,119 @@
     ]
   },
   {
-    "sol_id": 3,
+    "sol_id": 12,
+    "tipo": "AGRESIVO",
+    "roi_pct": 196.97,
+    "rj_portafolio": 0.3365,
+    "n_skus": 7,
+    "capital_usd": 503.77,
+    "ganancia_usd": 992.3,
+    "skus": [
+      {
+        "sku": 10051505,
+        "producto": "Unidad de estado sólido SSD Kingston NV3 500GB M.2 PCIE4.0 N",
+        "categoria": "SSD",
+        "precio_costo_usd": 97.97,
+        "precio_venta_usd": 299.97,
+        "roi_pct": 206.19,
+        "r_j": 0.3308
+      },
+      {
+        "sku": 10067840,
+        "producto": "Tarjeta de video Asus Dual NVIDIA GeForce RTX 5050, 8GB GDDR",
+        "categoria": "GPU",
+        "precio_costo_usd": 178.32,
+        "precio_venta_usd": 498.97,
+        "roi_pct": 179.82,
+        "r_j": 0.0
+      },
+      {
+        "sku": 10042119,
+        "producto": "Fuente de poder Teros TE-7175W 750W, 80 Plus Gold, F. modula",
+        "categoria": "PSU",
+        "precio_costo_usd": 49.94,
+        "precio_venta_usd": 168.87,
+        "roi_pct": 238.15,
+        "r_j": 0.2547
+      },
+      {
+        "sku": 11750,
+        "producto": "Fuente de poder Seasonic A12, 600W, 80 Plus, blanco",
+        "categoria": "PSU",
+        "precio_costo_usd": 28.05,
+        "precio_venta_usd": 93.69,
+        "roi_pct": 234.01,
+        "r_j": 0.7276
+      },
+      {
+        "sku": 10067164,
+        "producto": "Fuente de poder Antryx Kirin 850 GOLD, 850W, 80 Plus Gold, m",
+        "categoria": "PSU",
+        "precio_costo_usd": 33.49,
+        "precio_venta_usd": 120.91,
+        "roi_pct": 261.03,
+        "r_j": 0.9613
+      },
+      {
+        "sku": 10057318,
+        "producto": "Placa madre Asrock Prime B860M-A LGA1851, DDR5, MATX",
+        "categoria": "MOTHERBOARD",
+        "precio_costo_usd": 80.0,
+        "precio_venta_usd": 205.29,
+        "roi_pct": 156.61,
+        "r_j": 0.02
+      },
+      {
+        "sku": 10066165,
+        "producto": "Memoria RAM TeamGroup T-Force Vulcan Z 8GB DDR4 3200Mhz CL16",
+        "categoria": "RAM",
+        "precio_costo_usd": 36.0,
+        "precio_venta_usd": 108.37,
+        "roi_pct": 201.03,
+        "r_j": 0.0611
+      }
+    ]
+  },
+  {
+    "sol_id": 13,
+    "tipo": "ESTRELLA",
+    "roi_pct": 201.37,
+    "rj_portafolio": 0.1149,
+    "n_skus": 3,
+    "capital_usd": 121.13,
+    "ganancia_usd": 243.92,
+    "skus": [
+      {
+        "sku": 10042119,
+        "producto": "Fuente de poder Teros TE-7175W 750W, 80 Plus Gold, F. modula",
+        "categoria": "PSU",
+        "precio_costo_usd": 49.94,
+        "precio_venta_usd": 168.87,
+        "roi_pct": 238.15,
+        "r_j": 0.2547
+      },
+      {
+        "sku": 10066165,
+        "producto": "Memoria RAM TeamGroup T-Force Vulcan Z 8GB DDR4 3200Mhz CL16",
+        "categoria": "RAM",
+        "precio_costo_usd": 36.0,
+        "precio_venta_usd": 108.37,
+        "roi_pct": 201.03,
+        "r_j": 0.0611
+      },
+      {
+        "sku": 24382,
+        "producto": "Memoria ram para laptop Kingston KCP 8GB DDR4, 3200Mhz",
+        "categoria": "RAM",
+        "precio_costo_usd": 35.19,
+        "precio_venta_usd": 87.81,
+        "roi_pct": 149.53,
+        "r_j": 0.0289
+      }
+    ]
+  },
+  {
+    "sol_id": 14,
     "tipo": "AGRESIVO",
     "roi_pct": 149.51,
     "rj_portafolio": 0.2618,
@@ -287,7 +993,193 @@
     ]
   },
   {
-    "sol_id": 4,
+    "sol_id": 15,
+    "tipo": "BALANCEADO",
+    "roi_pct": 42.79,
+    "rj_portafolio": 0.2657,
+    "n_skus": 8,
+    "capital_usd": 973.1,
+    "ganancia_usd": 416.37,
+    "skus": [
+      {
+        "sku": 10048087,
+        "producto": "Procesador Intel Core i5-14400 6+4-Cores, 4.7 GHz, LGA1700",
+        "categoria": "CPU",
+        "precio_costo_usd": 200.12,
+        "precio_venta_usd": 338.81,
+        "roi_pct": 69.3,
+        "r_j": 0.0002
+      },
+      {
+        "sku": 10048086,
+        "producto": "Procesador Intel Core i3-14100 4-Cores, 4.7 GHz, LGA1700",
+        "categoria": "CPU",
+        "precio_costo_usd": 200.12,
+        "precio_venta_usd": 206.12,
+        "roi_pct": 3.0,
+        "r_j": 0.0009
+      },
+      {
+        "sku": 10048431,
+        "producto": "Memoria Ram para Laptop Kingston KCP 16GB DDR4 3200Mhz SODIM",
+        "categoria": "RAM",
+        "precio_costo_usd": 99.0,
+        "precio_venta_usd": 155.36,
+        "roi_pct": 56.93,
+        "r_j": 0.0075
+      },
+      {
+        "sku": 10047321,
+        "producto": "Fuente de poder Antryx Kirin Gold Evo II 1000W, 80 Plus Gold",
+        "categoria": "PSU",
+        "precio_costo_usd": 115.59,
+        "precio_venta_usd": 219.97,
+        "roi_pct": 90.3,
+        "r_j": 0.0249
+      },
+      {
+        "sku": 10066291,
+        "producto": "Memoria RAM Kingston KVR 8GB, DDR4, 3200MT/s, CL22, SODIMM",
+        "categoria": "RAM",
+        "precio_costo_usd": 149.99,
+        "precio_venta_usd": 175.92,
+        "roi_pct": 17.29,
+        "r_j": 0.139
+      },
+      {
+        "sku": 21224,
+        "producto": "Placa madre Asrock H610M-HDV/M.2 R2.0, DDR4, M.2, LGA1700",
+        "categoria": "MOTHERBOARD",
+        "precio_costo_usd": 88.91,
+        "precio_venta_usd": 125.99,
+        "roi_pct": 41.71,
+        "r_j": 0.0065
+      },
+      {
+        "sku": 4339,
+        "producto": "Unidad de estado sólido SSD Kingston Ssd A400 480GB de capac",
+        "categoria": "SSD",
+        "precio_costo_usd": 29.37,
+        "precio_venta_usd": 49.86,
+        "roi_pct": 69.77,
+        "r_j": 0.9488
+      },
+      {
+        "sku": 10051005,
+        "producto": "Gabinete Antryx RX-250, USB3.0, FRGB FAN X4, panel lateral d",
+        "categoria": "CASE",
+        "precio_costo_usd": 90.0,
+        "precio_venta_usd": 117.44,
+        "roi_pct": 30.49,
+        "r_j": 0.9975
+      }
+    ]
+  },
+  {
+    "sol_id": 16,
+    "tipo": "BALANCEADO",
+    "roi_pct": 48.08,
+    "rj_portafolio": 0.5915,
+    "n_skus": 5,
+    "capital_usd": 336.65,
+    "ganancia_usd": 161.86,
+    "skus": [
+      {
+        "sku": 10048431,
+        "producto": "Memoria Ram para Laptop Kingston KCP 16GB DDR4 3200Mhz SODIM",
+        "categoria": "RAM",
+        "precio_costo_usd": 99.0,
+        "precio_venta_usd": 155.36,
+        "roi_pct": 56.93,
+        "r_j": 0.0075
+      },
+      {
+        "sku": 21224,
+        "producto": "Placa madre Asrock H610M-HDV/M.2 R2.0, DDR4, M.2, LGA1700",
+        "categoria": "MOTHERBOARD",
+        "precio_costo_usd": 88.91,
+        "precio_venta_usd": 125.99,
+        "roi_pct": 41.71,
+        "r_j": 0.0065
+      },
+      {
+        "sku": 4985,
+        "producto": "Unidad de estado sólido SSD Kingston SSD A400 960GB de capac",
+        "categoria": "SSD",
+        "precio_costo_usd": 29.37,
+        "precio_venta_usd": 49.86,
+        "roi_pct": 69.77,
+        "r_j": 0.997
+      },
+      {
+        "sku": 4339,
+        "producto": "Unidad de estado sólido SSD Kingston Ssd A400 480GB de capac",
+        "categoria": "SSD",
+        "precio_costo_usd": 29.37,
+        "precio_venta_usd": 49.86,
+        "roi_pct": 69.77,
+        "r_j": 0.9488
+      },
+      {
+        "sku": 10051005,
+        "producto": "Gabinete Antryx RX-250, USB3.0, FRGB FAN X4, panel lateral d",
+        "categoria": "CASE",
+        "precio_costo_usd": 90.0,
+        "precio_venta_usd": 117.44,
+        "roi_pct": 30.49,
+        "r_j": 0.9975
+      }
+    ]
+  },
+  {
+    "sol_id": 17,
+    "tipo": "OPTIMO",
+    "roi_pct": 38.71,
+    "rj_portafolio": 0.0053,
+    "n_skus": 4,
+    "capital_usd": 717.28,
+    "ganancia_usd": 277.69,
+    "skus": [
+      {
+        "sku": 10047106,
+        "producto": "Procesador AMD Ryzen 5 7600X 6 cores, 5.3Ghz, AM5",
+        "categoria": "CPU",
+        "precio_costo_usd": 228.13,
+        "precio_venta_usd": 309.32,
+        "roi_pct": 35.59,
+        "r_j": 0.0012
+      },
+      {
+        "sku": 22034,
+        "producto": "Procesador Intel Core i3-13100F, 4.5Ghz, 4+4 cores, LGA1700",
+        "categoria": "CPU",
+        "precio_costo_usd": 200.12,
+        "precio_venta_usd": 279.83,
+        "roi_pct": 39.83,
+        "r_j": 0.0031
+      },
+      {
+        "sku": 22041,
+        "producto": "Procesador Intel Core i5-13400F, 2.5GHZ, 6+4 cores, LGA1700",
+        "categoria": "CPU",
+        "precio_costo_usd": 200.12,
+        "precio_venta_usd": 279.83,
+        "roi_pct": 39.83,
+        "r_j": 0.0106
+      },
+      {
+        "sku": 21224,
+        "producto": "Placa madre Asrock H610M-HDV/M.2 R2.0, DDR4, M.2, LGA1700",
+        "categoria": "MOTHERBOARD",
+        "precio_costo_usd": 88.91,
+        "precio_venta_usd": 125.99,
+        "roi_pct": 41.71,
+        "r_j": 0.0065
+      }
+    ]
+  },
+  {
+    "sol_id": 18,
     "tipo": "AGRESIVO",
     "roi_pct": 63.22,
     "rj_portafolio": 0.4097,
@@ -388,302 +1280,13 @@
     ]
   },
   {
-    "sol_id": 5,
+    "sol_id": 19,
     "tipo": "ESTRELLA",
-    "roi_pct": 54.64,
-    "rj_portafolio": 0.032,
-    "n_skus": 5,
-    "capital_usd": 1781.3,
-    "ganancia_usd": 973.3,
-    "skus": [
-      {
-        "sku": 10048087,
-        "producto": "Procesador Intel Core i5-14400 6+4-Cores, 4.7 GHz, LGA1700",
-        "categoria": "CPU",
-        "precio_costo_usd": 200.12,
-        "precio_venta_usd": 338.81,
-        "roi_pct": 69.3,
-        "r_j": 0.0002
-      },
-      {
-        "sku": 22034,
-        "producto": "Procesador Intel Core i3-13100F, 4.5Ghz, 4+4 cores, LGA1700",
-        "categoria": "CPU",
-        "precio_costo_usd": 200.12,
-        "precio_venta_usd": 279.83,
-        "roi_pct": 39.83,
-        "r_j": 0.0031
-      },
-      {
-        "sku": 10048431,
-        "producto": "Memoria Ram para Laptop Kingston KCP 16GB DDR4 3200Mhz SODIM",
-        "categoria": "RAM",
-        "precio_costo_usd": 99.0,
-        "precio_venta_usd": 155.36,
-        "roi_pct": 56.93,
-        "r_j": 0.0075
-      },
-      {
-        "sku": 10051504,
-        "producto": "Unidad de estado sólido SSD Kingston NV3 2000GB M.2 PCIE4.0 ",
-        "categoria": "SSD",
-        "precio_costo_usd": 1192.07,
-        "precio_venta_usd": 1881.72,
-        "roi_pct": 57.85,
-        "r_j": 0.0747
-      },
-      {
-        "sku": 10067162,
-        "producto": "Placa madre Gigabyte B550M-K AM4, DDR4 (reempacado)",
-        "categoria": "MOTHERBOARD",
-        "precio_costo_usd": 89.99,
-        "precio_venta_usd": 98.88,
-        "roi_pct": 9.88,
-        "r_j": 0.0746
-      }
-    ]
-  },
-  {
-    "sol_id": 6,
-    "tipo": "OPTIMO",
-    "roi_pct": 222.6,
-    "rj_portafolio": 0.1579,
-    "n_skus": 2,
-    "capital_usd": 85.94,
-    "ganancia_usd": 191.3,
-    "skus": [
-      {
-        "sku": 10042119,
-        "producto": "Fuente de poder Teros TE-7175W 750W, 80 Plus Gold, F. modula",
-        "categoria": "PSU",
-        "precio_costo_usd": 49.94,
-        "precio_venta_usd": 168.87,
-        "roi_pct": 238.15,
-        "r_j": 0.2547
-      },
-      {
-        "sku": 10066165,
-        "producto": "Memoria RAM TeamGroup T-Force Vulcan Z 8GB DDR4 3200Mhz CL16",
-        "categoria": "RAM",
-        "precio_costo_usd": 36.0,
-        "precio_venta_usd": 108.37,
-        "roi_pct": 201.03,
-        "r_j": 0.0611
-      }
-    ]
-  },
-  {
-    "sol_id": 7,
-    "tipo": "ESTRELLA",
-    "roi_pct": 189.77,
-    "rj_portafolio": 0.1333,
-    "n_skus": 5,
-    "capital_usd": 442.23,
-    "ganancia_usd": 839.24,
-    "skus": [
-      {
-        "sku": 10051505,
-        "producto": "Unidad de estado sólido SSD Kingston NV3 500GB M.2 PCIE4.0 N",
-        "categoria": "SSD",
-        "precio_costo_usd": 97.97,
-        "precio_venta_usd": 299.97,
-        "roi_pct": 206.19,
-        "r_j": 0.3308
-      },
-      {
-        "sku": 10067839,
-        "producto": "Tarjeta de video Asus Dual NVIDIA GeForce RTX 5060, 8GB GDDR",
-        "categoria": "GPU",
-        "precio_costo_usd": 178.32,
-        "precio_venta_usd": 498.97,
-        "roi_pct": 179.82,
-        "r_j": 0.0
-      },
-      {
-        "sku": 10042119,
-        "producto": "Fuente de poder Teros TE-7175W 750W, 80 Plus Gold, F. modula",
-        "categoria": "PSU",
-        "precio_costo_usd": 49.94,
-        "precio_venta_usd": 168.87,
-        "roi_pct": 238.15,
-        "r_j": 0.2547
-      },
-      {
-        "sku": 10057318,
-        "producto": "Placa madre Asrock Prime B860M-A LGA1851, DDR5, MATX",
-        "categoria": "MOTHERBOARD",
-        "precio_costo_usd": 80.0,
-        "precio_venta_usd": 205.29,
-        "roi_pct": 156.61,
-        "r_j": 0.02
-      },
-      {
-        "sku": 10066165,
-        "producto": "Memoria RAM TeamGroup T-Force Vulcan Z 8GB DDR4 3200Mhz CL16",
-        "categoria": "RAM",
-        "precio_costo_usd": 36.0,
-        "precio_venta_usd": 108.37,
-        "roi_pct": 201.03,
-        "r_j": 0.0611
-      }
-    ]
-  },
-  {
-    "sol_id": 8,
-    "tipo": "BALANCEADO",
-    "roi_pct": 42.79,
-    "rj_portafolio": 0.2657,
-    "n_skus": 8,
-    "capital_usd": 973.1,
-    "ganancia_usd": 416.37,
-    "skus": [
-      {
-        "sku": 10048087,
-        "producto": "Procesador Intel Core i5-14400 6+4-Cores, 4.7 GHz, LGA1700",
-        "categoria": "CPU",
-        "precio_costo_usd": 200.12,
-        "precio_venta_usd": 338.81,
-        "roi_pct": 69.3,
-        "r_j": 0.0002
-      },
-      {
-        "sku": 10048086,
-        "producto": "Procesador Intel Core i3-14100 4-Cores, 4.7 GHz, LGA1700",
-        "categoria": "CPU",
-        "precio_costo_usd": 200.12,
-        "precio_venta_usd": 206.12,
-        "roi_pct": 3.0,
-        "r_j": 0.0009
-      },
-      {
-        "sku": 10048431,
-        "producto": "Memoria Ram para Laptop Kingston KCP 16GB DDR4 3200Mhz SODIM",
-        "categoria": "RAM",
-        "precio_costo_usd": 99.0,
-        "precio_venta_usd": 155.36,
-        "roi_pct": 56.93,
-        "r_j": 0.0075
-      },
-      {
-        "sku": 10047321,
-        "producto": "Fuente de poder Antryx Kirin Gold Evo II 1000W, 80 Plus Gold",
-        "categoria": "PSU",
-        "precio_costo_usd": 115.59,
-        "precio_venta_usd": 219.97,
-        "roi_pct": 90.3,
-        "r_j": 0.0249
-      },
-      {
-        "sku": 10066291,
-        "producto": "Memoria RAM Kingston KVR 8GB, DDR4, 3200MT/s, CL22, SODIMM",
-        "categoria": "RAM",
-        "precio_costo_usd": 149.99,
-        "precio_venta_usd": 175.92,
-        "roi_pct": 17.29,
-        "r_j": 0.139
-      },
-      {
-        "sku": 21224,
-        "producto": "Placa madre Asrock H610M-HDV/M.2 R2.0, DDR4, M.2, LGA1700",
-        "categoria": "MOTHERBOARD",
-        "precio_costo_usd": 88.91,
-        "precio_venta_usd": 125.99,
-        "roi_pct": 41.71,
-        "r_j": 0.0065
-      },
-      {
-        "sku": 4339,
-        "producto": "Unidad de estado sólido SSD Kingston Ssd A400 480GB de capac",
-        "categoria": "SSD",
-        "precio_costo_usd": 29.37,
-        "precio_venta_usd": 49.86,
-        "roi_pct": 69.77,
-        "r_j": 0.9488
-      },
-      {
-        "sku": 10051005,
-        "producto": "Gabinete Antryx RX-250, USB3.0, FRGB FAN X4, panel lateral d",
-        "categoria": "CASE",
-        "precio_costo_usd": 90.0,
-        "precio_venta_usd": 117.44,
-        "roi_pct": 30.49,
-        "r_j": 0.9975
-      }
-    ]
-  },
-  {
-    "sol_id": 9,
-    "tipo": "BALANCEADO",
-    "roi_pct": 33.9,
-    "rj_portafolio": 0.3496,
+    "roi_pct": 174.77,
+    "rj_portafolio": 0.0687,
     "n_skus": 6,
-    "capital_usd": 827.39,
-    "ganancia_usd": 280.45,
-    "skus": [
-      {
-        "sku": 22034,
-        "producto": "Procesador Intel Core i3-13100F, 4.5Ghz, 4+4 cores, LGA1700",
-        "categoria": "CPU",
-        "precio_costo_usd": 200.12,
-        "precio_venta_usd": 279.83,
-        "roi_pct": 39.83,
-        "r_j": 0.0031
-      },
-      {
-        "sku": 10048431,
-        "producto": "Memoria Ram para Laptop Kingston KCP 16GB DDR4 3200Mhz SODIM",
-        "categoria": "RAM",
-        "precio_costo_usd": 99.0,
-        "precio_venta_usd": 155.36,
-        "roi_pct": 56.93,
-        "r_j": 0.0075
-      },
-      {
-        "sku": 10041907,
-        "producto": "Fuente de poder Seasonic Vertex GX-1200W 80Plus Gold Modular",
-        "categoria": "PSU",
-        "precio_costo_usd": 319.99,
-        "precio_venta_usd": 410.87,
-        "roi_pct": 28.4,
-        "r_j": 0.0423
-      },
-      {
-        "sku": 10061042,
-        "producto": "Placa madre Asrock H610M-HDV/M.2 R2.0, DDR4, M.2, LGA1700 (r",
-        "categoria": "MOTHERBOARD",
-        "precio_costo_usd": 88.91,
-        "precio_venta_usd": 94.48,
-        "roi_pct": 6.26,
-        "r_j": 0.0518
-      },
-      {
-        "sku": 4985,
-        "producto": "Unidad de estado sólido SSD Kingston SSD A400 960GB de capac",
-        "categoria": "SSD",
-        "precio_costo_usd": 29.37,
-        "precio_venta_usd": 49.86,
-        "roi_pct": 69.77,
-        "r_j": 0.997
-      },
-      {
-        "sku": 10041874,
-        "producto": "Gabinete Antryx XM-330 Xtreme, ITX/Micro ATX, Panel lateral ",
-        "categoria": "CASE",
-        "precio_costo_usd": 90.0,
-        "precio_venta_usd": 117.44,
-        "roi_pct": 30.49,
-        "r_j": 0.9961
-      }
-    ]
-  },
-  {
-    "sol_id": 10,
-    "tipo": "OPTIMO",
-    "roi_pct": 173.12,
-    "rj_portafolio": 0.2044,
-    "n_skus": 8,
-    "capital_usd": 753.04,
-    "ganancia_usd": 1303.67,
+    "capital_usd": 693.28,
+    "ganancia_usd": 1211.68,
     "skus": [
       {
         "sku": 10051505,
@@ -713,22 +1316,13 @@
         "r_j": 0.0
       },
       {
-        "sku": 10042119,
-        "producto": "Fuente de poder Teros TE-7175W 750W, 80 Plus Gold, F. modula",
-        "categoria": "PSU",
-        "precio_costo_usd": 49.94,
-        "precio_venta_usd": 168.87,
-        "roi_pct": 238.15,
-        "r_j": 0.2547
-      },
-      {
-        "sku": 10067164,
-        "producto": "Fuente de poder Antryx Kirin 850 GOLD, 850W, 80 Plus Gold, m",
-        "categoria": "PSU",
-        "precio_costo_usd": 33.49,
-        "precio_venta_usd": 120.91,
-        "roi_pct": 261.03,
-        "r_j": 0.9613
+        "sku": 10057317,
+        "producto": "Placa madre Asrock Z890 PRO-A LGA1851, DDR5, ATX",
+        "categoria": "MOTHERBOARD",
+        "precio_costo_usd": 122.67,
+        "precio_venta_usd": 293.39,
+        "roi_pct": 139.17,
+        "r_j": 0.0006
       },
       {
         "sku": 10057318,
@@ -738,15 +1332,6 @@
         "precio_venta_usd": 205.29,
         "roi_pct": 156.61,
         "r_j": 0.02
-      },
-      {
-        "sku": 10048431,
-        "producto": "Memoria Ram para Laptop Kingston KCP 16GB DDR4 3200Mhz SODIM",
-        "categoria": "RAM",
-        "precio_costo_usd": 99.0,
-        "precio_venta_usd": 155.36,
-        "roi_pct": 56.93,
-        "r_j": 0.0075
       },
       {
         "sku": 10066165,
@@ -760,7 +1345,7 @@
     ]
   },
   {
-    "sol_id": 11,
+    "sol_id": 20,
     "tipo": "AGRESIVO",
     "roi_pct": 148.78,
     "rj_portafolio": 0.3975,
@@ -843,627 +1428,42 @@
     ]
   },
   {
-    "sol_id": 12,
-    "tipo": "OPTIMO",
-    "roi_pct": 38.71,
-    "rj_portafolio": 0.0053,
-    "n_skus": 4,
-    "capital_usd": 717.28,
-    "ganancia_usd": 277.69,
-    "skus": [
-      {
-        "sku": 10047106,
-        "producto": "Procesador AMD Ryzen 5 7600X 6 cores, 5.3Ghz, AM5",
-        "categoria": "CPU",
-        "precio_costo_usd": 228.13,
-        "precio_venta_usd": 309.32,
-        "roi_pct": 35.59,
-        "r_j": 0.0012
-      },
-      {
-        "sku": 22034,
-        "producto": "Procesador Intel Core i3-13100F, 4.5Ghz, 4+4 cores, LGA1700",
-        "categoria": "CPU",
-        "precio_costo_usd": 200.12,
-        "precio_venta_usd": 279.83,
-        "roi_pct": 39.83,
-        "r_j": 0.0031
-      },
-      {
-        "sku": 22041,
-        "producto": "Procesador Intel Core i5-13400F, 2.5GHZ, 6+4 cores, LGA1700",
-        "categoria": "CPU",
-        "precio_costo_usd": 200.12,
-        "precio_venta_usd": 279.83,
-        "roi_pct": 39.83,
-        "r_j": 0.0106
-      },
-      {
-        "sku": 21224,
-        "producto": "Placa madre Asrock H610M-HDV/M.2 R2.0, DDR4, M.2, LGA1700",
-        "categoria": "MOTHERBOARD",
-        "precio_costo_usd": 88.91,
-        "precio_venta_usd": 125.99,
-        "roi_pct": 41.71,
-        "r_j": 0.0065
-      }
-    ]
-  },
-  {
-    "sol_id": 13,
-    "tipo": "AGRESIVO",
-    "roi_pct": 261.03,
-    "rj_portafolio": 0.9613,
-    "n_skus": 1,
-    "capital_usd": 33.49,
-    "ganancia_usd": 87.42,
-    "skus": [
-      {
-        "sku": 10067164,
-        "producto": "Fuente de poder Antryx Kirin 850 GOLD, 850W, 80 Plus Gold, m",
-        "categoria": "PSU",
-        "precio_costo_usd": 33.49,
-        "precio_venta_usd": 120.91,
-        "roi_pct": 261.03,
-        "r_j": 0.9613
-      }
-    ]
-  },
-  {
-    "sol_id": 14,
-    "tipo": "OPTIMO",
-    "roi_pct": 82.71,
-    "rj_portafolio": 0.1614,
-    "n_skus": 7,
-    "capital_usd": 1874.02,
-    "ganancia_usd": 1549.94,
-    "skus": [
-      {
-        "sku": 10067840,
-        "producto": "Tarjeta de video Asus Dual NVIDIA GeForce RTX 5050, 8GB GDDR",
-        "categoria": "GPU",
-        "precio_costo_usd": 178.32,
-        "precio_venta_usd": 498.97,
-        "roi_pct": 179.82,
-        "r_j": 0.0
-      },
-      {
-        "sku": 10057314,
-        "producto": "Procesador Intel Core Ultra 7 265KF, 5.5GHZ, 12+8 CORES, LGA",
-        "categoria": "CPU",
-        "precio_costo_usd": 200.0,
-        "precio_venta_usd": 471.5,
-        "roi_pct": 135.75,
-        "r_j": 0.0037
-      },
-      {
-        "sku": 10051504,
-        "producto": "Unidad de estado sólido SSD Kingston NV3 2000GB M.2 PCIE4.0 ",
-        "categoria": "SSD",
-        "precio_costo_usd": 1192.07,
-        "precio_venta_usd": 1881.72,
-        "roi_pct": 57.85,
-        "r_j": 0.0747
-      },
-      {
-        "sku": 10047321,
-        "producto": "Fuente de poder Antryx Kirin Gold Evo II 1000W, 80 Plus Gold",
-        "categoria": "PSU",
-        "precio_costo_usd": 115.59,
-        "precio_venta_usd": 219.97,
-        "roi_pct": 90.3,
-        "r_j": 0.0249
-      },
-      {
-        "sku": 10048103,
-        "producto": "Placa madre MSI PRO B650M-P, socket AM5, DDR5 hasta 192GB, f",
-        "categoria": "MOTHERBOARD",
-        "precio_costo_usd": 62.85,
-        "precio_venta_usd": 146.55,
-        "roi_pct": 133.17,
-        "r_j": 0.0001
-      },
-      {
-        "sku": 10051005,
-        "producto": "Gabinete Antryx RX-250, USB3.0, FRGB FAN X4, panel lateral d",
-        "categoria": "CASE",
-        "precio_costo_usd": 90.0,
-        "precio_venta_usd": 117.44,
-        "roi_pct": 30.49,
-        "r_j": 0.9975
-      },
-      {
-        "sku": 24382,
-        "producto": "Memoria ram para laptop Kingston KCP 8GB DDR4, 3200Mhz",
-        "categoria": "RAM",
-        "precio_costo_usd": 35.19,
-        "precio_venta_usd": 87.81,
-        "roi_pct": 149.53,
-        "r_j": 0.0289
-      }
-    ]
-  },
-  {
-    "sol_id": 15,
-    "tipo": "BALANCEADO",
-    "roi_pct": 39.18,
-    "rj_portafolio": 0.2903,
-    "n_skus": 7,
-    "capital_usd": 989.06,
-    "ganancia_usd": 387.55,
-    "skus": [
-      {
-        "sku": 10047106,
-        "producto": "Procesador AMD Ryzen 5 7600X 6 cores, 5.3Ghz, AM5",
-        "categoria": "CPU",
-        "precio_costo_usd": 228.13,
-        "precio_venta_usd": 309.32,
-        "roi_pct": 35.59,
-        "r_j": 0.0012
-      },
-      {
-        "sku": 22034,
-        "producto": "Procesador Intel Core i3-13100F, 4.5Ghz, 4+4 cores, LGA1700",
-        "categoria": "CPU",
-        "precio_costo_usd": 200.12,
-        "precio_venta_usd": 279.83,
-        "roi_pct": 39.83,
-        "r_j": 0.0031
-      },
-      {
-        "sku": 10048431,
-        "producto": "Memoria Ram para Laptop Kingston KCP 16GB DDR4 3200Mhz SODIM",
-        "categoria": "RAM",
-        "precio_costo_usd": 99.0,
-        "precio_venta_usd": 155.36,
-        "roi_pct": 56.93,
-        "r_j": 0.0075
-      },
-      {
-        "sku": 10044548,
-        "producto": "Procesador AMD Ryzen 5 8600G (IA), 5Ghz, 6 cores, AM5,  65W",
-        "categoria": "CPU",
-        "precio_costo_usd": 253.53,
-        "precio_venta_usd": 338.81,
-        "roi_pct": 33.64,
-        "r_j": 0.0204
-      },
-      {
-        "sku": 21224,
-        "producto": "Placa madre Asrock H610M-HDV/M.2 R2.0, DDR4, M.2, LGA1700",
-        "categoria": "MOTHERBOARD",
-        "precio_costo_usd": 88.91,
-        "precio_venta_usd": 125.99,
-        "roi_pct": 41.71,
-        "r_j": 0.0065
-      },
-      {
-        "sku": 4985,
-        "producto": "Unidad de estado sólido SSD Kingston SSD A400 960GB de capac",
-        "categoria": "SSD",
-        "precio_costo_usd": 29.37,
-        "precio_venta_usd": 49.86,
-        "roi_pct": 69.77,
-        "r_j": 0.997
-      },
-      {
-        "sku": 10041874,
-        "producto": "Gabinete Antryx XM-330 Xtreme, ITX/Micro ATX, Panel lateral ",
-        "categoria": "CASE",
-        "precio_costo_usd": 90.0,
-        "precio_venta_usd": 117.44,
-        "roi_pct": 30.49,
-        "r_j": 0.9961
-      }
-    ]
-  },
-  {
-    "sol_id": 16,
-    "tipo": "AGRESIVO",
-    "roi_pct": 196.97,
-    "rj_portafolio": 0.3365,
-    "n_skus": 7,
-    "capital_usd": 503.77,
-    "ganancia_usd": 992.3,
-    "skus": [
-      {
-        "sku": 10051505,
-        "producto": "Unidad de estado sólido SSD Kingston NV3 500GB M.2 PCIE4.0 N",
-        "categoria": "SSD",
-        "precio_costo_usd": 97.97,
-        "precio_venta_usd": 299.97,
-        "roi_pct": 206.19,
-        "r_j": 0.3308
-      },
-      {
-        "sku": 10067839,
-        "producto": "Tarjeta de video Asus Dual NVIDIA GeForce RTX 5060, 8GB GDDR",
-        "categoria": "GPU",
-        "precio_costo_usd": 178.32,
-        "precio_venta_usd": 498.97,
-        "roi_pct": 179.82,
-        "r_j": 0.0
-      },
-      {
-        "sku": 10042119,
-        "producto": "Fuente de poder Teros TE-7175W 750W, 80 Plus Gold, F. modula",
-        "categoria": "PSU",
-        "precio_costo_usd": 49.94,
-        "precio_venta_usd": 168.87,
-        "roi_pct": 238.15,
-        "r_j": 0.2547
-      },
-      {
-        "sku": 11750,
-        "producto": "Fuente de poder Seasonic A12, 600W, 80 Plus, blanco",
-        "categoria": "PSU",
-        "precio_costo_usd": 28.05,
-        "precio_venta_usd": 93.69,
-        "roi_pct": 234.01,
-        "r_j": 0.7276
-      },
-      {
-        "sku": 10067164,
-        "producto": "Fuente de poder Antryx Kirin 850 GOLD, 850W, 80 Plus Gold, m",
-        "categoria": "PSU",
-        "precio_costo_usd": 33.49,
-        "precio_venta_usd": 120.91,
-        "roi_pct": 261.03,
-        "r_j": 0.9613
-      },
-      {
-        "sku": 10057318,
-        "producto": "Placa madre Asrock Prime B860M-A LGA1851, DDR5, MATX",
-        "categoria": "MOTHERBOARD",
-        "precio_costo_usd": 80.0,
-        "precio_venta_usd": 205.29,
-        "roi_pct": 156.61,
-        "r_j": 0.02
-      },
-      {
-        "sku": 10066165,
-        "producto": "Memoria RAM TeamGroup T-Force Vulcan Z 8GB DDR4 3200Mhz CL16",
-        "categoria": "RAM",
-        "precio_costo_usd": 36.0,
-        "precio_venta_usd": 108.37,
-        "roi_pct": 201.03,
-        "r_j": 0.0611
-      }
-    ]
-  },
-  {
-    "sol_id": 17,
-    "tipo": "ESTRELLA",
-    "roi_pct": 174.77,
-    "rj_portafolio": 0.0687,
-    "n_skus": 6,
-    "capital_usd": 693.28,
-    "ganancia_usd": 1211.68,
-    "skus": [
-      {
-        "sku": 10051505,
-        "producto": "Unidad de estado sólido SSD Kingston NV3 500GB M.2 PCIE4.0 N",
-        "categoria": "SSD",
-        "precio_costo_usd": 97.97,
-        "precio_venta_usd": 299.97,
-        "roi_pct": 206.19,
-        "r_j": 0.3308
-      },
-      {
-        "sku": 10067839,
-        "producto": "Tarjeta de video Asus Dual NVIDIA GeForce RTX 5060, 8GB GDDR",
-        "categoria": "GPU",
-        "precio_costo_usd": 178.32,
-        "precio_venta_usd": 498.97,
-        "roi_pct": 179.82,
-        "r_j": 0.0
-      },
-      {
-        "sku": 10067840,
-        "producto": "Tarjeta de video Asus Dual NVIDIA GeForce RTX 5050, 8GB GDDR",
-        "categoria": "GPU",
-        "precio_costo_usd": 178.32,
-        "precio_venta_usd": 498.97,
-        "roi_pct": 179.82,
-        "r_j": 0.0
-      },
-      {
-        "sku": 10057317,
-        "producto": "Placa madre Asrock Z890 PRO-A LGA1851, DDR5, ATX",
-        "categoria": "MOTHERBOARD",
-        "precio_costo_usd": 122.67,
-        "precio_venta_usd": 293.39,
-        "roi_pct": 139.17,
-        "r_j": 0.0006
-      },
-      {
-        "sku": 10057318,
-        "producto": "Placa madre Asrock Prime B860M-A LGA1851, DDR5, MATX",
-        "categoria": "MOTHERBOARD",
-        "precio_costo_usd": 80.0,
-        "precio_venta_usd": 205.29,
-        "roi_pct": 156.61,
-        "r_j": 0.02
-      },
-      {
-        "sku": 10066165,
-        "producto": "Memoria RAM TeamGroup T-Force Vulcan Z 8GB DDR4 3200Mhz CL16",
-        "categoria": "RAM",
-        "precio_costo_usd": 36.0,
-        "precio_venta_usd": 108.37,
-        "roi_pct": 201.03,
-        "r_j": 0.0611
-      }
-    ]
-  },
-  {
-    "sol_id": 18,
-    "tipo": "BALANCEADO",
-    "roi_pct": 48.08,
-    "rj_portafolio": 0.5915,
-    "n_skus": 5,
-    "capital_usd": 336.65,
-    "ganancia_usd": 161.86,
-    "skus": [
-      {
-        "sku": 10048431,
-        "producto": "Memoria Ram para Laptop Kingston KCP 16GB DDR4 3200Mhz SODIM",
-        "categoria": "RAM",
-        "precio_costo_usd": 99.0,
-        "precio_venta_usd": 155.36,
-        "roi_pct": 56.93,
-        "r_j": 0.0075
-      },
-      {
-        "sku": 21224,
-        "producto": "Placa madre Asrock H610M-HDV/M.2 R2.0, DDR4, M.2, LGA1700",
-        "categoria": "MOTHERBOARD",
-        "precio_costo_usd": 88.91,
-        "precio_venta_usd": 125.99,
-        "roi_pct": 41.71,
-        "r_j": 0.0065
-      },
-      {
-        "sku": 4985,
-        "producto": "Unidad de estado sólido SSD Kingston SSD A400 960GB de capac",
-        "categoria": "SSD",
-        "precio_costo_usd": 29.37,
-        "precio_venta_usd": 49.86,
-        "roi_pct": 69.77,
-        "r_j": 0.997
-      },
-      {
-        "sku": 4339,
-        "producto": "Unidad de estado sólido SSD Kingston Ssd A400 480GB de capac",
-        "categoria": "SSD",
-        "precio_costo_usd": 29.37,
-        "precio_venta_usd": 49.86,
-        "roi_pct": 69.77,
-        "r_j": 0.9488
-      },
-      {
-        "sku": 10051005,
-        "producto": "Gabinete Antryx RX-250, USB3.0, FRGB FAN X4, panel lateral d",
-        "categoria": "CASE",
-        "precio_costo_usd": 90.0,
-        "precio_venta_usd": 117.44,
-        "roi_pct": 30.49,
-        "r_j": 0.9975
-      }
-    ]
-  },
-  {
-    "sol_id": 19,
-    "tipo": "ESTRELLA",
-    "roi_pct": 181.76,
-    "rj_portafolio": 0.0204,
-    "n_skus": 3,
-    "capital_usd": 392.64,
-    "ganancia_usd": 713.67,
-    "skus": [
-      {
-        "sku": 10067839,
-        "producto": "Tarjeta de video Asus Dual NVIDIA GeForce RTX 5060, 8GB GDDR",
-        "categoria": "GPU",
-        "precio_costo_usd": 178.32,
-        "precio_venta_usd": 498.97,
-        "roi_pct": 179.82,
-        "r_j": 0.0
-      },
-      {
-        "sku": 10067840,
-        "producto": "Tarjeta de video Asus Dual NVIDIA GeForce RTX 5050, 8GB GDDR",
-        "categoria": "GPU",
-        "precio_costo_usd": 178.32,
-        "precio_venta_usd": 498.97,
-        "roi_pct": 179.82,
-        "r_j": 0.0
-      },
-      {
-        "sku": 10066165,
-        "producto": "Memoria RAM TeamGroup T-Force Vulcan Z 8GB DDR4 3200Mhz CL16",
-        "categoria": "RAM",
-        "precio_costo_usd": 36.0,
-        "precio_venta_usd": 108.37,
-        "roi_pct": 201.03,
-        "r_j": 0.0611
-      }
-    ]
-  },
-  {
-    "sol_id": 20,
-    "tipo": "AGRESIVO",
-    "roi_pct": 222.6,
-    "rj_portafolio": 0.4671,
-    "n_skus": 5,
-    "capital_usd": 245.45,
-    "ganancia_usd": 546.36,
-    "skus": [
-      {
-        "sku": 10051505,
-        "producto": "Unidad de estado sólido SSD Kingston NV3 500GB M.2 PCIE4.0 N",
-        "categoria": "SSD",
-        "precio_costo_usd": 97.97,
-        "precio_venta_usd": 299.97,
-        "roi_pct": 206.19,
-        "r_j": 0.3308
-      },
-      {
-        "sku": 10042119,
-        "producto": "Fuente de poder Teros TE-7175W 750W, 80 Plus Gold, F. modula",
-        "categoria": "PSU",
-        "precio_costo_usd": 49.94,
-        "precio_venta_usd": 168.87,
-        "roi_pct": 238.15,
-        "r_j": 0.2547
-      },
-      {
-        "sku": 11750,
-        "producto": "Fuente de poder Seasonic A12, 600W, 80 Plus, blanco",
-        "categoria": "PSU",
-        "precio_costo_usd": 28.05,
-        "precio_venta_usd": 93.69,
-        "roi_pct": 234.01,
-        "r_j": 0.7276
-      },
-      {
-        "sku": 10067164,
-        "producto": "Fuente de poder Antryx Kirin 850 GOLD, 850W, 80 Plus Gold, m",
-        "categoria": "PSU",
-        "precio_costo_usd": 33.49,
-        "precio_venta_usd": 120.91,
-        "roi_pct": 261.03,
-        "r_j": 0.9613
-      },
-      {
-        "sku": 10066165,
-        "producto": "Memoria RAM TeamGroup T-Force Vulcan Z 8GB DDR4 3200Mhz CL16",
-        "categoria": "RAM",
-        "precio_costo_usd": 36.0,
-        "precio_venta_usd": 108.37,
-        "roi_pct": 201.03,
-        "r_j": 0.0611
-      }
-    ]
-  },
-  {
     "sol_id": 21,
     "tipo": "OPTIMO",
-    "roi_pct": 39.67,
-    "rj_portafolio": 0.0497,
-    "n_skus": 11,
-    "capital_usd": 1755.7,
-    "ganancia_usd": 696.49,
+    "roi_pct": 222.6,
+    "rj_portafolio": 0.1579,
+    "n_skus": 2,
+    "capital_usd": 85.94,
+    "ganancia_usd": 191.3,
     "skus": [
       {
-        "sku": 10047106,
-        "producto": "Procesador AMD Ryzen 5 7600X 6 cores, 5.3Ghz, AM5",
-        "categoria": "CPU",
-        "precio_costo_usd": 228.13,
-        "precio_venta_usd": 309.32,
-        "roi_pct": 35.59,
-        "r_j": 0.0012
-      },
-      {
-        "sku": 10048087,
-        "producto": "Procesador Intel Core i5-14400 6+4-Cores, 4.7 GHz, LGA1700",
-        "categoria": "CPU",
-        "precio_costo_usd": 200.12,
-        "precio_venta_usd": 338.81,
-        "roi_pct": 69.3,
-        "r_j": 0.0002
-      },
-      {
-        "sku": 10057318,
-        "producto": "Placa madre Asrock Prime B860M-A LGA1851, DDR5, MATX",
-        "categoria": "MOTHERBOARD",
-        "precio_costo_usd": 80.0,
-        "precio_venta_usd": 205.29,
-        "roi_pct": 156.61,
-        "r_j": 0.02
-      },
-      {
-        "sku": 22034,
-        "producto": "Procesador Intel Core i3-13100F, 4.5Ghz, 4+4 cores, LGA1700",
-        "categoria": "CPU",
-        "precio_costo_usd": 200.12,
-        "precio_venta_usd": 279.83,
-        "roi_pct": 39.83,
-        "r_j": 0.0031
-      },
-      {
-        "sku": 10048086,
-        "producto": "Procesador Intel Core i3-14100 4-Cores, 4.7 GHz, LGA1700",
-        "categoria": "CPU",
-        "precio_costo_usd": 200.12,
-        "precio_venta_usd": 206.12,
-        "roi_pct": 3.0,
-        "r_j": 0.0009
-      },
-      {
-        "sku": 10047321,
-        "producto": "Fuente de poder Antryx Kirin Gold Evo II 1000W, 80 Plus Gold",
+        "sku": 10042119,
+        "producto": "Fuente de poder Teros TE-7175W 750W, 80 Plus Gold, F. modula",
         "categoria": "PSU",
-        "precio_costo_usd": 115.59,
-        "precio_venta_usd": 219.97,
-        "roi_pct": 90.3,
-        "r_j": 0.0249
+        "precio_costo_usd": 49.94,
+        "precio_venta_usd": 168.87,
+        "roi_pct": 238.15,
+        "r_j": 0.2547
       },
       {
-        "sku": 10066291,
-        "producto": "Memoria RAM Kingston KVR 8GB, DDR4, 3200MT/s, CL22, SODIMM",
+        "sku": 10066165,
+        "producto": "Memoria RAM TeamGroup T-Force Vulcan Z 8GB DDR4 3200Mhz CL16",
         "categoria": "RAM",
-        "precio_costo_usd": 149.99,
-        "precio_venta_usd": 175.92,
-        "roi_pct": 17.29,
-        "r_j": 0.139
-      },
-      {
-        "sku": 22041,
-        "producto": "Procesador Intel Core i5-13400F, 2.5GHZ, 6+4 cores, LGA1700",
-        "categoria": "CPU",
-        "precio_costo_usd": 200.12,
-        "precio_venta_usd": 279.83,
-        "roi_pct": 39.83,
-        "r_j": 0.0106
-      },
-      {
-        "sku": 10047323,
-        "producto": "Fuente de poder Seasonic A12 500W, 80 Plus White",
-        "categoria": "PSU",
-        "precio_costo_usd": 37.99,
-        "precio_venta_usd": 73.13,
-        "roi_pct": 92.5,
-        "r_j": 0.2481
-      },
-      {
-        "sku": 10043282,
-        "producto": "Procesador AMD ATHLON 3000G 3.5Ghz, 2 CORES, AM4",
-        "categoria": "CPU",
-        "precio_costo_usd": 253.53,
-        "precio_venta_usd": 265.09,
-        "roi_pct": 4.56,
-        "r_j": 0.0243
-      },
-      {
-        "sku": 10067162,
-        "producto": "Placa madre Gigabyte B550M-K AM4, DDR4 (reempacado)",
-        "categoria": "MOTHERBOARD",
-        "precio_costo_usd": 89.99,
-        "precio_venta_usd": 98.88,
-        "roi_pct": 9.88,
-        "r_j": 0.0746
+        "precio_costo_usd": 36.0,
+        "precio_venta_usd": 108.37,
+        "roi_pct": 201.03,
+        "r_j": 0.0611
       }
     ]
   },
   {
     "sol_id": 22,
-    "tipo": "OPTIMO",
-    "roi_pct": 186.79,
-    "rj_portafolio": 0.2289,
+    "tipo": "ESTRELLA",
+    "roi_pct": 186.91,
+    "rj_portafolio": 0.1111,
     "n_skus": 6,
-    "capital_usd": 604.1,
-    "ganancia_usd": 1128.38,
+    "capital_usd": 620.55,
+    "ganancia_usd": 1159.89,
     "skus": [
       {
         "sku": 10051505,
@@ -1493,13 +1493,13 @@
         "r_j": 0.0
       },
       {
-        "sku": 10067164,
-        "producto": "Fuente de poder Antryx Kirin 850 GOLD, 850W, 80 Plus Gold, m",
+        "sku": 10042119,
+        "producto": "Fuente de poder Teros TE-7175W 750W, 80 Plus Gold, F. modula",
         "categoria": "PSU",
-        "precio_costo_usd": 33.49,
-        "precio_venta_usd": 120.91,
-        "roi_pct": 261.03,
-        "r_j": 0.9613
+        "precio_costo_usd": 49.94,
+        "precio_venta_usd": 168.87,
+        "roi_pct": 238.15,
+        "r_j": 0.2547
       },
       {
         "sku": 10057318,

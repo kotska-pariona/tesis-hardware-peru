@@ -1,11 +1,11 @@
 {
   "model": "LightGBM",
   "oe": "OE2",
-  "timestamp": "2026-08-04T22:50:43.687258",
+  "timestamp": "2026-08-07T13:59:57.719570",
   "justificacion": "TFT descartado: solo 9 días de historia (necesita 30+). LightGBM elegido por robustez con datos tabulares escasos.",
   "config": {
     "num_boost_round": 2000,
-    "best_iteration": 451,
+    "best_iteration": 798,
     "features": [
       "lag_1",
       "lag_2",
@@ -38,19 +38,19 @@
     "test_r2": 0.995914
   },
   "metrics_val": {
-    "mae": 3.8486,
-    "rmse": 45.2602,
-    "mape": 0.3596,
-    "wmape": 0.7488,
-    "r2": 0.996631,
+    "mae": 3.5439,
+    "rmse": 45.3944,
+    "mape": 0.324,
+    "wmape": 0.6895,
+    "r2": 0.996611,
     "n": 29278
   },
   "metrics_test": {
-    "mae": 4.1075,
-    "rmse": 40.6752,
-    "mape": 0.6364,
-    "wmape": 0.876,
-    "r2": 0.996768,
+    "mae": 3.6852,
+    "rmse": 40.1501,
+    "mape": 0.5953,
+    "wmape": 0.7859,
+    "r2": 0.996851,
     "n": 56029
   },
   "metas_tesis": {
