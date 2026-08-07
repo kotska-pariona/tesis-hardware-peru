@@ -67,47 +67,34 @@ def load_catalog(verbose: bool = True) -> pd.DataFrame:
     df["ganancia_unitaria"] = pd.to_numeric(df["ganancia_unitaria"], errors="coerce")
     df["r_j"] = pd.to_numeric(df["r_j"], errors="coerce")
 
-    roi_median = df["roi_unitario_pct"].median()
-    gan_median = df["ganancia_unitaria"].median()
+    # ── Usar precios en USD ya calculados en la matrix ──────────────────
     rj_median = df["r_j"].median()
-
-    nan_roi = int(df["roi_unitario_pct"].isna().sum())
-    nan_gan = int(df["ganancia_unitaria"].isna().sum())
     nan_rj = int(df["r_j"].isna().sum())
-
-    df["roi_unitario_pct"] = df["roi_unitario_pct"].fillna(roi_median)
-    df["ganancia_unitaria"] = df["ganancia_unitaria"].fillna(gan_median)
     df["r_j"] = df["r_j"].fillna(rj_median)
 
-    df["roi_esperado_pct"] = df["roi_unitario_pct"]
+    # precio_costo_usd y precio_venta_usd ya están en la matrix corregidos
+    df["precio_costo"] = pd.to_numeric(df["precio_costo_usd"], errors="coerce")
+    df["precio_venta"] = pd.to_numeric(df["precio_venta_usd"], errors="coerce")
+
+    med_c = df["precio_costo"].median()
+    med_v = df["precio_venta"].median()
+    nan_costo = int(df["precio_costo"].isna().sum())
+    df["precio_costo"] = df["precio_costo"].fillna(med_c)
+    df["precio_venta"] = df["precio_venta"].fillna(med_v)
+
+    # roi_esperado_pct desde roi_usd_pct (ya en USD)
+    df["roi_esperado_pct"]  = pd.to_numeric(df["roi_usd_pct"], errors="coerce").fillna(
+                                    pd.to_numeric(df["roi_usd_pct"], errors="coerce").median())
     df["roi_esperado_frac"] = df["roi_esperado_pct"] / 100.0
 
-    gan = df["ganancia_unitaria"].values
-    roi = df["roi_esperado_frac"].values
-
-    costo_usd = np.where(roi > 0, gan / roi, np.nan)
-    venta_usd = costo_usd + gan
-
-    df["precio_costo"] = costo_usd
-    df["precio_venta"] = venta_usd
-
-    nan_costo = int(pd.isna(df["precio_costo"]).sum())
-    nan_venta = int(pd.isna(df["precio_venta"]).sum())
-
-    if nan_costo > 0 or nan_venta > 0:
-        med_c = pd.to_numeric(df["precio_costo"], errors="coerce").median()
-        med_v = pd.to_numeric(df["precio_venta"], errors="coerce").median()
-        df["precio_costo"] = pd.to_numeric(df["precio_costo"], errors="coerce").fillna(med_c)
-        df["precio_venta"] = pd.to_numeric(df["precio_venta"], errors="coerce").fillna(med_v)
-
     if verbose:
-        print(f"[CARGA] Imputación completada:")
-        print(f"  roi_unitario_pct NaN->mediana: {nan_roi}")
-        print(f"  ganancia_unitaria NaN->mediana: {nan_gan}")
-        print(f"  r_j NaN->mediana: {nan_rj}")
-        print(f"  ROI medio: {df['roi_esperado_pct'].mean():.1f}%")
-        print(f"  r_j medio: {df['r_j'].mean():.4f}")
-        print(f"  Precio costo medio: $ {df['precio_costo'].mean():.0f}")
+        print(f"[CARGA] Precios USD desde matrix (precio_costo_usd / precio_venta_usd):")
+        print(f"  r_j NaN->mediana     : {nan_rj}")
+        print(f"  precio_costo NaN     : {nan_costo}")
+        print(f"  ROI medio (USD)      : {df['roi_esperado_pct'].mean():.1f}%")
+        print(f"  r_j medio            : {df['r_j'].mean():.4f}")
+        print(f"  Precio costo medio   : $ {df['precio_costo'].mean():.0f}")
+        print(f"  Capital total cat.   : $ {df['precio_costo'].sum():,.0f}")
 
     df = df.reset_index(drop=True)
     return df
