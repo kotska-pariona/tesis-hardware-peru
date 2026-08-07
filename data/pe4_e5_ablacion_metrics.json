@@ -1,0 +1,40 @@
+{
+  "modelo": "multilingual-E5-large + MLP-3L",
+  "corpus_version": "v3",
+  "corpus_rows": 3000,
+  "embedding_dim": 1024,
+  "cv_folds": 5,
+  "cv_f1_macro_mean": 0.9678,
+  "cv_f1_macro_std": 0.0084,
+  "test_f1_macro": 0.9756,
+  "meta_alcanzada": true,
+  "fold_scores": [
+    0.9647,
+    0.9706,
+    0.9685,
+    0.9546,
+    0.9804
+  ],
+  "per_class": {
+    "VIGENTE": {
+      "precision": 0.9865,
+      "recall": 0.9733,
+      "f1-score": 0.9799,
+      "support": 150.0
+    },
+    "EN_RIESGO": {
+      "precision": 0.9673,
+      "recall": 0.9867,
+      "f1-score": 0.9769,
+      "support": 150.0
+    },
+    "OBSOLETO": {
+      "precision": 0.9732,
+      "recall": 0.9667,
+      "f1-score": 0.9699,
+      "support": 150.0
+    }
+  },
+  "elapsed_sec": 40.1,
+  "timestamp": "2026-08-06T15:10:54.622275"
+}
