@@ -1,0 +1,37 @@
+{
+  "0.3": {
+    "rj_max": 0.3,
+    "n_soluciones": 15,
+    "roi_max": 222.6,
+    "roi_mean": 124.77,
+    "roi_min": 38.71
+  },
+  "0.4": {
+    "rj_max": 0.4,
+    "n_soluciones": 18,
+    "roi_max": 222.6,
+    "roi_mean": 125.07,
+    "roi_min": 33.9
+  },
+  "0.5": {
+    "rj_max": 0.5,
+    "n_soluciones": 20,
+    "roi_max": 222.6,
+    "roi_mean": 126.85,
+    "roi_min": 33.9
+  },
+  "0.6": {
+    "rj_max": 0.6,
+    "n_soluciones": 21,
+    "roi_max": 222.6,
+    "roi_mean": 123.1,
+    "roi_min": 33.9
+  },
+  "0.7": {
+    "rj_max": 0.7,
+    "n_soluciones": 22,
+    "roi_max": 243.98,
+    "roi_mean": 128.6,
+    "roi_min": 33.9
+  }
+}

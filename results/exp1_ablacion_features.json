@@ -1,0 +1,22 @@
+{
+  "F5_lag_only": {
+    "n_features": 5,
+    "mape_test": 1.3745,
+    "r2_test": 0.996379
+  },
+  "F10_temporal": {
+    "n_features": 10,
+    "mape_test": 0.9531,
+    "r2_test": 0.999345
+  },
+  "F15_sku": {
+    "n_features": 15,
+    "mape_test": 0.8572,
+    "r2_test": 0.999755
+  },
+  "F21_full": {
+    "n_features": 21,
+    "mape_test": 0.81,
+    "r2_test": 0.999791
+  }
+}
