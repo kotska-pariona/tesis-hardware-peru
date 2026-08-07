@@ -33,3 +33,15 @@ Mayor ganancia en clase Obsoleto (+0.0052).
 | PE4 multilingual-E5-large (fine-tuned) | [kotska-pariona/pe4-e5-obsolescence](https://huggingface.co/kotska-pariona/pe4-e5-obsolescence) | F1-macro=0.9966 |
 
 > Modelo PE3 (LightGBM+MCP): trackeado en DVC (Google Drive remote)
+
+---
+
+## Pendientes Academicos
+
+### OE8 - Evaluacion SUS (Usabilidad) - Octubre 2026
+- Estado: Programada para octubre 2026
+- Instrumento: Cuestionario SUS (System Usability Scale, 10 items)
+- Meta: SUS Score >= 70 (clasificacion "Bueno")
+
+### Asesor
+- Estado: Por designar - completar en portada de main.tex
