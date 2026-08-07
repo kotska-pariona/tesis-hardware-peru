@@ -38,15 +38,18 @@ def run():
     print("  EXP4: Mondrian CP vs Bootstrap CI")
     print("=" * 60)
 
-    df = pd.read_csv(DATA_PATH, parse_dates=["fecha"])
-    df = df.sort_values(["sku_id","fecha"]).reset_index(drop=True)
+    df = pd.read_csv(DATA_PATH, low_memory=False)
+    df["price_date"] = pd.to_datetime(df["price_date"], format="%Y-%m-%d", errors="coerce")
+    df = df.dropna(subset=["price_date", "price_pen"])
+    df = df[df["price_pen"] > 0]
+    df = df.sort_values(["sku","price_date"]).reset_index(drop=True)
 
-    df["day_of_week"]  = df["fecha"].dt.dayofweek
-    df["day_of_month"] = df["fecha"].dt.day
-    df["month"]        = df["fecha"].dt.month
+    df["day_of_week"]  = df["price_date"].dt.dayofweek
+    df["day_of_month"] = df["price_date"].dt.day
+    df["month"]        = df["price_date"].dt.month
     df["is_weekend"]   = (df["day_of_week"] >= 5).astype(int)
 
-    grp = df.groupby("sku_id")["precio_soles"]
+    grp = df.groupby("sku")["price_pen"]
     for k in [1,2,3]:
         df[f"lag_{k}"] = grp.shift(k)
     for k in [2,3,5]:
@@ -55,12 +58,12 @@ def run():
     df["pct_change_1"] = grp.pct_change(1)
     df["pct_change_2"] = grp.pct_change(2)
 
-    sku_stats = df.groupby("sku_id")["precio_soles"].agg(["mean","std","min","max"])
+    sku_stats = df.groupby("sku")["price_pen"].agg(["mean","std","min","max"])
     sku_stats.columns = ["sku_mean","sku_std","sku_min","sku_max"]
-    df = df.merge(sku_stats, on="sku_id", how="left")
-    df["sku_enc"]      = df["sku_id"].astype("category").cat.codes
-    df["source_enc"]   = df["fuente"].astype("category").cat.codes if "fuente" in df.columns else 0
-    df["category_enc"] = df["categoria"].astype("category").cat.codes if "categoria" in df.columns else 0
+    df = df.merge(sku_stats, on="sku", how="left")
+    df["sku_enc"]      = df["sku"].astype("category").cat.codes
+    df["source_enc"]   = df["source"].astype("category").cat.codes if "source" in df.columns else 0
+    df["category_enc"] = df["category"].astype("category").cat.codes if "category" in df.columns else 0
     df = df.dropna(subset=["lag_1","lag_2","lag_3"])
 
     n = len(df)
@@ -69,12 +72,12 @@ def run():
     feats_ok   = [f for f in FEATURES if f in df.columns]
 
     X_train = df.iloc[:train_end][feats_ok]
-    y_train = df.iloc[:train_end]["precio_soles"]
+    y_train = df.iloc[:train_end]["price_pen"]
     X_cal   = df.iloc[train_end:cal_end][feats_ok]
-    y_cal   = df.iloc[train_end:cal_end]["precio_soles"]
+    y_cal   = df.iloc[train_end:cal_end]["price_pen"]
     X_test  = df.iloc[cal_end:][feats_ok]
-    y_test  = df.iloc[cal_end:]["precio_soles"]
-    precio_test = df.iloc[cal_end:]["precio_soles"].values
+    y_test  = df.iloc[cal_end:]["price_pen"]
+    precio_test = df.iloc[cal_end:]["price_pen"].values
 
     # Entrenar modelo base
     model = lgb.LGBMRegressor(

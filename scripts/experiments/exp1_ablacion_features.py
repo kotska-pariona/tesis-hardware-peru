@@ -42,17 +42,20 @@ def run():
     print("  EXP1: Ablación de Features LightGBM")
     print("=" * 60)
 
-    df = pd.read_csv(DATA_PATH, parse_dates=["fecha"])
-    df = df.sort_values(["sku_id","fecha"]).reset_index(drop=True)
+    df = pd.read_csv(DATA_PATH, low_memory=False)
+    df["price_date"] = pd.to_datetime(df["price_date"], format="%Y-%m-%d", errors="coerce")
+    df = df.dropna(subset=["price_date", "price_pen"])
+    df = df[df["price_pen"] > 0]
+    df = df.sort_values(["sku","price_date"]).reset_index(drop=True)
 
     # Features de tiempo
-    df["day_of_week"]  = df["fecha"].dt.dayofweek
-    df["day_of_month"] = df["fecha"].dt.day
-    df["month"]        = df["fecha"].dt.month
+    df["day_of_week"]  = df["price_date"].dt.dayofweek
+    df["day_of_month"] = df["price_date"].dt.day
+    df["month"]        = df["price_date"].dt.month
     df["is_weekend"]   = (df["day_of_week"] >= 5).astype(int)
 
     # Lags y medias móviles por SKU
-    grp = df.groupby("sku_id")["precio_soles"]
+    grp = df.groupby("sku")["price_pen"]
     for k in [1,2,3]:
         df[f"lag_{k}"] = grp.shift(k)
     for k in [2,3,5]:
@@ -62,17 +65,17 @@ def run():
     df["pct_change_2"] = grp.pct_change(2)
 
     # Stats por SKU
-    sku_stats = df.groupby("sku_id")["precio_soles"].agg(["mean","std","min","max"])
+    sku_stats = df.groupby("sku")["price_pen"].agg(["mean","std","min","max"])
     sku_stats.columns = ["sku_mean","sku_std","sku_min","sku_max"]
-    df = df.merge(sku_stats, on="sku_id", how="left")
+    df = df.merge(sku_stats, on="sku", how="left")
 
     # Encodings
-    df["sku_enc"]      = df["sku_id"].astype("category").cat.codes
-    df["source_enc"]   = df["fuente"].astype("category").cat.codes if "fuente" in df.columns else 0
-    df["category_enc"] = df["categoria"].astype("category").cat.codes if "categoria" in df.columns else 0
+    df["sku_enc"]      = df["sku"].astype("category").cat.codes
+    df["source_enc"]   = df["source"].astype("category").cat.codes if "source" in df.columns else 0
+    df["category_enc"] = df["category"].astype("category").cat.codes if "category" in df.columns else 0
 
     df = df.dropna(subset=["lag_1","lag_2","lag_3"])
-    target = "precio_soles"
+    target = "price_pen"
 
     n = len(df)
     train_end = int(n * 0.7)
