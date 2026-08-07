@@ -1,3 +1,10 @@
+# ============================================================
+# pipeline.yml — Workflow secundario HDS-ROI v6.0
+# Proposito : Re-entrenamiento completo manual del pipeline
+# Diferencia: daily_agent.yml = scraping incremental (cron)
+#             pipeline.yml    = re-entrenamiento (manual)
+# Trigger   : workflow_dispatch (manual desde GitHub Actions)
+# ============================================================
 # Pipeline ROI Importación PE — v2.4
 # [P25] checkout lfs:true  [P26] git lfs install  [P27] git lfs pull
 name: Pipeline ROI Importación PE

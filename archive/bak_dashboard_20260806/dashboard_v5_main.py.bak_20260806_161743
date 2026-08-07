@@ -21,7 +21,6 @@ import json
 import warnings
 from datetime import datetime
 from pathlib import Path
-from pages.page_obsolescencia import page_obsolescencia
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
@@ -378,20 +377,18 @@ sidebar = html.Div([
               "borderBottom": f"2px solid {COLORS['border']}", "marginBottom": "12px"}),
 
     dbc.Nav([
-        nav_link("🏠 Inicio",              "/",               "🏠"),
-        nav_link("🔬 Pipeline & Datos",    "/pipeline",       ICONS["pipeline"]),
-        nav_link("📊 Análisis de Datos",   "/datos",          ICONS["data"]),
-        nav_link("📈 Predicción Demanda",  "/prediccion",     "📈"),
-        nav_link("🧠 Obsolescencia NLP",   "/obsolescencia",  "🧠"),
-        nav_link("⚙️  NSGA-III OE9",       "/oe9",            ICONS["pareto"]),
-        nav_link("💼 Portafolios",         "/portafolios",    ICONS["portfolio"]),
-        nav_link("💰 Arbitraje ROI",       "/arbitraje",      "💰"),
-        nav_link("📉 Sensibilidad",        "/sensibilidad",   ICONS["sensitivity"]),
-        nav_link("🖥️  Simulador",          "/simulador",      "🖥️"),
-        nav_link("🎯 Motor de Decisión",   "/motor",          ICONS["home"]),
-        nav_link("🔬 Ablación Modelos",    "/ablacion",       ICONS["ablation"]),
-        nav_link("🏪 Competitividad",      "/competitividad", ICONS["competitive"]),
-        nav_link("📐 Pareto Original",     "/pareto",         ICONS["chart"]),
+        nav_link("🎯 Motor de Decisión",  "/",               ICONS["home"]),
+        nav_link("💰 Simulador",          "/simulador",      "💰"),
+        nav_link("📈 Predicción",         "/prediccion",     "📈"),
+        nav_link("OE9 NSGA-III",          "/oe9",            ICONS["pareto"]),
+        nav_link("Análisis de Datos",     "/datos",          ICONS["data"]),
+        nav_link("Portafolios",           "/portafolios",    ICONS["portfolio"]),
+        nav_link("Sensibilidad",          "/sensibilidad",   ICONS["sensitivity"]),
+        nav_link("Pareto Original",       "/pareto",         ICONS["chart"]),
+        nav_link("Competitividad",        "/competitividad", ICONS["competitive"]),
+        nav_link("Ablación Modelos",      "/ablacion",       ICONS["ablation"]),
+        nav_link("Pipeline & Datos",      "/pipeline",       ICONS["pipeline"]),
+        nav_link("📊 Arbitraje ROI",         "/arbitraje",      "📊"),
     ], vertical=True, pills=True,
        style={"padding": "8px 0", "flexDirection": "column"}),
 
@@ -429,356 +426,6 @@ sidebar = html.Div([
 # ─────────────────────────────────────────────
 # 4. MOTOR DE DECISIÓN
 # ─────────────────────────────────────────────
-
-def page_home_ejecutivo(capital_global=5000):
-    """
-    HOME — Resumen ejecutivo para defensa de tesis.
-    Flujo narrativo: Problema → Datos → Modelos → Optimización → Resultado
-    """
-    from pages.page_obsolescencia import _load_data as _load_nlp
-    import json
-
-    # ── Cargar métricas reales ─────────────────────────────────────────
-    try:
-        e5, _, _, df_feature = _load_nlp()
-        n_obsoletos = (df_feature["label_pred"] == "OBSOLETO").sum()
-        f1_e5       = e5["f1_macro"]
-        acc_e5      = e5["accuracy"]
-    except Exception:
-        f1_e5, acc_e5, n_obsoletos = 0.9966, 0.9973, 12
-
-    try:
-        with open("results/pe2_lgbm_metrics.json", encoding="utf-8") as f:
-            lgbm = json.load(f)
-        mape_lgbm = lgbm["metrics_test"]["mape"]
-        r2_lgbm   = lgbm["metrics_test"]["r2"]
-    except Exception:
-        mape_lgbm, r2_lgbm = 0.64, 0.9967
-
-    df_oe9      = DATA["oe9_pareto"]
-    n_pareto    = len(df_oe9)
-    roi_max     = df_oe9["roi_pct"].max()   if n_pareto > 0 else 0
-    roi_medio   = df_oe9["roi_pct"].mean()  if n_pareto > 0 else 0
-    rj_min      = df_oe9["rj_portafolio"].min() if n_pareto > 0 else 0
-
-    # ── Tarjeta de paso ───────────────────────────────────────────────
-    def step_card(num, titulo, subtitulo, metricas, color, icon, href):
-        return dbc.Col(
-            dbc.Card([
-                dbc.CardBody([
-                    # Número de paso
-                    html.Div([
-                        html.Span(str(num), style={
-                            "fontSize": "2.5rem", "fontWeight": 900,
-                            "color": color, "opacity": 0.15,
-                            "position": "absolute", "top": "8px", "right": "14px",
-                            "lineHeight": 1,
-                        }),
-                        html.Div([
-                            html.Span(icon, style={"fontSize": "1.6rem",
-                                                   "marginRight": "10px"}),
-                            html.Span(titulo, style={
-                                "fontSize": "0.95rem", "fontWeight": 700,
-                                "color": color,
-                            }),
-                        ], style={"display": "flex", "alignItems": "center",
-                                  "marginBottom": "6px"}),
-                        html.P(subtitulo, style={
-                            "fontSize": "0.75rem", "color": COLORS["text_dim"],
-                            "marginBottom": "12px", "lineHeight": "1.4",
-                        }),
-                        html.Hr(style={"borderColor": f"{color}44",
-                                       "margin": "8px 0"}),
-                        *[html.Div([
-                            html.Span(m_icon, style={"marginRight": "6px",
-                                                     "fontSize": "0.85rem"}),
-                            html.Span(m_label, style={
-                                "fontSize": "0.78rem",
-                                "color": COLORS["text_dim"],
-                                "marginRight": "4px",
-                            }),
-                            html.Span(m_val, style={
-                                "fontSize": "0.85rem", "fontWeight": 700,
-                                "color": m_color,
-                            }),
-                          ], style={"marginBottom": "4px",
-                                    "display": "flex", "alignItems": "center"})
-                          for m_icon, m_label, m_val, m_color in metricas],
-                        html.Div(
-                            dbc.Button([
-                                "Ver detalle ",
-                                html.Span("→", style={"fontWeight": 700}),
-                            ], href=href, color="link", size="sm",
-                               style={"color": color, "padding": "0",
-                                      "fontSize": "0.78rem",
-                                      "textDecoration": "none",
-                                      "marginTop": "10px"}),
-                        ),
-                    ], style={"position": "relative"}),
-                ], style={"padding": "16px"}),
-            ], style={
-                "background": COLORS["bg"],
-                "border": f"2px solid {color}55",
-                "borderTop": f"4px solid {color}",
-                "borderRadius": "10px",
-                "height": "100%",
-                "transition": "all 0.3s ease",
-            }, className="shadow-sm h-100"),
-        md=4)
-
-    # ── Flecha conectora ──────────────────────────────────────────────
-    def arrow():
-        return dbc.Col(
-            html.Div("→", style={
-                "fontSize": "2rem", "color": COLORS["text_dim"],
-                "textAlign": "center", "paddingTop": "40px",
-                "opacity": 0.4,
-            }), md=1, className="d-none d-lg-flex align-items-center justify-content-center")
-
-    # ── Métricas globales (banner) ────────────────────────────────────
-    banner = dbc.Row([
-        dbc.Col(dbc.Card([dbc.CardBody([
-            html.P("MAPE LightGBM", className="mb-1",
-                   style={"color": COLORS["text_dim"], "fontSize": "0.7rem",
-                          "textTransform": "uppercase", "fontWeight": 600}),
-            html.H3(f"{mape_lgbm:.2f}%", className="mb-0",
-                    style={"color": COLORS["green"], "fontWeight": 800}),
-            html.Small("Predicción de precios", style={"color": COLORS["text_dim"]}),
-        ], style={"textAlign": "center", "padding": "14px"})],
-        style={"background": COLORS["bg"],
-               "border": f"2px solid {COLORS['green']}",
-               "borderRadius": "10px"}), md=3),
-
-        dbc.Col(dbc.Card([dbc.CardBody([
-            html.P("F1-Macro E5-large", className="mb-1",
-                   style={"color": COLORS["text_dim"], "fontSize": "0.7rem",
-                          "textTransform": "uppercase", "fontWeight": 600}),
-            html.H3(f"{f1_e5:.4f}", className="mb-0",
-                    style={"color": COLORS["accent2"], "fontWeight": 800}),
-            html.Small("Clasificación NLP", style={"color": COLORS["text_dim"]}),
-        ], style={"textAlign": "center", "padding": "14px"})],
-        style={"background": COLORS["bg"],
-               "border": f"2px solid {COLORS['accent2']}",
-               "borderRadius": "10px"}), md=3),
-
-        dbc.Col(dbc.Card([dbc.CardBody([
-            html.P("Soluciones NSGA-III", className="mb-1",
-                   style={"color": COLORS["text_dim"], "fontSize": "0.7rem",
-                          "textTransform": "uppercase", "fontWeight": 600}),
-            html.H3(str(n_pareto), className="mb-0",
-                    style={"color": COLORS["accent"], "fontWeight": 800}),
-            html.Small(f"ROI máx: +{roi_max:.1f}%",
-                       style={"color": COLORS["text_dim"]}),
-        ], style={"textAlign": "center", "padding": "14px"})],
-        style={"background": COLORS["bg"],
-               "border": f"2px solid {COLORS['accent']}",
-               "borderRadius": "10px"}), md=3),
-
-        dbc.Col(dbc.Card([dbc.CardBody([
-            html.P("SKUs Obsoletos", className="mb-1",
-                   style={"color": COLORS["text_dim"], "fontSize": "0.7rem",
-                          "textTransform": "uppercase", "fontWeight": 600}),
-            html.H3(str(n_obsoletos), className="mb-0",
-                    style={"color": COLORS["red"], "fontWeight": 800}),
-            html.Small("Detectados por E5-large",
-                       style={"color": COLORS["text_dim"]}),
-        ], style={"textAlign": "center", "padding": "14px"})],
-        style={"background": COLORS["bg"],
-               "border": f"2px solid {COLORS['red']}",
-               "borderRadius": "10px"}), md=3),
-    ], className="mb-4 g-3")
-
-    # ── Tarjetas de pasos ─────────────────────────────────────────────
-    fila1 = dbc.Row([
-        step_card(1, "Pipeline & Datos",
-            "Scraping de 6 fuentes · 82 SKUs · Limpieza y normalización",
-            [("🌐", "Fuentes:", "6 plataformas",    COLORS["accent2"]),
-             ("📦", "SKUs:",    "82 productos",      COLORS["accent"]),
-             ("✅", "Calidad:", "0% faltantes",      COLORS["green"])],
-            COLORS["accent2"], "🔬", "/pipeline"),
-        step_card(2, "Análisis Exploratorio",
-            "Distribución de precios · Brechas de mercado · Features",
-            [("📊", "Variables:", "28 features",     COLORS["accent"]),
-             ("💹", "Brecha:",    "+35% promedio",   COLORS["green"]),
-             ("🏷️", "Categorías:","8 tipos HW",      COLORS["accent4"])],
-            COLORS["accent4"], "📊", "/datos"),
-        step_card(3, "Predicción Demanda",
-            "LightGBM vs TFT · Series temporales cortas · 4 horizontes",
-            [("🎯", "MAPE:",  f"{mape_lgbm:.2f}%",  COLORS["green"]),
-             ("📈", "R²:",    f"{r2_lgbm:.4f}",      COLORS["green"]),
-             ("🏆", "Modelo:","LightGBM ★",          COLORS["accent"])],
-            COLORS["green"], "📈", "/prediccion"),
-    ], className="mb-3 g-3")
-
-    fila2 = dbc.Row([
-        step_card(4, "Obsolescencia NLP",
-            "E5-large multilingual · 3 clases · Fine-tuning 5 épocas",
-            [("🧠", "F1-Macro:", f"{f1_e5:.4f}",    COLORS["green"]),
-             ("✅", "Accuracy:", f"{acc_e5:.4f}",    COLORS["green"]),
-             ("⚠️", "Obsoletos:",f"{n_obsoletos} SKUs", COLORS["red"])],
-            COLORS["accent2"], "🧠", "/obsolescencia"),
-        step_card(5, "Optimización NSGA-III",
-            "7 objetivos · 42,000 evaluaciones · Frente de Pareto",
-            [("⚙️", "Soluciones:", f"{n_pareto}",    COLORS["accent"]),
-             ("💰", "ROI máx:",   f"+{roi_max:.1f}%",COLORS["green"]),
-             ("🛡️", "r_j mín:",  f"{rj_min:.4f}",   COLORS["accent4"])],
-            COLORS["accent"], "⚙️", "/oe9"),
-        step_card(6, "Portafolios Óptimos",
-            "3 perfiles: Agresivo · Balanceado · Eficiente",
-            [("⚖️", "Perfil rec:", "Balanceado",     COLORS["accent"]),
-             ("💵", "Capital:",   f"${capital_global:,.0f}", COLORS["accent2"]),
-             ("📊", "ROI medio:", f"+{roi_medio:.1f}%", COLORS["green"])],
-            COLORS["purple"], "💼", "/portafolios"),
-    ], className="mb-3 g-3")
-
-    fila3 = dbc.Row([
-        step_card(7, "Arbitraje ROI",
-            "Oportunidades de compra · Ranking por ROI · Señales",
-            [("🏆", "Mejor ROI:",  "Ver ranking",    COLORS["accent3"]),
-             ("✅", "Rentables:",  "ROI > 10%",      COLORS["green"]),
-             ("📍", "Capital:",    "$3K óptimo",     COLORS["accent2"])],
-            COLORS["accent3"], "💰", "/arbitraje"),
-        step_card(8, "Sensibilidad",
-            "Monte Carlo n=1,000 · P5/Media/P95 · Tornado chart",
-            [("📉", "P5:",    "Ver análisis",        COLORS["red"]),
-             ("📈", "P95:",   "Ver análisis",        COLORS["green"]),
-             ("🎲", "Sim.:",  "1,000 escenarios",    COLORS["accent4"])],
-            COLORS["accent4"], "📉", "/sensibilidad"),
-        step_card(9, "Simulador & Motor",
-            "Distribuye tu capital · Orden de compra accionable",
-            [("💵", "Capital:",  f"${capital_global:,.0f}", COLORS["accent2"]),
-             ("🛒", "Acción:",   "Plan detallado",   COLORS["accent"]),
-             ("🎯", "Sistema:",  "Integrado ★",      COLORS["green"])],
-            COLORS["green"], "🎯", "/motor"),
-    ], className="mb-4 g-3")
-
-    # ── Sección de conclusiones ───────────────────────────────────────
-    conclusiones = dbc.Row([
-        dbc.Col(dbc.Card([dbc.CardBody([
-            html.H6("🎓 Contribuciones de la Tesis",
-                    style={"color": COLORS["accent"], "fontWeight": 700,
-                           "borderBottom": f"2px solid {COLORS['accent']}",
-                           "paddingBottom": "8px", "marginBottom": "12px"}),
-            html.Ol([
-                html.Li([html.B("PE1 — Scraping: "),
-                         "Pipeline automatizado de 6 fuentes de datos de hardware"],
-                        style={"fontSize": "0.83rem", "marginBottom": "6px",
-                               "color": COLORS["text"]}),
-                html.Li([html.B("PE2 — Predicción: "),
-                         f"LightGBM MAPE={mape_lgbm:.2f}% supera TFT (73%) "
-                         "en datos escasos"],
-                        style={"fontSize": "0.83rem", "marginBottom": "6px",
-                               "color": COLORS["text"]}),
-                html.Li([html.B("PE3 — Competitividad: "),
-                         "Análisis de brechas de precio internacional vs local Perú"],
-                        style={"fontSize": "0.83rem", "marginBottom": "6px",
-                               "color": COLORS["text"]}),
-                html.Li([html.B("PE4 — NLP: "),
-                         f"E5-large F1={f1_e5:.4f} clasifica obsolescencia "
-                         "tecnológica con 99.73% accuracy"],
-                        style={"fontSize": "0.83rem", "marginBottom": "6px",
-                               "color": COLORS["text"]}),
-                html.Li([html.B("OE5/OE9 — NSGA-III: "),
-                         f"Optimización 7 objetivos → {n_pareto} portafolios "
-                         f"Pareto con ROI máx +{roi_max:.1f}%"],
-                        style={"fontSize": "0.83rem", "marginBottom": "0",
-                               "color": COLORS["text"]}),
-            ], style={"paddingLeft": "18px"}),
-        ])],
-        style={"background": COLORS["bg"],
-               "border": f"2px solid {COLORS['accent']}44",
-               "borderRadius": "10px"}), md=6),
-
-        dbc.Col(dbc.Card([dbc.CardBody([
-            html.H6("📋 Metas de Tesis — Estado",
-                    style={"color": COLORS["green"], "fontWeight": 700,
-                           "borderBottom": f"2px solid {COLORS['green']}",
-                           "paddingBottom": "8px", "marginBottom": "12px"}),
-            html.Table([
-                html.Tr([
-                    html.Td(html.B("Meta", style={"fontSize": "0.78rem",
-                                                   "color": COLORS["text_dim"]})),
-                    html.Td(html.B("Objetivo", style={"fontSize": "0.78rem",
-                                                       "color": COLORS["text_dim"]})),
-                    html.Td(html.B("Resultado", style={"fontSize": "0.78rem",
-                                                        "color": COLORS["text_dim"]})),
-                    html.Td(html.B("Estado", style={"fontSize": "0.78rem",
-                                                     "color": COLORS["text_dim"]})),
-                ], style={"borderBottom": f"2px solid {COLORS['border']}"}),
-                *[html.Tr([
-                    html.Td(html.B(meta, style={"fontSize": "0.8rem"})),
-                    html.Td(obj, style={"fontSize": "0.8rem",
-                                        "color": COLORS["text_dim"]}),
-                    html.Td(html.B(res, style={"color": COLORS["green"],
-                                               "fontSize": "0.85rem"})),
-                    html.Td(html.Span(estado, style={"fontSize": "1rem"})),
-                ], style={"borderBottom": f"1px solid {COLORS['border']}"})
-                for meta, obj, res, estado in [
-                    ("MAPE",    "< 2%",   f"{mape_lgbm:.2f}%",  "✅"),
-                    ("WMAPE",   "< 2%",   "1.12%",              "✅"),
-                    ("R²",      "> 0.85", f"{r2_lgbm:.4f}",     "✅"),
-                    ("F1-NLP",  "> 0.95", f"{f1_e5:.4f}",       "✅"),
-                    ("Pareto",  "> 10",   f"{n_pareto} sols.",   "✅"),
-                    ("ROI máx", "> 20%",  f"+{roi_max:.1f}%",   "✅"),
-                ]],
-            ], style={"width": "100%", "borderCollapse": "collapse",
-                      "fontSize": "0.82rem"}),
-        ])],
-        style={"background": COLORS["bg"],
-               "border": f"2px solid {COLORS['green']}44",
-               "borderRadius": "10px"}), md=6),
-    ], className="g-3")
-
-    return html.Div([
-        # Header
-        html.Div([
-            html.Div([
-                html.H2([
-                    html.Span("🎓 ", style={"marginRight": "8px"}),
-                    "HDS-ROI — Sistema de Decisión para Dropshipping de Hardware",
-                ], style={"color": COLORS["accent"], "fontWeight": 800,
-                          "marginBottom": "6px", "fontSize": "1.4rem"}),
-                html.P(
-                    "Tesis de Ingeniería Industrial · Optimización Multiobjetivo + "
-                    "NLP + Machine Learning · Coolbox Perú 2026",
-                    style={"color": COLORS["text_dim"], "fontSize": "0.85rem",
-                           "marginBottom": "0"}),
-            ], style={"flex": 1}),
-            dbc.Badge("DEFENSA LISTA ✓", color="success", pill=True,
-                      style={"fontSize": "0.85rem", "padding": "8px 16px",
-                             "alignSelf": "center"}),
-        ], style={"display": "flex", "justifyContent": "space-between",
-                  "alignItems": "flex-start",
-                  "background": COLORS["bg"],
-                  "border": f"2px solid {COLORS['accent']}44",
-                  "borderLeft": f"5px solid {COLORS['accent']}",
-                  "borderRadius": "10px",
-                  "padding": "20px 24px",
-                  "marginBottom": "24px"}),
-
-        # Banner métricas
-        section_title("📊 Resultados Clave", "📊"),
-        banner,
-
-        # Flujo paso a paso
-        section_title("🗺️ Flujo de Sustentación — Paso a Paso", "🗺️"),
-        dbc.Alert(
-            "Navega en orden para sustentar la tesis de forma estructurada. "
-            "Cada tarjeta muestra las métricas clave y enlaza a la pestaña correspondiente.",
-            color="light",
-            style={"border": f"1px solid {COLORS['border']}",
-                   "fontSize": "0.82rem", "padding": "8px 16px",
-                   "marginBottom": "16px"}),
-        fila1,
-        fila2,
-        fila3,
-
-        # Conclusiones
-        section_title("🎓 Contribuciones & Metas", "🎓"),
-        conclusiones,
-
-        html.Div(style={"height": "24px"}),
-    ], style={"padding": "24px"})
 
 def page_resumen(capital_global=5000):
     recomendaciones = generar_recomendaciones()
@@ -824,7 +471,7 @@ def page_resumen(capital_global=5000):
 
     kpi_row = dbc.Row([
         dbc.Col(kpi_card("ROI Recomendado",   f"+{rec_bal['roi']:.1f}%",
-                         "Portafolio OE9 · ver Simulador →",  COLORS["accent"],  "⚖️", "lg"), md=3),
+                         "Perfil Balanceado",  COLORS["accent"],  "⚖️", "lg"), md=3),
         dbc.Col(kpi_card("Capital Activo",    f"${capital_global:,.0f}",
                          "← Configura en sidebar", COLORS["accent2"], "💵", "lg"), md=3),
         dbc.Col(kpi_card("Ganancia Esperada",
@@ -929,37 +576,14 @@ def page_resumen(capital_global=5000):
                 f"Ganancia proyectada: ${capital_global * rec_bal['roi'] / 100:,.0f}",
                 style={"fontSize": "0.85rem"}),
             html.Br(),
-            html.Div([
-                html.Span("ℹ️ ", style={"fontSize": "0.85rem"}),
-                html.Span("¿Por qué el Simulador muestra un ROI distinto?",
-                          style={"fontWeight": 700, "fontSize": "0.78rem",
-                                 "color": COLORS["accent"], "cursor": "pointer"},
-                          id="tooltip-roi-diff"),
-                dbc.Tooltip(
-                    dbc.Card([
-                        dbc.CardBody([
-                            html.P([html.B("Motor de Decisión (este panel):"),
-                                    " muestra el ROI teórico del portafolio OE9 "
-                                    "optimizado por NSGA-III sobre los mejores 6 SKUs "
-                                    "seleccionados sin restricción de presupuesto total."],
-                                   style={"fontSize": "0.78rem", "marginBottom": "6px"}),
-                            html.P([html.B("Simulador (/simulador):"),
-                                    " calcula el ROI neto real distribuyendo "
-                                    "tu presupuesto en hasta 35 SKUs con costos de "
-                                    "importación, aranceles y límites por tipo de hardware."],
-                                   style={"fontSize": "0.78rem", "marginBottom": "6px"}),
-                            html.P("✅ Ambos son correctos — miden cosas distintas.",
-                                   style={"fontSize": "0.78rem", "fontWeight": 700,
-                                          "color": "#27ae60", "marginBottom": "0"}),
-                        ])
-                    ], style={"background": "#1e1e2e", "border": "1px solid #444",
-                              "maxWidth": "320px"}),
-                    target="tooltip-roi-diff",
-                    placement="top",
-                    style={"maxWidth": "340px", "padding": "0"},
-                ),
-            ], style={"marginTop": "6px"}),
-        ], color="info"),   # ← ✅ Alert cierra AQUÍ
+            html.Small(
+                "⚠️ ROI del portafolio OE9. El Simulador calcula el ROI neto real con costos de importación.",
+                style={"fontSize": "0.72rem", "color": "#aaa", "fontStyle": "italic"}
+            ),
+        ], color="success", style={"background": f"{COLORS['green']}15",
+                                   "border": f"2px solid {COLORS['green']}",
+                                   "color": COLORS["text"], "padding": "10px 14px",
+                                   "marginBottom": "10px"}),
         html.Table([
             html.Tr([html.Td(html.B(h, style={"color": COLORS["text_dim"],
                                                "fontSize": "0.78rem"}))
@@ -1008,7 +632,6 @@ def page_resumen(capital_global=5000):
     ])], style={"background": COLORS["bg"],
                 "border": f"2px solid {COLORS['border']}",
                 "borderRadius": "10px", "height": "100%"})
-
 
     return html.Div([
         section_title("🎯 Motor de Decisión v6.0 — ¿Qué comprar, cuánto y por qué?"),
@@ -2612,16 +2235,12 @@ def sync_capital_store(val):
 )
 def display_page(pathname, capital_global):
     capital_global = capital_global or 5000
-    if pathname in ("/", "/inicio"):
-        return page_home_ejecutivo(capital_global)
-    elif pathname == "/motor":
+    if pathname == "/":
         return page_resumen(capital_global)
     elif pathname == "/simulador":
         return page_simulador(capital_global)
     elif pathname == "/prediccion":
         return page_prediccion(capital_global)
-    elif pathname == "/obsolescencia":
-        return page_obsolescencia()
     elif pathname == "/oe9":
         return page_oe9()
     elif pathname == "/datos":
@@ -2644,8 +2263,9 @@ def display_page(pathname, capital_global):
         return html.Div([
             html.H3("404 — Página no encontrada",
                     style={"color": COLORS["text"], "padding": "24px"}),
+            html.P("La página que buscas no existe.",
+                   style={"color": COLORS["text_dim"], "padding": "0 24px"}),
         ])
-
 
 
 @app.callback(

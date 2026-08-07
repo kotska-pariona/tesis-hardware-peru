@@ -1,3 +1,9 @@
+"""
+scripts/oe9_nsga3_llm.py — Path canónico OE9
+NSGA-III con restricción semántica r_j <= 0.5 (integración E5-large)
+Generado automáticamente desde: scripts/oe9_nsga3.py
+HDS-ROI v6.0 — 2026-08-07
+"""
 # =============================================================================
 # oe9_nsga3.py  v1.5 — OE9: NSGA-III 7 Objetivos (MEJORADO CON REPORTES)
 # =============================================================================
