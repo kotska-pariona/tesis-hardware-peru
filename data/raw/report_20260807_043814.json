@@ -1,0 +1,21 @@
+{
+  "batch_id": "20260807_043814",
+  "timestamp": "2026-08-07T05:07:03.097761+00:00",
+  "elapsed_s": 1727.3,
+  "stats": {
+    "dolar": 1,
+    "local": 7237,
+    "mercadolibre_pe": 0,
+    "ripley_pe": 0,
+    "newegg_usa": 0,
+    "ebay": 16915,
+    "camel": 0,
+    "pcpartpicker": 0,
+    "kaggle": 0,
+    "importacion": 1510,
+    "competencia": 837,
+    "master_total": 405696
+  },
+  "new_added": 26232,
+  "master_total": 405696
+}
