@@ -155,6 +155,26 @@ def crear_sidebar():
                 href="/oe9-comparativa",
                 style={"textDecoration": "none"}
             ),
+            
+            dcc.Link(
+                html.Div([
+                    html.Span("📊 Arbitraje ROI", style={"marginLeft": "10px"}),
+                ], style={
+                    "display": "flex",
+                    "alignItems": "center",
+                    "padding": "12px",
+                    "marginBottom": "8px",
+                    "borderRadius": "6px",
+                    "backgroundColor": "#1a3a2a",
+                    "color": "#27ae60",
+                    "textDecoration": "none",
+                    "fontSize": "13px",
+                    "fontWeight": "600",
+                    "border": "1px solid #27ae60",
+                }),
+                href="/arbitraje",
+                style={"textDecoration": "none"}
+            ),
             dcc.Link(
                 html.Div([
                     html.Span("🎯 Decisión Final", style={"marginLeft": "10px"}),
