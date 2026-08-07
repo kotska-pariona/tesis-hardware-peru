@@ -1,90 +1,90 @@
 {
   "version": "1.5-OE9-SOFT-CONSTRAINTS",
-  "timestamp": "2026-07-30T18:19:52.008717",
+  "timestamp": "2026-08-06T15:49:25.115545",
   "input": "data\\features\\oe9_feature_matrix.csv",
-  "n_skus_catalogo": 82,
-  "budget_usd": 100000.0,
+  "n_skus_catalogo": 42,
+  "budget_usd": 6441.0,
   "rj_max": 0.5,
   "n_min_skus": 3,
   "problema": "BINARIO (0/1 por SKU) - SOFT CONSTRAINTS",
-  "n_generaciones": 200,
-  "tiempo_seg": 8.6,
-  "n_soluciones_pareto": 24,
+  "n_generaciones": 300,
+  "tiempo_seg": 11.5,
+  "n_soluciones_pareto": 23,
   "tipos_portafolio": {
-    "AGRESIVO": 11,
+    "AGRESIVO": 7,
     "OPTIMO": 7,
-    "ESTRELLA": 3,
-    "BALANCEADO": 3
+    "ESTRELLA": 5,
+    "BALANCEADO": 4
   },
   "roi_stats": {
-    "min": 39.64,
-    "max": 83.79,
-    "mean": 54.93,
-    "median": 56.61
+    "min": 33.9,
+    "max": 261.03,
+    "mean": 134.35,
+    "median": 149.51
   },
   "capital_stats": {
-    "min": 126.64,
-    "max": 3510.64,
-    "mean": 1255.22,
-    "median": 1016.1
+    "min": 33.49,
+    "max": 1874.02,
+    "mean": 782.57,
+    "median": 717.28
   },
   "ganancia_stats": {
-    "min": 76.15,
-    "max": 1448.68,
-    "mean": 614.18,
-    "median": 610.35
+    "min": 87.42,
+    "max": 1549.94,
+    "mean": 746.38,
+    "median": 713.67
   },
   "rj_stats": {
-    "min": 0.0012,
-    "max": 0.9989,
-    "mean": 0.3323,
-    "median": 0.321
+    "min": 0.0053,
+    "max": 0.9613,
+    "mean": 0.2756,
+    "median": 0.2289
   },
   "top5_pareto": [
     {
       "sol_id": 13,
       "tipo": "AGRESIVO",
-      "roi_pct": 83.79,
-      "rj_portafolio": 0.9989,
+      "roi_pct": 261.03,
+      "rj_portafolio": 0.9613,
       "n_skus": 1,
-      "capital_usd": 143.81,
-      "ganancia_usd": 120.5
+      "capital_usd": 33.49,
+      "ganancia_usd": 87.42
     },
     {
-      "sol_id": 18,
+      "sol_id": 0,
       "tipo": "AGRESIVO",
-      "roi_pct": 71.33,
-      "rj_portafolio": 0.8741,
-      "n_skus": 4,
-      "capital_usd": 634.35,
-      "ganancia_usd": 452.51
-    },
-    {
-      "sol_id": 7,
-      "tipo": "AGRESIVO",
-      "roi_pct": 70.83,
-      "rj_portafolio": 0.5001,
+      "roi_pct": 243.98,
+      "rj_portafolio": 0.6479,
       "n_skus": 3,
-      "capital_usd": 468.2,
-      "ganancia_usd": 331.61
+      "capital_usd": 111.48,
+      "ganancia_usd": 271.99
     },
     {
-      "sol_id": 22,
+      "sol_id": 6,
+      "tipo": "OPTIMO",
+      "roi_pct": 222.6,
+      "rj_portafolio": 0.1579,
+      "n_skus": 2,
+      "capital_usd": 85.94,
+      "ganancia_usd": 191.3
+    },
+    {
+      "sol_id": 20,
       "tipo": "AGRESIVO",
-      "roi_pct": 67.68,
-      "rj_portafolio": 0.8325,
+      "roi_pct": 222.6,
+      "rj_portafolio": 0.4671,
+      "n_skus": 5,
+      "capital_usd": 245.45,
+      "ganancia_usd": 546.36
+    },
+    {
+      "sol_id": 1,
+      "tipo": "ESTRELLA",
+      "roi_pct": 201.37,
+      "rj_portafolio": 0.1149,
       "n_skus": 3,
-      "capital_usd": 490.54,
-      "ganancia_usd": 332.01
-    },
-    {
-      "sol_id": 23,
-      "tipo": "AGRESIVO",
-      "roi_pct": 66.58,
-      "rj_portafolio": 0.5833,
-      "n_skus": 6,
-      "capital_usd": 1137.12,
-      "ganancia_usd": 757.08
+      "capital_usd": 121.13,
+      "ganancia_usd": 243.92
     }
   ]
 }

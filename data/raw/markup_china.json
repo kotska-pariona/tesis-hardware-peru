@@ -1,0 +1,103 @@
+{
+  "gpu": {
+    "precio_compra_china_usd": 389.67,
+    "costo_total_importado_usd": 506.57,
+    "precio_venta_objetivo_usd": 874.0,
+    "precio_venta_local_mediana_usd": 920.0,
+    "markup_neto": 1.725,
+    "roi_neto_pct": 72.5,
+    "fuente": "B+C-Proxy (eBay×0.45 + TablaRef)",
+    "n_venta_local": 7388
+  },
+  "ram": {
+    "precio_compra_china_usd": 57.2,
+    "costo_total_importado_usd": 74.36,
+    "precio_venta_objetivo_usd": 177.33,
+    "precio_venta_local_mediana_usd": 186.67,
+    "markup_neto": 2.385,
+    "roi_neto_pct": 138.5,
+    "fuente": "B+C-Proxy (eBay×0.45 + TablaRef)",
+    "n_venta_local": 9759
+  },
+  "cpu": {
+    "precio_compra_china_usd": 232.18,
+    "costo_total_importado_usd": 301.84,
+    "precio_venta_objetivo_usd": 759.75,
+    "precio_venta_local_mediana_usd": 799.73,
+    "markup_neto": 2.517,
+    "roi_neto_pct": 151.7,
+    "fuente": "A-AliExpress-CPU-moderna-$80-$700 (n=100)",
+    "n_venta_local": 7533,
+    "filtro_venta": "CPU consumer $150-$1500 USD local"
+  },
+  "motherboard": {
+    "precio_compra_china_usd": 70.42,
+    "costo_total_importado_usd": 91.55,
+    "precio_venta_objetivo_usd": 183.81,
+    "precio_venta_local_mediana_usd": 193.48,
+    "markup_neto": 2.008,
+    "roi_neto_pct": 100.8,
+    "fuente": "B+C-Proxy (eBay×0.45 + TablaRef)",
+    "n_venta_local": 937
+  },
+  "case": {
+    "precio_compra_china_usd": 45.32,
+    "costo_total_importado_usd": 58.91,
+    "precio_venta_objetivo_usd": 82.54,
+    "precio_venta_local_mediana_usd": 86.88,
+    "markup_neto": 1.401,
+    "roi_neto_pct": 40.1,
+    "fuente": "B+C-Proxy (eBay×0.45 + TablaRef)",
+    "n_venta_local": 810
+  },
+  "psu": {
+    "precio_compra_china_usd": 47.24,
+    "costo_total_importado_usd": 61.42,
+    "precio_venta_objetivo_usd": 126.41,
+    "precio_venta_local_mediana_usd": 133.07,
+    "markup_neto": 2.058,
+    "roi_neto_pct": 105.8,
+    "fuente": "B+C-Proxy (eBay×0.45 + TablaRef)",
+    "n_venta_local": 592
+  },
+  "laptop": {
+    "precio_compra_china_usd": 611.23,
+    "costo_total_importado_usd": 794.6,
+    "precio_venta_objetivo_usd": 760.0,
+    "precio_venta_local_mediana_usd": 800.0,
+    "markup_neto": 0.956,
+    "roi_neto_pct": -4.4,
+    "fuente": "B+C-Proxy (eBay×0.45 + TablaRef)",
+    "n_venta_local": 12370
+  },
+  "monitor": {
+    "precio_compra_china_usd": 93.31,
+    "costo_total_importado_usd": 121.3,
+    "precio_venta_objetivo_usd": 220.15,
+    "precio_venta_local_mediana_usd": 231.73,
+    "markup_neto": 1.815,
+    "roi_neto_pct": 81.5,
+    "fuente": "B+C-Proxy (eBay×0.45 + TablaRef)",
+    "n_venta_local": 10032
+  },
+  "ssd": {
+    "precio_compra_china_usd": 40,
+    "costo_total_importado_usd": 52.0,
+    "precio_venta_objetivo_usd": 227.75,
+    "precio_venta_local_mediana_usd": 239.73,
+    "markup_neto": 4.38,
+    "roi_neto_pct": 338.0,
+    "fuente": "B-TablaRef manual",
+    "n_venta_local": 9620
+  },
+  "cooler": {
+    "precio_compra_china_usd": 25,
+    "costo_total_importado_usd": 32.5,
+    "precio_venta_objetivo_usd": 90.41,
+    "precio_venta_local_mediana_usd": 95.17,
+    "markup_neto": 2.782,
+    "roi_neto_pct": 178.2,
+    "fuente": "B-TablaRef manual",
+    "n_venta_local": 706
+  }
+}
