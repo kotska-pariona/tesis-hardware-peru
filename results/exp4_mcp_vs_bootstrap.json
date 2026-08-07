@@ -1,0 +1,59 @@
+{
+  "alpha": 0.05,
+  "objetivo_cobertura": 95.0,
+  "n_bootstrap": 500,
+  "mondrian_cp": {
+    "S1_$5-$20": {
+      "cobertura": 95.1,
+      "ancho_medio": 13.08,
+      "n_test": 102
+    },
+    "S2_$20-$100": {
+      "cobertura": 94.68,
+      "ancho_medio": 4.21,
+      "n_test": 6095
+    },
+    "S3_$100-$500": {
+      "cobertura": 91.69,
+      "ancho_medio": 10.84,
+      "n_test": 9181
+    },
+    "S4_$500-$2k": {
+      "cobertura": 94.77,
+      "ancho_medio": 64.6,
+      "n_test": 10402
+    },
+    "S5_$2k+": {
+      "cobertura": 95.18,
+      "ancho_medio": 279.81,
+      "n_test": 9615
+    }
+  },
+  "bootstrap_ci": {
+    "S1_$5-$20": {
+      "cobertura": 0.0,
+      "ancho_medio": 1.58,
+      "n_test": 102
+    },
+    "S2_$20-$100": {
+      "cobertura": 91.76,
+      "ancho_medio": 2.34,
+      "n_test": 6095
+    },
+    "S3_$100-$500": {
+      "cobertura": 93.8,
+      "ancho_medio": 9.88,
+      "n_test": 9181
+    },
+    "S4_$500-$2k": {
+      "cobertura": 93.75,
+      "ancho_medio": 45.36,
+      "n_test": 10402
+    },
+    "S5_$2k+": {
+      "cobertura": 97.91,
+      "ancho_medio": 195.57,
+      "n_test": 9615
+    }
+  }
+}

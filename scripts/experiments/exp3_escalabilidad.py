@@ -29,15 +29,18 @@ def run():
     print("  EXP3: Escalabilidad temporal (MAPE vs días historia)")
     print("=" * 60)
 
-    df = pd.read_csv(DATA_PATH, parse_dates=["fecha"])
-    df = df.sort_values(["sku_id","fecha"]).reset_index(drop=True)
+    df = pd.read_csv(DATA_PATH, low_memory=False)
+    df["price_date"] = pd.to_datetime(df["price_date"], format="%Y-%m-%d", errors="coerce")
+    df = df.dropna(subset=["price_date", "price_pen"])
+    df = df[df["price_pen"] > 0]
+    df = df.sort_values(["sku","price_date"]).reset_index(drop=True)
 
-    df["day_of_week"]  = df["fecha"].dt.dayofweek
-    df["day_of_month"] = df["fecha"].dt.day
-    df["month"]        = df["fecha"].dt.month
+    df["day_of_week"]  = df["price_date"].dt.dayofweek
+    df["day_of_month"] = df["price_date"].dt.day
+    df["month"]        = df["price_date"].dt.month
     df["is_weekend"]   = (df["day_of_week"] >= 5).astype(int)
 
-    grp = df.groupby("sku_id")["precio_soles"]
+    grp = df.groupby("sku")["price_pen"]
     for k in [1,2,3]:
         df[f"lag_{k}"] = grp.shift(k)
     for k in [2,3,5]:
@@ -46,20 +49,20 @@ def run():
     df["pct_change_1"] = grp.pct_change(1)
     df["pct_change_2"] = grp.pct_change(2)
 
-    sku_stats = df.groupby("sku_id")["precio_soles"].agg(["mean","std","min","max"])
+    sku_stats = df.groupby("sku")["price_pen"].agg(["mean","std","min","max"])
     sku_stats.columns = ["sku_mean","sku_std","sku_min","sku_max"]
-    df = df.merge(sku_stats, on="sku_id", how="left")
-    df["sku_enc"]      = df["sku_id"].astype("category").cat.codes
-    df["source_enc"]   = df["fuente"].astype("category").cat.codes if "fuente" in df.columns else 0
-    df["category_enc"] = df["categoria"].astype("category").cat.codes if "categoria" in df.columns else 0
+    df = df.merge(sku_stats, on="sku", how="left")
+    df["sku_enc"]      = df["sku"].astype("category").cat.codes
+    df["source_enc"]   = df["source"].astype("category").cat.codes if "source" in df.columns else 0
+    df["category_enc"] = df["category"].astype("category").cat.codes if "category" in df.columns else 0
     df = df.dropna(subset=["lag_1","lag_2","lag_3"])
 
-    fecha_max = df["fecha"].max()
+    fecha_max = df["price_date"].max()
     results = {}
 
     for dias in DIAS_HISTORIA:
         fecha_corte = fecha_max - pd.Timedelta(days=dias)
-        df_sub = df[df["fecha"] >= fecha_corte].copy()
+        df_sub = df[df["price_date"] >= fecha_corte].copy()
 
         if len(df_sub) < 1000:
             print(f"  {dias:3d} días: insuficientes datos ({len(df_sub)} filas), saltando...")
@@ -70,9 +73,9 @@ def run():
         feats_ok = [f for f in FEATURES if f in df_sub.columns]
 
         X_train = df_sub.iloc[:train_end][feats_ok]
-        y_train = df_sub.iloc[:train_end]["precio_soles"]
+        y_train = df_sub.iloc[:train_end]["price_pen"]
         X_test  = df_sub.iloc[train_end:][feats_ok]
-        y_test  = df_sub.iloc[train_end:]["precio_soles"]
+        y_test  = df_sub.iloc[train_end:]["price_pen"]
 
         model = lgb.LGBMRegressor(
             objective="regression_l1", learning_rate=0.05,
