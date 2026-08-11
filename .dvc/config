@@ -1,1 +1,5 @@
 [core]
+    remote = gdrive
+['remote "gdrive"']
+    url = gdrive://TU_FOLDER_ID
+    gdrive_acknowledge_abuse = true
