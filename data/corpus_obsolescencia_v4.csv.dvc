@@ -1,0 +1,5 @@
+outs:
+- md5: 3b0a43abfa25ede528600616ea9c0b22
+  size: 921352
+  hash: md5
+  path: corpus_obsolescencia_v4.csv
