@@ -1,0 +1,5 @@
+outs:
+- md5: 735ad585164dc3e5907441c22c4ce4d0
+  size: 2390453
+  hash: md5
+  path: obsolescence_classifier_v2.pt
