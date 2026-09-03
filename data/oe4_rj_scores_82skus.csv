@@ -1,0 +1,83 @@
+sku,label_true,producto,marca,categoria,r_j,p_vigente,p_en_riesgo,p_obsoleto,label_pred,correct
+10048086,EN_RIESGO,"Procesador Intel Core i3-14100 4-Cores, 4.7 GHz, LGA1700",Intel,CPU,0.00093,5.4e-05,0.999016,0.00093,EN_RIESGO,1
+10047106,EN_RIESGO,"Procesador AMD Ryzen 5 7600X 6 cores, 5.3Ghz, AM5",amd,CPU,0.001215,0.996056,0.002729,0.001215,VIGENTE,0
+11439,OBSOLETO,"Procesador AMD Ryzen 5 5600G, 3.9Ghz, 6 cores, AM4",amd,CPU,0.014657,0.946641,0.038701,0.014657,VIGENTE,0
+10057314,VIGENTE,"Procesador Intel Core Ultra 7 265KF, 5.5GHZ, 12+8 CORES, LGA1851",Intel,CPU,0.003738,0.993316,0.002946,0.003738,VIGENTE,1
+22041,EN_RIESGO,"Procesador Intel Core i5-13400F, 2.5GHZ, 6+4 cores, LGA1700",Intel,CPU,0.010557,0.017063,0.97238,0.010557,EN_RIESGO,1
+10044548,EN_RIESGO,"Procesador AMD Ryzen 5 8600G (IA), 5Ghz, 6 cores, AM5,  65W",amd,CPU,0.020426,0.802719,0.176855,0.020426,VIGENTE,0
+10043282,OBSOLETO,"Procesador AMD ATHLON 3000G 3.5Ghz, 2 CORES, AM4",amd,CPU,0.024301,0.958008,0.017691,0.024301,VIGENTE,0
+10048087,EN_RIESGO,"Procesador Intel Core i5-14400 6+4-Cores, 4.7 GHz, LGA1700",Intel,CPU,0.000213,2.3e-05,0.999764,0.000213,EN_RIESGO,1
+22034,EN_RIESGO,"Procesador Intel Core i3-13100F, 4.5Ghz, 4+4 cores, LGA1700",Intel,CPU,0.003142,0.000342,0.996516,0.003142,EN_RIESGO,1
+10057313,VIGENTE,"Procesador Intel Core Ultra 5 225F, 4.9GHZ, 4+6 CORES, LGA1851",Intel,CPU,0.022729,0.92081,0.056462,0.022729,VIGENTE,1
+10067840,VIGENTE,"Tarjeta de video Asus Dual NVIDIA GeForce RTX 5050, 8GB GDDR6, PCI Express 5.0",Asus,GPU,1.8e-05,0.999973,9e-06,1.8e-05,VIGENTE,1
+10067839,VIGENTE,"Tarjeta de video Asus Dual NVIDIA GeForce RTX 5060, 8GB GDDR7, PCI Express 5.0",Asus,GPU,0.0,1.0,0.0,0.0,VIGENTE,1
+10066164,OBSOLETO,Memoria RAM TeamGroup Elite SODIMM 16GB DDR4 3200Mhz CL22 1.2v,Teamgroup,RAM,0.012534,0.00198,0.985486,0.012534,EN_RIESGO,0
+10048431,OBSOLETO,Memoria Ram para Laptop Kingston KCP 16GB DDR4 3200Mhz SODIMM,Kingston,RAM,0.007548,0.000583,0.99187,0.007548,EN_RIESGO,0
+12209,OBSOLETO,"Memoria RAM Kingston Fury Beast 8GB (1x8GB), DDR4, 3200Mhz, CL14",Kingston,RAM,0.125978,0.078354,0.795668,0.125978,EN_RIESGO,0
+12208,OBSOLETO,"Memoria ram Kingston Fury Beast 16GB (1x16GB), DDR4, 3200Mhz, CL16",Kingston,RAM,0.005457,0.000606,0.993937,0.005457,EN_RIESGO,0
+10066165,OBSOLETO,Memoria RAM TeamGroup T-Force Vulcan Z 8GB DDR4 3200Mhz CL16 1.35v,Teamgroup,RAM,0.061063,0.018439,0.920498,0.061063,EN_RIESGO,0
+24382,OBSOLETO,"Memoria ram para laptop Kingston KCP 8GB DDR4, 3200Mhz",Kingston,RAM,0.028906,0.006985,0.964109,0.028906,EN_RIESGO,0
+10066291,OBSOLETO,"Memoria RAM Kingston KVR 8GB, DDR4, 3200MT/s, CL22, SODIMM",Kingston,RAM,0.139024,0.093596,0.76738,0.139024,EN_RIESGO,0
+4985,VIGENTE,"Unidad de estado sólido SSD Kingston SSD A400 960GB de capacidad, 2.5"", SATA3",Kingston,SSD,0.997032,0.001799,0.001169,0.997032,OBSOLETO,0
+10051503,VIGENTE,Unidad de estado sólido SSD Kingston NV3 1000GB M.2 PCIE4.0 NVME,Kingston,SSD,0.956977,0.025154,0.01787,0.956977,OBSOLETO,0
+4338,VIGENTE,"Unidad de estado sólido SSD Kingston A400 240GB de capacidad, 2.5"", SATA3",Kingston,SSD,0.83922,0.076574,0.084205,0.83922,OBSOLETO,0
+10051504,VIGENTE,Unidad de estado sólido SSD Kingston NV3 2000GB M.2 PCIE4.0 NVME,Kingston,SSD,0.074706,0.882553,0.042741,0.074706,VIGENTE,1
+4339,VIGENTE,"Unidad de estado sólido SSD Kingston Ssd A400 480GB de capacidad , 2.5"", SATA3",Kingston,SSD,0.948757,0.026466,0.024778,0.948757,OBSOLETO,0
+10051505,VIGENTE,Unidad de estado sólido SSD Kingston NV3 500GB M.2 PCIE4.0 NVME,Kingston,SSD,0.330761,0.65617,0.013068,0.330761,VIGENTE,1
+10057981,VIGENTE,Unidad de estado sólido SSD Kingston Fury Renegade G5 1TB M.2 PCIE5 NVME 2280,Kingston,SSD,9.7e-05,0.999878,2.5e-05,9.7e-05,VIGENTE,1
+10048103,VIGENTE,"Placa madre MSI PRO B650M-P, socket AM5, DDR5 hasta 192GB, factor micro-ATX, 2x M.2 PCIe 4.0, LAN 2.5G, HDMI y DisplayPort",Msi,MOTHERBOARD,0.00015,0.999743,0.000107,0.00015,VIGENTE,1
+10047116,OBSOLETO,"Placa madre Asrock A520M-HDV AM4, DDR4 MATX",Asrock,MOTHERBOARD,0.075415,0.068329,0.856256,0.075415,EN_RIESGO,0
+10048420,VIGENTE,"Placa Madre MSI PRO A620M-E Socket AM5, DDR5, Micro-ATX, PCIe 4.0, RAID SATA, Ranura M.2, HDMI 2.1, LAN Realtek",Msi,MOTHERBOARD,0.000332,0.99929,0.000378,0.000332,VIGENTE,1
+10057318,VIGENTE,"Placa madre Asrock Prime B860M-A LGA1851, DDR5, MATX",Asrock,MOTHERBOARD,0.020019,0.021833,0.958149,0.020019,EN_RIESGO,0
+10067162,OBSOLETO,"Placa madre Gigabyte B550M-K AM4, DDR4 (reempacado)",Gigabyte,MOTHERBOARD,0.074576,0.045956,0.879468,0.074576,EN_RIESGO,0
+10057317,VIGENTE,"Placa madre Asrock Z890 PRO-A LGA1851, DDR5, ATX",Asrock,MOTHERBOARD,0.000607,0.998913,0.00048,0.000607,VIGENTE,1
+10061042,EN_RIESGO,"Placa madre Asrock H610M-HDV/M.2 R2.0, DDR4, M.2, LGA1700 (reempacado)",Asrock,MOTHERBOARD,0.051835,0.018375,0.92979,0.051835,EN_RIESGO,1
+10054480,EN_RIESGO,"Placa madre Advance MoDT ITX con Procesador (incorporado) Intel Core i5-13420H,  Wi-Fi HDMIx2/DP/VGA",Advance,MOTHERBOARD,0.00201,0.996111,0.001879,0.00201,VIGENTE,0
+21224,OBSOLETO,"Placa madre Asrock H610M-HDV/M.2 R2.0, DDR4, M.2, LGA1700",Asrock,MOTHERBOARD,0.00647,0.001088,0.992442,0.00647,EN_RIESGO,0
+10054481,EN_RIESGO,"Placa madre Advance MoDT ITX con Procesador (incorporado) Intel Core i7-13620H, Wi-Fi HDMIx2/DP/VGA",Advance,MOTHERBOARD,0.043582,0.907321,0.049097,0.043582,VIGENTE,0
+10042120,VIGENTE,"Fuente de poder Teros TE-7160 600W, 80 Plus Bronze",Teros,PSU,0.491674,0.293749,0.214577,0.491674,OBSOLETO,0
+10042119,VIGENTE,"Fuente de poder Teros TE-7175W 750W, 80 Plus Gold, F. modular",Teros,PSU,0.254707,0.192343,0.55295,0.254707,EN_RIESGO,0
+11746,VIGENTE,"Fuente de poder Antryx Kirin 850 GOLD, 850W, 80 Plus Gold, modular",Antryx,PSU,0.171917,0.077264,0.75082,0.171917,EN_RIESGO,0
+11750,VIGENTE,"Fuente de poder Seasonic A12, 600W, 80 Plus, blanco",Seasonic,PSU,0.727601,0.157528,0.114871,0.727601,OBSOLETO,0
+10041907,VIGENTE,Fuente de poder Seasonic Vertex GX-1200W 80Plus Gold Modular PCIE5.0,Seasonic,PSU,0.04225,0.913205,0.044545,0.04225,VIGENTE,1
+11745,VIGENTE,"Fuente de poder Antryx Kirin 750 GOLD, 750W, 80 Plus Gold, modular",Antryx,PSU,0.421436,0.126686,0.451878,0.421436,EN_RIESGO,0
+10047321,VIGENTE,"Fuente de poder Antryx Kirin Gold Evo II 1000W, 80 Plus Gold, modular ATV3.0, Pcie 5.0",Antryx,PSU,0.024851,0.958183,0.016965,0.024851,VIGENTE,1
+10067164,EN_RIESGO,"Fuente de poder Antryx Kirin 850 GOLD, 850W, 80 Plus Gold, modular (reempacado)",Antryx,PSU,0.961265,0.018966,0.019769,0.961265,OBSOLETO,0
+10041904,VIGENTE,Fuente de poder Seasonic Focus GX-1000W 80 Plus Gold Modular PCIE5.0,Seasonic,PSU,0.004919,0.992307,0.002774,0.004919,VIGENTE,1
+10047323,VIGENTE,"Fuente de poder Seasonic A12 500W, 80 Plus White",Antryx,PSU,0.248112,0.285952,0.465936,0.248112,EN_RIESGO,0
+10067161,EN_RIESGO,"Fuente de poder Seasonic A12 500W, 80 Plus White (reempacado)",Antryx,PSU,0.760621,0.098401,0.140978,0.760621,OBSOLETO,0
+10047322,VIGENTE,"Fuente de poder Antryx Kirin Gold Evo II 1200W, 80 Plus Gold, modular ATV3.0, Pcie 5.0",Antryx,PSU,0.103441,0.819852,0.076707,0.103441,VIGENTE,1
+10041876,VIGENTE,"Sistema de enfriamiento líquido Triton Infinity 240, negro",Antryx,COOLER,0.070866,0.021727,0.907406,0.070866,EN_RIESGO,0
+27467,EN_RIESGO,"Cooler para CPU Be Quiet! Dark Rock Slim BK024, LGA1700, AM5",Be Quiet,COOLER,0.061923,0.061093,0.876984,0.061923,EN_RIESGO,1
+10051027,VIGENTE,"Cooler procesador Antryx Mirage Infinity black, ARGB",Antryx,COOLER,0.140516,0.091687,0.767798,0.140516,EN_RIESGO,0
+10047333,VIGENTE,Cooler para procesador Antryx Mirage 410 ARGB,Antryx,COOLER,0.106232,0.017146,0.876622,0.106232,EN_RIESGO,0
+10041877,VIGENTE,"Sistema de enfriamiento líquido Triton Infinity 360, negro",Antryx,COOLER,0.071134,0.030859,0.898007,0.071134,EN_RIESGO,0
+10067158,EN_RIESGO,"Reacondicionado: Cooler para procesador Antryx Mirage 410 ARGB, Intel/Amd",Antryx,COOLER,0.004528,0.000574,0.994898,0.004528,EN_RIESGO,1
+10051025,VIGENTE,"Cooler procesador Antryx Mirage 530, ARGB, fan 130mm",Antryx,COOLER,0.036758,0.015145,0.948097,0.036758,EN_RIESGO,0
+6682,VIGENTE,"Sistema de refrigeración líquida MSI MPG Coreliquid K360, 360mm, 3-FAN, pantalla LCD 2.4""",Msi,COOLER,0.256689,0.192785,0.550526,0.256689,EN_RIESGO,0
+10051026,VIGENTE,"Cooler procesador Antryx Mirage 550 Plus, ARGB, fan 130mm x2",Antryx,COOLER,0.069856,0.740125,0.190019,0.069856,VIGENTE,1
+6681,VIGENTE,"Sistema de refrigeración líquida MSI MPG Coreliquid K240, ARGB, 240 mm, 2 FAN, pantalla LCD 2.4""",Msi,COOLER,0.224042,0.24361,0.532348,0.224042,EN_RIESGO,0
+10051028,VIGENTE,"Cooler procesador Antryx Mirage Infinity white, ARGB",Antryx,COOLER,0.144672,0.641212,0.214116,0.144672,VIGENTE,1
+10051023,VIGENTE,"Cooler procesador Antryx Mirage 310N, fan 92mm",Antryx,COOLER,0.913697,0.037409,0.048893,0.913697,OBSOLETO,0
+10051005,VIGENTE,"Gabinete Antryx RX-250, USB3.0, FRGB FAN X4, panel lateral de vidrio templado",Antryx,CASE,0.997496,0.001615,0.000889,0.997496,OBSOLETO,0
+10051006,VIGENTE,"Gabinete Antryx RX-260 BLACK, USB3.0, FRGB FAN X4, panel lateral de vidrio templado",Antryx,CASE,0.860984,0.126711,0.012305,0.860984,OBSOLETO,0
+10051008,VIGENTE,"Gabinete Antryx RX-270, USB3.0, FRGB FAN X4, panel lateral de vidrio templado",Antryx,CASE,0.665868,0.305525,0.028607,0.665868,OBSOLETO,0
+10041872,VIGENTE,"Gabinete Cooler Master HAF 700 EVO ARGB, Mini-ITX / Micro-ATX /ATX/SSI CEB/SSI EEB/E-ATX, Panel lateral vidrio templado, sin fuente, negro",Cooler Master,CASE,0.668616,0.077033,0.254351,0.668616,OBSOLETO,0
+10041874,VIGENTE,"Gabinete Antryx XM-330 Xtreme, ITX/Micro ATX, Panel lateral vidrio templado, con fuente 500W",Antryx,CASE,0.99606,0.002349,0.001591,0.99606,OBSOLETO,0
+10041869,VIGENTE,"Gabinete Antryx FX730 ARGB, ATX/M-ATX/ITX, 4 ventiladores, Panel lateral vidrio templado, sin fuente, blanco",Antryx,CASE,0.047202,0.00652,0.946278,0.047202,EN_RIESGO,0
+10047313,VIGENTE,"Gabinete Antryx Elegant 650 Black, incluye USB 3.0, panel frontal con malla metálica, con fuente 350w",Antryx,CASE,0.999965,2.5e-05,1e-05,0.999965,OBSOLETO,0
+10041873,VIGENTE,"Gabinete Cooler Master Masterbox MB520 Mesh, Mini-ITX / Micro-ATX /ATX/SSI CEB, Panel lateral vidrio templado, sin fuente, blanco",Cooler Master,CASE,0.071185,0.870612,0.058203,0.071185,VIGENTE,1
+10047308,VIGENTE,"Gabinete Antryx Xtreme Neo II Black, incluye 2 ventiladores Chrome Storm, panel lateral de vidrio templado, con fuente B500w",Antryx,CASE,0.967929,0.026331,0.00574,0.967929,OBSOLETO,0
+10041867,VIGENTE,"Gabinete Antryx RX-450, ATX/Full ATX/Micro ATX, ventilador ARGB/cinta LED, Panel lateral vidrio templado, sin fuente, negro",Antryx,CASE,0.961516,0.021919,0.016565,0.961516,OBSOLETO,0
+10051007,VIGENTE,"Gabinete Antryx RX-260 WHITE, USB3.0, FRGB FAN X4, panel lateral de vidrio templado",Antryx,CASE,0.989203,0.006761,0.004036,0.989203,OBSOLETO,0
+10047318,VIGENTE,"Gabinete Antryx Xtreme Micro XM-310 Black, USB 3.0, con fuente B500w",Antryx,CASE,0.999575,0.000285,0.00014,0.999575,OBSOLETO,0
+10047317,VIGENTE,"Gabinete Antryx Xtreme E250 Plus Black, USB 3.0, con fuente B450w",Antryx,CASE,0.999946,3.7e-05,1.7e-05,0.999946,OBSOLETO,0
+10047311,VIGENTE,"Gabinete Antryx FX Cruiser Black, incluye 3 ventiladores ARGB, panel lateral de vidrio templado, malla frontal, sin fuente",Antryx,CASE,0.994149,0.003581,0.00227,0.994149,OBSOLETO,0
+10047306,VIGENTE,"Gabinete Antryx RX-430U Black, incluye 1 ventiladores ARGB + barra de luz ARGB, panel lateral de vidrio templado, con fuente B600w",Antryx,CASE,0.993673,0.003545,0.002782,0.993673,OBSOLETO,0
+10042971,VIGENTE,"Gabinete Antryx Xtreme Slim Micro ATX/Mini-ITX, con fuente 300W",Antryx,CASE,0.986426,0.009173,0.004402,0.986426,OBSOLETO,0
+10047309,VIGENTE,"Gabinete Antryx Xtreme NC-253 Black, incluye una barra lateral ARGB, panel lateral de vidrio templado, con fuente B500w",Antryx,CASE,0.999984,1.1e-05,5e-06,0.999984,OBSOLETO,0
+10047315,VIGENTE,"Gabinete Antryx RX-430U Black USB 3.0, incluye 1 ventiladores ARGB, barra de luz ARGB, panel lateral de vidrio templado, sin fuente",Antryx,CASE,0.991963,0.004698,0.003339,0.991963,OBSOLETO,0
+10047310,VIGENTE,"Gabinete Antryx RX-460 white, incluye 2 ventiladores ARGB, panel lateral de vidrio templado, sin fuente",Antryx,CASE,0.995738,0.002525,0.001737,0.995738,OBSOLETO,0
+10051009,VIGENTE,"Gabinete Antryx Xtreme Slim XS-120 MATX USB 3.0, panel con proceso de estampado, con fuente 350W",Antryx,CASE,0.993962,0.003715,0.002323,0.993962,OBSOLETO,0
+10047314,VIGENTE,"Gabinete Antryx RX-460 Mesh Black USB 3.0, incluye 2 ventiladores ARGB, panel lateral de vidrio templado, sin fuente",Antryx,CASE,0.995573,0.002799,0.001629,0.995573,OBSOLETO,0
+10047312,VIGENTE,"Gabinete Antryx Xtreme NC-257 Black, 1 ventilador ARGB, barra lateral ARGB, panel lateral de vidrio templado, con fuente B500w",Antryx,CASE,0.997166,0.001941,0.000893,0.997166,OBSOLETO,0

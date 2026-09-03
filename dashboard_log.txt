@@ -1,0 +1,70 @@
+
+============================================================
+  📊 HDS-ROI v6.0 — Cargando datos REALES
+============================================================
+
+  [Predicciones] Cargando predicciones multihorizonte...
+      ✅ predicciones_multihorizonte.json: cargado
+      📊 30 SKUs con predicciones
+
+  [OE9] Cargando resultados NSGA-III...
+      ✅ oe9_pareto_front.csv: 24 filas
+      📊 24 soluciones Pareto | ROI: 39.6%–83.8% | Tipos: {'AGRESIVO': 11, 'OPTIMO': 7, 'ESTRELLA': 3, 'BALANCEADO': 3}
+
+  [Features] Cargando feature matrix...
+      ✅ oe9_feature_matrix.csv: 82 filas
+
+  [SKUs] Construyendo tabla de SKUs...
+      📊 30 SKUs | Tipos: {'psu': 5, 'motherboard': 5, 'cooler': 4, 'case': 4, 'ram': 3, 'cpu': 2, 'ssd': 2, 'laptop': 2, 'monitor': 2, 'gpu': 1}
+      ✅ oe9_resumen_nsga3.json: cargado
+
+  [Portafolios] Cargando portafolios NSGA-III...
+      ✅ oe9_portafolios_nodominados.json: cargado
+      📊 3 perfiles de portafolio cargados
+
+  [MonteCarlo] Cargando análisis de sensibilidad...
+      ✅ oe4c_sensibilidad_moderado.json: cargado
+      ✅ oe4c_sensibilidad_agresivo.json: cargado
+      ✅ oe4c_resumen_sensibilidad.csv: 3 filas
+
+  [Pareto] Cargando frente de Pareto OE5...
+      ✅ oe5_pareto_front.csv: 75 filas
+
+  [Precios] Cargando análisis de competitividad...
+      ✅ pe3_price_gaps.csv: 1 filas
+
+  [Ablación] Cargando métricas de ablación...
+      ✅ pe2_lgbm_metrics.json: cargado
+      ✅ pe2_tft_metrics.json: cargado
+      ✅ pe4_e5_ablacion_metrics.json: cargado
+      ✅ evaluation_report.json: cargado
+      📊 3 modelos en ablación: ['LightGBM', 'TFT', 'E5-BERT']
+
+============================================================
+  ✅ RESUMEN DE CARGA:
+     OE9 soluciones    : 24
+     SKUs predicciones : 30
+     Feature matrix    : 82 filas
+     Ablación modelos  : 3
+     Portafolios       : 3
+============================================================
+
+
+================================================================================
+  🚀 HDS-ROI v6.0 — Motor de Decisión Inteligente
+================================================================================
+  🌐 URL    : http://127.0.0.1:8050
+  🎯 Módulos: Motor · Simulador · Predicción · OE9 · 7 análisis
+  📊 Tema   : Blanco Profesional
+  📈 Páginas: 11
+  ⚙️  OE9   : 24 soluciones Pareto
+  📦 SKUs   : 82 en feature matrix
+  🔧 Fixes  : A(unidades) B(portafolio) C(helpers) D(scope) E(código muerto) F(tornado) G(MAPE)
+  ✅ Estado : Operativo — 05 Aug 2026 21:23
+================================================================================
+  Presiona Ctrl+C para detener
+
+Dash is running on http://127.0.0.1:8050/
+
+ * Serving Flask app 'dashboard_v5_main'
+ * Debug mode: on
