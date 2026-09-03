@@ -1,5 +1,5 @@
 [core]
-    remote = localbackup
+    remote = githubremote
 ['remote "gdrive"']
     url = gdrive://TU_FOLDER_ID
     gdrive_acknowledge_abuse = true
@@ -7,3 +7,5 @@
     url = C:/Users/MSI/dvc-storage
 ['remote "localbackup"']
     url = C:/Users/MSI/dvc-remote-tesis
+['remote "githubremote"']
+    url = https://github.com/kotska-pariona/tesis-hardware-peru.git
