@@ -1,5 +1,9 @@
 [core]
-    remote = gdrive
+    remote = localbackup
 ['remote "gdrive"']
     url = gdrive://TU_FOLDER_ID
     gdrive_acknowledge_abuse = true
+['remote "localremote"']
+    url = C:/Users/MSI/dvc-storage
+['remote "localbackup"']
+    url = C:/Users/MSI/dvc-remote-tesis
