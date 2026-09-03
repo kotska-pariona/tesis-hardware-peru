@@ -113,3 +113,7 @@ data/raw/MASTER_hardware_peru_CONSOLIDADO.csv
 logs/pe2_tft*/
 logs/pe2_tft_v2*/
 models/test_predictions_*.csv
+
+# ── Excepción: feature matrices OE9 (deben estar en Git) ──
+!data/features/
+!data/features/*.csv
