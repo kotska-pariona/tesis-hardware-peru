@@ -1,332 +1,33 @@
 [
   {
     "sol_id": 0,
-    "tipo": "OPTIMO",
-    "roi_pct": 190.7,
-    "rj_portafolio": 0.1565,
-    "n_skus": 23,
-    "capital_usd": 459.3,
-    "ganancia_usd": 875.88,
+    "tipo": "AGRESIVO",
+    "roi_pct": 194.14,
+    "rj_portafolio": 0.3701,
+    "n_skus": 14,
+    "capital_usd": 474.02,
+    "ganancia_usd": 920.24,
     "skus": [
       {
-        "sku": 3,
-        "producto": "msi",
-        "categoria": "MOTHERBOARD",
-        "precio_costo_usd": 26.86,
-        "precio_venta_usd": 80.86,
-        "roi_pct": 200.99,
-        "r_j": 0.0036
-      },
-      {
-        "sku": 4,
-        "producto": "msi",
-        "categoria": "MOTHERBOARD",
-        "precio_costo_usd": 26.86,
-        "precio_venta_usd": 80.86,
-        "roi_pct": 200.99,
-        "r_j": 0.0111
-      },
-      {
-        "sku": 6,
-        "producto": "Thermalright FW 240 Black ARGB-240mm AIO CPU Liquid Cooler,I",
-        "categoria": "COOLER",
-        "precio_costo_usd": 22.47,
-        "precio_venta_usd": 66.94,
-        "roi_pct": 197.89,
-        "r_j": 0.0051
-      },
-      {
-        "sku": 8,
-        "producto": "Thermalright FW 240 White ARGB-240mm AIO CPU Liquid Cooler,I",
-        "categoria": "COOLER",
-        "precio_costo_usd": 19.73,
-        "precio_venta_usd": 58.79,
-        "roi_pct": 197.9,
-        "r_j": 0.0072
-      },
-      {
-        "sku": 10,
-        "producto": "Thermalright FW 360 White ARGB V2 CPU Water Cooler with 3 PW",
-        "categoria": "COOLER",
-        "precio_costo_usd": 24.66,
-        "precio_venta_usd": 73.45,
-        "roi_pct": 197.9,
-        "r_j": 0.0103
-      },
-      {
-        "sku": 14,
-        "producto": "Thermalright FW240 White ARGB CPU Water Cooler with 2 PWM Fa",
-        "categoria": "COOLER",
-        "precio_costo_usd": 20.98,
-        "precio_venta_usd": 62.49,
-        "roi_pct": 197.92,
-        "r_j": 0.0124
-      },
-      {
-        "sku": 34,
-        "producto": "ID-COOLING",
-        "categoria": "CPU",
-        "precio_costo_usd": 17.0,
-        "precio_venta_usd": 49.78,
-        "roi_pct": 192.9,
-        "r_j": 0.0027
-      },
-      {
-        "sku": 38,
-        "producto": "Thermalright Frozen Edge 240 White Liquid CPU Water Cooler w",
-        "categoria": "COOLER",
-        "precio_costo_usd": 14.19,
-        "precio_venta_usd": 41.55,
-        "roi_pct": 192.82,
-        "r_j": 0.0038
-      },
-      {
-        "sku": 42,
-        "producto": "Intel Core i7-7700 Desktop Processor 4 Cores up to 4.2 GHz L",
-        "categoria": "CPU",
-        "precio_costo_usd": 19.78,
-        "precio_venta_usd": 57.96,
-        "roi_pct": 193.04,
-        "r_j": 0.0066
-      },
-      {
-        "sku": 43,
-        "producto": "Intel Core i7-7700 Desktop Processor 4 Cores up to 4.2 GHz L",
-        "categoria": "CPU",
-        "precio_costo_usd": 19.78,
-        "precio_venta_usd": 57.96,
-        "roi_pct": 193.04,
-        "r_j": 0.0066
-      },
-      {
-        "sku": 48,
-        "producto": "Thermalright Frozen Edge 360 Black Liquid CPU Water Cooler w",
-        "categoria": "COOLER",
-        "precio_costo_usd": 16.97,
-        "precio_venta_usd": 49.73,
-        "roi_pct": 192.97,
-        "r_j": 0.0081
-      },
-      {
-        "sku": 56,
-        "producto": "Thermalrlght Frozen Notte 240 White ARGB V2 Water Cooling CP",
-        "categoria": "COOLER",
-        "precio_costo_usd": 14.03,
-        "precio_venta_usd": 41.12,
-        "roi_pct": 193.07,
-        "r_j": 0.0134
-      },
-      {
-        "sku": 63,
-        "producto": "Intel Core i7-7700 Desktop Processor 4 Cores up to 4.2 GHz L",
-        "categoria": "CPU",
-        "precio_costo_usd": 19.78,
-        "precio_venta_usd": 57.96,
-        "roi_pct": 193.04,
-        "r_j": 0.0155
-      },
-      {
-        "sku": 66,
-        "producto": "Intel Core i7-7700 Desktop Processor 4 Cores up to 4.2 GHz L",
-        "categoria": "CPU",
-        "precio_costo_usd": 19.78,
-        "precio_venta_usd": 57.96,
-        "roi_pct": 193.04,
-        "r_j": 0.0155
-      },
-      {
-        "sku": 77,
-        "producto": "Intel Core i7-7700 Desktop Processor 4 Cores up to 4.2 GHz L",
-        "categoria": "CPU",
-        "precio_costo_usd": 19.78,
-        "precio_venta_usd": 57.96,
-        "roi_pct": 193.04,
-        "r_j": 0.0208
-      },
-      {
-        "sku": 79,
-        "producto": "Thermalrlght FW240 White ARGB V2 CPU Water Cooler with 2 PWM",
-        "categoria": "COOLER",
-        "precio_costo_usd": 18.2,
-        "precio_venta_usd": 53.35,
-        "roi_pct": 193.07,
-        "r_j": 0.0235
-      },
-      {
-        "sku": 92,
-        "producto": "MSI MAG Coreliquid A13 360 - AIO ARGB CPU Liquid Cooler - 36",
-        "categoria": "COOLER",
-        "precio_costo_usd": 27.82,
-        "precio_venta_usd": 81.47,
-        "roi_pct": 192.86,
-        "r_j": 0.0389
-      },
-      {
-        "sku": 132,
-        "producto": "Corsair H60x RGB Elite Liquid CPU Cooler - 16 Dynamic RGBLED",
-        "categoria": "COOLER",
-        "precio_costo_usd": 16.69,
-        "precio_venta_usd": 46.38,
-        "roi_pct": 177.97,
-        "r_j": 0.0898
-      },
-      {
-        "sku": 142,
-        "producto": "Thermalright FW 240 SE ARGB Black-AIO CPU Liquid Cooler,IPS ",
-        "categoria": "COOLER",
-        "precio_costo_usd": 16.3,
-        "precio_venta_usd": 53.04,
-        "roi_pct": 225.5,
-        "r_j": 0.2799
-      },
-      {
-        "sku": 296,
-        "producto": "Tarjeta de Expansión PCIe 3.0 x 4 soporta 4TB disco solido N",
-        "categoria": "discos_ssd",
-        "precio_costo_usd": 16.58,
-        "precio_venta_usd": 26.67,
-        "roi_pct": 60.81,
-        "r_j": 0.251
-      },
-      {
-        "sku": 323,
-        "producto": "Thermalright CORE Vision 360 Black ARGB-360mm AIO CPU Liquid",
-        "categoria": "COOLER",
-        "precio_costo_usd": 29.34,
-        "precio_venta_usd": 85.96,
-        "roi_pct": 193.03,
-        "r_j": 0.7862
-      },
-      {
-        "sku": 380,
-        "producto": "fanxiang S500 Pro 256GB NVMe SSD M.2 PCIe 3.0, Gen 3x4 2280 ",
+        "sku": 13,
+        "producto": "Bestoss 1TB NVMe M.2 SSD PCIe 3.0 2280 Internal SSD Up to 24",
         "categoria": "SSD",
-        "precio_costo_usd": 15.86,
-        "precio_venta_usd": 46.46,
-        "roi_pct": 192.96,
-        "r_j": 0.9935
+        "precio_costo_usd": 44.51,
+        "precio_venta_usd": 134.0,
+        "roi_pct": 201.1,
+        "r_j": 0.9932
       },
       {
-        "sku": 381,
-        "producto": "fanxiang S500 Pro 256GB NVMe SSD M.2 PCIe 3.0, Gen 3x4 2280 ",
+        "sku": 20,
+        "producto": "Fikwot FX550 NVMe SSD 1TB M.2 SSD PCIe 3.0×4, Read Up to 3,5",
         "categoria": "SSD",
-        "precio_costo_usd": 15.86,
-        "precio_venta_usd": 46.46,
-        "roi_pct": 192.96,
-        "r_j": 0.9935
-      }
-    ]
-  },
-  {
-    "sol_id": 1,
-    "tipo": "ESTRELLA",
-    "roi_pct": 183.69,
-    "rj_portafolio": 0.0554,
-    "n_skus": 38,
-    "capital_usd": 783.78,
-    "ganancia_usd": 1439.76,
-    "skus": [
-      {
-        "sku": 2,
-        "producto": "msi",
-        "categoria": "MOTHERBOARD",
-        "precio_costo_usd": 26.86,
-        "precio_venta_usd": 80.86,
-        "roi_pct": 200.99,
-        "r_j": 0.0036
+        "precio_costo_usd": 45.13,
+        "precio_venta_usd": 133.98,
+        "roi_pct": 196.89,
+        "r_j": 0.5573
       },
       {
-        "sku": 4,
-        "producto": "msi",
-        "categoria": "MOTHERBOARD",
-        "precio_costo_usd": 26.86,
-        "precio_venta_usd": 80.86,
-        "roi_pct": 200.99,
-        "r_j": 0.0111
-      },
-      {
-        "sku": 6,
-        "producto": "Thermalright FW 240 Black ARGB-240mm AIO CPU Liquid Cooler,I",
-        "categoria": "COOLER",
-        "precio_costo_usd": 22.47,
-        "precio_venta_usd": 66.94,
-        "roi_pct": 197.89,
-        "r_j": 0.0051
-      },
-      {
-        "sku": 7,
-        "producto": "Thermalright FW 240 Black ARGB-240mm AIO CPU Liquid Cooler,I",
-        "categoria": "COOLER",
-        "precio_costo_usd": 22.47,
-        "precio_venta_usd": 66.94,
-        "roi_pct": 197.89,
-        "r_j": 0.0051
-      },
-      {
-        "sku": 10,
-        "producto": "Thermalright FW 360 White ARGB V2 CPU Water Cooler with 3 PW",
-        "categoria": "COOLER",
-        "precio_costo_usd": 24.66,
-        "precio_venta_usd": 73.45,
-        "roi_pct": 197.9,
-        "r_j": 0.0103
-      },
-      {
-        "sku": 14,
-        "producto": "Thermalright FW240 White ARGB CPU Water Cooler with 2 PWM Fa",
-        "categoria": "COOLER",
-        "precio_costo_usd": 20.98,
-        "precio_venta_usd": 62.49,
-        "roi_pct": 197.92,
-        "r_j": 0.0124
-      },
-      {
-        "sku": 37,
-        "producto": "GAMDIAS CHIONE E4 240mm AIO CPU Water Cooler, Real-time Digi",
-        "categoria": "COOLER",
-        "precio_costo_usd": 21.63,
-        "precio_venta_usd": 63.36,
-        "roi_pct": 192.92,
-        "r_j": 0.0034
-      },
-      {
-        "sku": 38,
-        "producto": "Thermalright Frozen Edge 240 White Liquid CPU Water Cooler w",
-        "categoria": "COOLER",
-        "precio_costo_usd": 14.19,
-        "precio_venta_usd": 41.55,
-        "roi_pct": 192.82,
-        "r_j": 0.0038
-      },
-      {
-        "sku": 42,
-        "producto": "Intel Core i7-7700 Desktop Processor 4 Cores up to 4.2 GHz L",
-        "categoria": "CPU",
-        "precio_costo_usd": 19.78,
-        "precio_venta_usd": 57.96,
-        "roi_pct": 193.04,
-        "r_j": 0.0066
-      },
-      {
-        "sku": 48,
-        "producto": "Thermalright Frozen Edge 360 Black Liquid CPU Water Cooler w",
-        "categoria": "COOLER",
-        "precio_costo_usd": 16.97,
-        "precio_venta_usd": 49.73,
-        "roi_pct": 192.97,
-        "r_j": 0.0081
-      },
-      {
-        "sku": 56,
-        "producto": "Thermalrlght Frozen Notte 240 White ARGB V2 Water Cooling CP",
-        "categoria": "COOLER",
-        "precio_costo_usd": 14.03,
-        "precio_venta_usd": 41.12,
-        "roi_pct": 193.07,
-        "r_j": 0.0134
-      },
-      {
-        "sku": 59,
+        "sku": 28,
         "producto": "MSI MAG Coreliquid A13 240 - AIO ARGB CPU Liquid Cooler - 24",
         "categoria": "COOLER",
         "precio_costo_usd": 21.63,
@@ -335,70 +36,162 @@
         "r_j": 0.0143
       },
       {
-        "sku": 62,
-        "producto": "Intel Core i7-7700 Desktop Processor 4 Cores up to 4.2 GHz L",
-        "categoria": "CPU",
-        "precio_costo_usd": 19.78,
-        "precio_venta_usd": 57.96,
-        "roi_pct": 193.04,
-        "r_j": 0.0155
+        "sku": 30,
+        "producto": "Kingston NV3 1TB M.2 2280 NVMe SSD | PCIe 4.0 Gen 4x4 | Up t",
+        "categoria": "SSD",
+        "precio_costo_usd": 49.77,
+        "precio_venta_usd": 145.87,
+        "roi_pct": 193.07,
+        "r_j": 0.797
       },
       {
-        "sku": 64,
-        "producto": "Intel Core i7-7700 Desktop Processor 4 Cores up to 4.2 GHz L",
-        "categoria": "CPU",
-        "precio_costo_usd": 19.78,
-        "precio_venta_usd": 57.96,
-        "roi_pct": 193.04,
-        "r_j": 0.0155
+        "sku": 36,
+        "producto": "msi",
+        "categoria": "MOTHERBOARD",
+        "precio_costo_usd": 42.65,
+        "precio_venta_usd": 124.99,
+        "roi_pct": 193.03,
+        "r_j": 0.0164
       },
       {
-        "sku": 65,
-        "producto": "Intel Core i7-7700 Desktop Processor 4 Cores up to 4.2 GHz L",
-        "categoria": "CPU",
-        "precio_costo_usd": 19.78,
-        "precio_venta_usd": 57.96,
-        "roi_pct": 193.04,
-        "r_j": 0.0155
+        "sku": 38,
+        "producto": "1TB NVMe SSD M.2 SSD PCIe 3.0×4, Read Up to 3,500 MB/s, M.2 ",
+        "categoria": "SSD",
+        "precio_costo_usd": 45.13,
+        "precio_venta_usd": 132.23,
+        "roi_pct": 193.03,
+        "r_j": 0.9268
       },
       {
-        "sku": 68,
-        "producto": "Intel Core i7-7700 Desktop Processor 4 Cores up to 4.2 GHz L",
-        "categoria": "CPU",
-        "precio_costo_usd": 19.78,
-        "precio_venta_usd": 57.96,
-        "roi_pct": 193.04,
-        "r_j": 0.0155
-      },
-      {
-        "sku": 70,
-        "producto": "Intel Core i7-7700 Desktop Processor 4 Cores up to 4.2 GHz L",
-        "categoria": "CPU",
-        "precio_costo_usd": 19.78,
-        "precio_venta_usd": 57.96,
-        "roi_pct": 193.04,
-        "r_j": 0.0155
-      },
-      {
-        "sku": 71,
-        "producto": "Intel Core i7-7700 Desktop Processor 4 Cores up to 4.2 GHz L",
-        "categoria": "CPU",
-        "precio_costo_usd": 19.78,
-        "precio_venta_usd": 57.96,
-        "roi_pct": 193.04,
-        "r_j": 0.0155
-      },
-      {
-        "sku": 75,
-        "producto": "Antec Luna 360 ARGB AIO Liquid CPU Cooler, 3x120mm PWM ARGB ",
+        "sku": 39,
+        "producto": "Thermalright CORE Vision 360 Black ARGB-360mm AIO CPU Liquid",
         "categoria": "COOLER",
-        "precio_costo_usd": 13.9,
-        "precio_venta_usd": 40.75,
-        "roi_pct": 193.08,
-        "r_j": 0.0179
+        "precio_costo_usd": 29.34,
+        "precio_venta_usd": 85.96,
+        "roi_pct": 193.03,
+        "r_j": 0.7862
       },
       {
-        "sku": 76,
+        "sku": 40,
+        "producto": "GIGABYTE",
+        "categoria": "MOTHERBOARD",
+        "precio_costo_usd": 40.18,
+        "precio_venta_usd": 117.74,
+        "roi_pct": 193.03,
+        "r_j": 0.0003
+      },
+      {
+        "sku": 50,
+        "producto": "Seasonic Focus GX 850W Power Supply ATX 3.1 PCIe 5.1 (12V-2x",
+        "categoria": "PSU",
+        "precio_costo_usd": 45.53,
+        "precio_venta_usd": 133.41,
+        "roi_pct": 193.01,
+        "r_j": 0.077
+      },
+      {
+        "sku": 77,
+        "producto": "Thermalright Mjolnir Vision 360 ARGB White AIO CPU Liquid Co",
+        "categoria": "COOLER",
+        "precio_costo_usd": 30.58,
+        "precio_venta_usd": 89.58,
+        "roi_pct": 192.96,
+        "r_j": 0.9273
+      },
+      {
+        "sku": 78,
+        "producto": "Thermalright Frozen Edge 360 Black AIO Water Cooler,Liquid C",
+        "categoria": "COOLER",
+        "precio_costo_usd": 15.09,
+        "precio_venta_usd": 44.2,
+        "roi_pct": 192.95,
+        "r_j": 0.0434
+      },
+      {
+        "sku": 82,
+        "producto": "Thermalright Frozen Edge 240 Black AIO Water Cooler,Liquid C",
+        "categoria": "COOLER",
+        "precio_costo_usd": 12.8,
+        "precio_venta_usd": 37.49,
+        "roi_pct": 192.93,
+        "r_j": 0.0055
+      },
+      {
+        "sku": 89,
+        "producto": "Thermalright Frozen Notte 240 Black ARGB V2 Water Cooling CP",
+        "categoria": "COOLER",
+        "precio_costo_usd": 14.59,
+        "precio_venta_usd": 42.74,
+        "roi_pct": 192.9,
+        "r_j": 0.0319
+      },
+      {
+        "sku": 92,
+        "producto": "ASRock",
+        "categoria": "MOTHERBOARD",
+        "precio_costo_usd": 37.1,
+        "precio_venta_usd": 108.66,
+        "roi_pct": 192.88,
+        "r_j": 0.0055
+      }
+    ]
+  },
+  {
+    "sol_id": 1,
+    "tipo": "OPTIMO",
+    "roi_pct": 201.98,
+    "rj_portafolio": 0.1514,
+    "n_skus": 9,
+    "capital_usd": 182.59,
+    "ganancia_usd": 368.78,
+    "skus": [
+      {
+        "sku": 1,
+        "producto": "msi",
+        "categoria": "MOTHERBOARD",
+        "precio_costo_usd": 26.86,
+        "precio_venta_usd": 80.86,
+        "roi_pct": 200.99,
+        "r_j": 0.0036
+      },
+      {
+        "sku": 6,
+        "producto": "Seasonic CORE GX 850W Power Supply ATX 3.1 PCIe 5.1 (12V-2x6",
+        "categoria": "PSU",
+        "precio_costo_usd": 37.1,
+        "precio_venta_usd": 117.68,
+        "roi_pct": 217.21,
+        "r_j": 0.0258
+      },
+      {
+        "sku": 7,
+        "producto": "Thermalright FW 240 SE ARGB Black-AIO CPU Liquid Cooler,IPS ",
+        "categoria": "COOLER",
+        "precio_costo_usd": 16.3,
+        "precio_venta_usd": 53.04,
+        "roi_pct": 225.5,
+        "r_j": 0.2799
+      },
+      {
+        "sku": 29,
+        "producto": "Thermalrlght Frozen Notte 240 White ARGB V2 Water Cooling CP",
+        "categoria": "COOLER",
+        "precio_costo_usd": 14.03,
+        "precio_venta_usd": 41.12,
+        "roi_pct": 193.07,
+        "r_j": 0.0134
+      },
+      {
+        "sku": 34,
+        "producto": "Intel Core i7-7700 Desktop Processor 4 Cores up to 4.2 GHz L",
+        "categoria": "CPU",
+        "precio_costo_usd": 19.78,
+        "precio_venta_usd": 57.96,
+        "roi_pct": 193.04,
+        "r_j": 0.0155
+      },
+      {
+        "sku": 74,
         "producto": "Thermalright Frozen Notte 360 Black ARGB Water Cooling CPU C",
         "categoria": "COOLER",
         "precio_costo_usd": 15.13,
@@ -407,22 +200,132 @@
         "r_j": 0.0185
       },
       {
-        "sku": 77,
-        "producto": "Intel Core i7-7700 Desktop Processor 4 Cores up to 4.2 GHz L",
-        "categoria": "CPU",
-        "precio_costo_usd": 19.78,
-        "precio_venta_usd": 57.96,
-        "roi_pct": 193.04,
-        "r_j": 0.0208
+        "sku": 75,
+        "producto": "fanxiang S500 Pro 256GB NVMe SSD M.2 PCIe 3.0, Gen 3x4 2280 ",
+        "categoria": "SSD",
+        "precio_costo_usd": 15.86,
+        "precio_venta_usd": 46.46,
+        "roi_pct": 192.96,
+        "r_j": 0.9935
       },
       {
-        "sku": 79,
+        "sku": 82,
+        "producto": "Thermalright Frozen Edge 240 Black AIO Water Cooler,Liquid C",
+        "categoria": "COOLER",
+        "precio_costo_usd": 12.8,
+        "precio_venta_usd": 37.49,
+        "roi_pct": 192.93,
+        "r_j": 0.0055
+      },
+      {
+        "sku": 90,
+        "producto": "Lian Li Galahad II Trinity Performance 360 - AIO - CPU Liqui",
+        "categoria": "COOLER",
+        "precio_costo_usd": 24.73,
+        "precio_venta_usd": 72.42,
+        "roi_pct": 192.89,
+        "r_j": 0.0067
+      }
+    ]
+  },
+  {
+    "sol_id": 2,
+    "tipo": "ESTRELLA",
+    "roi_pct": 193.3,
+    "rj_portafolio": 0.03,
+    "n_skus": 12,
+    "capital_usd": 314.1,
+    "ganancia_usd": 607.15,
+    "skus": [
+      {
+        "sku": 14,
+        "producto": "Thermalright FW240 White ARGB CPU Water Cooler with 2 PWM Fa",
+        "categoria": "COOLER",
+        "precio_costo_usd": 20.98,
+        "precio_venta_usd": 62.49,
+        "roi_pct": 197.92,
+        "r_j": 0.0124
+      },
+      {
+        "sku": 28,
+        "producto": "MSI MAG Coreliquid A13 240 - AIO ARGB CPU Liquid Cooler - 24",
+        "categoria": "COOLER",
+        "precio_costo_usd": 21.63,
+        "precio_venta_usd": 63.4,
+        "roi_pct": 193.08,
+        "r_j": 0.0143
+      },
+      {
+        "sku": 29,
+        "producto": "Thermalrlght Frozen Notte 240 White ARGB V2 Water Cooling CP",
+        "categoria": "COOLER",
+        "precio_costo_usd": 14.03,
+        "precio_venta_usd": 41.12,
+        "roi_pct": 193.07,
+        "r_j": 0.0134
+      },
+      {
+        "sku": 31,
         "producto": "Thermalrlght FW240 White ARGB V2 CPU Water Cooler with 2 PWM",
         "categoria": "COOLER",
         "precio_costo_usd": 18.2,
         "precio_venta_usd": 53.35,
         "roi_pct": 193.07,
         "r_j": 0.0235
+      },
+      {
+        "sku": 34,
+        "producto": "Intel Core i7-7700 Desktop Processor 4 Cores up to 4.2 GHz L",
+        "categoria": "CPU",
+        "precio_costo_usd": 19.78,
+        "precio_venta_usd": 57.96,
+        "roi_pct": 193.04,
+        "r_j": 0.0155
+      },
+      {
+        "sku": 36,
+        "producto": "msi",
+        "categoria": "MOTHERBOARD",
+        "precio_costo_usd": 42.65,
+        "precio_venta_usd": 124.99,
+        "roi_pct": 193.03,
+        "r_j": 0.0164
+      },
+      {
+        "sku": 50,
+        "producto": "Seasonic Focus GX 850W Power Supply ATX 3.1 PCIe 5.1 (12V-2x",
+        "categoria": "PSU",
+        "precio_costo_usd": 45.53,
+        "precio_venta_usd": 133.41,
+        "roi_pct": 193.01,
+        "r_j": 0.077
+      },
+      {
+        "sku": 78,
+        "producto": "Thermalright Frozen Edge 360 Black AIO Water Cooler,Liquid C",
+        "categoria": "COOLER",
+        "precio_costo_usd": 15.09,
+        "precio_venta_usd": 44.2,
+        "roi_pct": 192.95,
+        "r_j": 0.0434
+      },
+      {
+        "sku": 84,
+        "producto": "Thermalright FW 240 SE ARGB White-AIO CPU Liquid Cooler,IPS ",
+        "categoria": "COOLER",
+        "precio_costo_usd": 20.38,
+        "precio_venta_usd": 59.69,
+        "roi_pct": 192.92,
+        "r_j": 0.0757
+      },
+      {
+        "sku": 92,
+        "producto": "ASRock",
+        "categoria": "MOTHERBOARD",
+        "precio_costo_usd": 37.1,
+        "precio_venta_usd": 108.66,
+        "roi_pct": 192.88,
+        "r_j": 0.0055
       },
       {
         "sku": 93,
@@ -434,330 +337,27 @@
         "r_j": 0.0389
       },
       {
-        "sku": 98,
-        "producto": "Cooler Master MasterLiquid LC240E RGB Close-Loop AIO CPU Liq",
+        "sku": 100,
+        "producto": "MSI MAG Coreliquid A15 360 - AIO ARGB Liquid Cooling - 360mm",
         "categoria": "COOLER",
-        "precio_costo_usd": 21.63,
-        "precio_venta_usd": 63.3,
-        "roi_pct": 192.63,
-        "r_j": 0.0517
-      },
-      {
-        "sku": 103,
-        "producto": "MSI MAG Coreliquid A12 240 - AIO ARGB CPU Liquid Cooler - 24",
-        "categoria": "COOLER",
-        "precio_costo_usd": 20.26,
-        "precio_venta_usd": 55.43,
-        "roi_pct": 173.58,
-        "r_j": 0.0055
-      },
-      {
-        "sku": 106,
-        "producto": "Thermalright FW 240 SE ARGB White-AIO CPU Liquid Cooler,IPS ",
-        "categoria": "COOLER",
-        "precio_costo_usd": 20.38,
-        "precio_venta_usd": 59.69,
-        "roi_pct": 192.92,
-        "r_j": 0.0757
-      },
-      {
-        "sku": 107,
-        "producto": "Thermalright FW 240 SE ARGB White-AIO CPU Liquid Cooler,IPS ",
-        "categoria": "COOLER",
-        "precio_costo_usd": 20.38,
-        "precio_venta_usd": 59.69,
-        "roi_pct": 192.92,
-        "r_j": 0.0757
-      },
-      {
-        "sku": 120,
-        "producto": "Thermalright FW 360 White ARGB-360mm AIO CPU Liquid Cooler,I",
-        "categoria": "COOLER",
-        "precio_costo_usd": 25.84,
-        "precio_venta_usd": 68.16,
-        "roi_pct": 163.76,
-        "r_j": 0.0074
-      },
-      {
-        "sku": 121,
-        "producto": "Thermalright FW 360 White ARGB-360mm AIO CPU Liquid Cooler,I",
-        "categoria": "COOLER",
-        "precio_costo_usd": 25.84,
-        "precio_venta_usd": 68.16,
-        "roi_pct": 163.76,
-        "r_j": 0.0074
-      },
-      {
-        "sku": 125,
-        "producto": "Thermalright Frozen Notte 360 Black ARGB V2 Water Cooling CP",
-        "categoria": "COOLER",
-        "precio_costo_usd": 17.12,
-        "precio_venta_usd": 45.15,
-        "roi_pct": 163.7,
-        "r_j": 0.0131
-      },
-      {
-        "sku": 126,
-        "producto": "Thermalright Frozen Notte 360 Black ARGB V2 Water Cooling CP",
-        "categoria": "COOLER",
-        "precio_costo_usd": 17.12,
-        "precio_venta_usd": 45.15,
-        "roi_pct": 163.7,
-        "r_j": 0.0131
-      },
-      {
-        "sku": 130,
-        "producto": "CoolerMaster MasterLiquid ML240L RGB V2, Close-Loop AIO CPU ",
-        "categoria": "COOLER",
-        "precio_costo_usd": 27.82,
-        "precio_venta_usd": 81.51,
-        "roi_pct": 193.01,
-        "r_j": 0.1241
-      },
-      {
-        "sku": 132,
-        "producto": "Corsair H60x RGB Elite Liquid CPU Cooler - 16 Dynamic RGBLED",
-        "categoria": "COOLER",
-        "precio_costo_usd": 16.69,
-        "precio_venta_usd": 46.38,
-        "roi_pct": 177.97,
-        "r_j": 0.0898
-      },
-      {
-        "sku": 143,
-        "producto": "PCCOOLER AIO CPU Cooler - 3 Pack F5 R120 Case Fans - 2.4 Inc",
-        "categoria": "COOLER",
-        "precio_costo_usd": 27.82,
-        "precio_venta_usd": 68.83,
-        "roi_pct": 147.43,
-        "r_j": 0.0498
-      },
-      {
-        "sku": 150,
-        "producto": "Thermalright Frozen Notte 360 White ARGB V2 Water Cooling CP",
-        "categoria": "COOLER",
-        "precio_costo_usd": 16.57,
-        "precio_venta_usd": 43.64,
-        "roi_pct": 163.34,
-        "r_j": 0.1279
-      },
-      {
-        "sku": 151,
-        "producto": "Thermalright Frozen Notte 360 White ARGB V2 Water Cooling CP",
-        "categoria": "COOLER",
-        "precio_costo_usd": 16.57,
-        "precio_venta_usd": 43.64,
-        "roi_pct": 163.34,
-        "r_j": 0.1279
-      },
-      {
-        "sku": 176,
-        "producto": "Osprey 360mm AIO CPU Cooler, Copper-Aluminum Radiator, Leakp",
-        "categoria": "COOLER",
-        "precio_costo_usd": 27.82,
-        "precio_venta_usd": 54.03,
-        "roi_pct": 94.23,
-        "r_j": 0.033
-      },
-      {
-        "sku": 379,
-        "producto": "fanxiang S500 Pro 256GB NVMe SSD M.2 PCIe 3.0, Gen 3x4 2280 ",
-        "categoria": "SSD",
-        "precio_costo_usd": 15.86,
-        "precio_venta_usd": 46.46,
-        "roi_pct": 192.96,
-        "r_j": 0.9935
-      }
-    ]
-  },
-  {
-    "sol_id": 2,
-    "tipo": "SEGURO",
-    "roi_pct": 14.32,
-    "rj_portafolio": 0.0613,
-    "n_skus": 7,
-    "capital_usd": 2920.83,
-    "ganancia_usd": 418.26,
-    "skus": [
-      {
-        "sku": 103,
-        "producto": "MSI MAG Coreliquid A12 240 - AIO ARGB CPU Liquid Cooler - 24",
-        "categoria": "COOLER",
-        "precio_costo_usd": 20.26,
-        "precio_venta_usd": 55.43,
-        "roi_pct": 173.58,
-        "r_j": 0.0055
-      },
-      {
-        "sku": 251,
-        "producto": "Tarjeta de video GeForce RTX 5050 WINDFORCE OC 8G, 8 GB GDDR",
-        "categoria": "tarjetas_video",
-        "precio_costo_usd": 609.36,
-        "precio_venta_usd": 668.93,
-        "roi_pct": 9.78,
-        "r_j": 0.002
-      },
-      {
-        "sku": 265,
-        "producto": "Tarjeta de Video DUAL GeForce RTX 5060 8GB GDDR7 PCIe 5.0",
-        "categoria": "tarjetas_video",
-        "precio_costo_usd": 650.45,
-        "precio_venta_usd": 693.07,
-        "roi_pct": 6.55,
-        "r_j": 0.0009
-      },
-      {
-        "sku": 276,
-        "producto": "*For Parts* Strix X870E-E GAMING WIFI Socket AM5 DDR5 PCIE 5",
-        "categoria": "nan",
-        "precio_costo_usd": 114.99,
-        "precio_venta_usd": 135.79,
-        "roi_pct": 18.09,
-        "r_j": 0.0409
-      },
-      {
-        "sku": 278,
-        "producto": "Tarjeta Gráfica Geforce Rtx 3050 6Gb Gddr6 Pcie 4.0 - Rendim",
-        "categoria": "tarjetas_video",
-        "precio_costo_usd": 487.2,
-        "precio_venta_usd": 639.73,
-        "roi_pct": 31.31,
-        "r_j": 0.0878
-      },
-      {
-        "sku": 281,
-        "producto": "Computadora PC GAMER Ryzen 5 5500 + RAM 16GB + SSD 500GB + V",
-        "categoria": "tarjetas_video",
-        "precio_costo_usd": 880.23,
-        "precio_venta_usd": 959.73,
-        "roi_pct": 9.03,
-        "r_j": 0.0256
-      },
-      {
-        "sku": 324,
-        "producto": "Disco Sólido 512GB NVMe M.2 SSD 80mm PCIe 3.0 x4 SSDPEKNW512",
-        "categoria": "discos_ssd",
-        "precio_costo_usd": 158.33,
-        "precio_venta_usd": 186.4,
-        "roi_pct": 17.73,
-        "r_j": 0.2662
+        "precio_costo_usd": 30.91,
+        "precio_venta_usd": 90.52,
+        "roi_pct": 192.84,
+        "r_j": 0.0242
       }
     ]
   },
   {
     "sol_id": 3,
-    "tipo": "SEGURO",
-    "roi_pct": 15.56,
-    "rj_portafolio": 0.0019,
-    "n_skus": 4,
-    "capital_usd": 5694.71,
-    "ganancia_usd": 886.09,
+    "tipo": "ESTRELLA",
+    "roi_pct": 191.11,
+    "rj_portafolio": 0.0335,
+    "n_skus": 19,
+    "capital_usd": 456.98,
+    "ganancia_usd": 873.35,
     "skus": [
       {
-        "sku": 184,
-        "producto": "Tarjeta Gráfica Geforce Eagle Rtx 5070 Pcie 5.0 X16 - Alto R",
-        "categoria": "tarjetas_video",
-        "precio_costo_usd": 1309.3,
-        "precio_venta_usd": 1770.4,
-        "roi_pct": 35.22,
-        "r_j": 0.0066
-      },
-      {
-        "sku": 244,
-        "producto": "Prime RTX 5070 Ti - Tarjeta Gráfica NVIDIA GeForce - PCIe 5.",
-        "categoria": "tarjetas_video",
-        "precio_costo_usd": 1878.69,
-        "precio_venta_usd": 2072.0,
-        "roi_pct": 10.29,
-        "r_j": 0.0001
-      },
-      {
-        "sku": 246,
-        "producto": "Prime RTX 5070 Ti - Tarjeta Gráfica NVIDIA GeForce - PCIe 5.",
-        "categoria": "tarjetas_video",
-        "precio_costo_usd": 1878.69,
-        "precio_venta_usd": 2072.0,
-        "roi_pct": 10.29,
-        "r_j": 0.0001
-      },
-      {
-        "sku": 268,
-        "producto": "Tarjeta de Video DUAL RTX-5060 8GB GDDR7 PCIe 5.0 DUAL-RTX50",
-        "categoria": "tarjetas_video",
-        "precio_costo_usd": 628.04,
-        "precio_venta_usd": 666.4,
-        "roi_pct": 6.11,
-        "r_j": 0.0007
-      }
-    ]
-  },
-  {
-    "sol_id": 4,
-    "tipo": "SEGURO",
-    "roi_pct": 33.44,
-    "rj_portafolio": 0.062,
-    "n_skus": 5,
-    "capital_usd": 3065.5,
-    "ganancia_usd": 1024.95,
-    "skus": [
-      {
-        "sku": 56,
-        "producto": "Thermalrlght Frozen Notte 240 White ARGB V2 Water Cooling CP",
-        "categoria": "COOLER",
-        "precio_costo_usd": 14.03,
-        "precio_venta_usd": 41.12,
-        "roi_pct": 193.07,
-        "r_j": 0.0134
-      },
-      {
-        "sku": 193,
-        "producto": "Tarjeta De Video Geforce Rtx5060 8Gb Gddr7 Pcie 5.0",
-        "categoria": "tarjetas_video",
-        "precio_costo_usd": 700.49,
-        "precio_venta_usd": 919.73,
-        "roi_pct": 31.3,
-        "r_j": 0.0017
-      },
-      {
-        "sku": 201,
-        "producto": "Tarjeta de video GeForce RTX 5070 Ti 16 GB GDDR7 PCIe 5.0",
-        "categoria": "tarjetas_video",
-        "precio_costo_usd": 1851.6,
-        "precio_venta_usd": 2431.73,
-        "roi_pct": 31.33,
-        "r_j": 0.007
-      },
-      {
-        "sku": 207,
-        "producto": "Procesador Core i5-14400 2.50/4.70GHz, 20 MB Smart Caché, LG",
-        "categoria": "procesadores",
-        "precio_costo_usd": 482.79,
-        "precio_venta_usd": 671.2,
-        "roi_pct": 39.02,
-        "r_j": 0.0371
-      },
-      {
-        "sku": 296,
-        "producto": "Tarjeta de Expansión PCIe 3.0 x 4 soporta 4TB disco solido N",
-        "categoria": "discos_ssd",
-        "precio_costo_usd": 16.58,
-        "precio_venta_usd": 26.67,
-        "roi_pct": 60.81,
-        "r_j": 0.251
-      }
-    ]
-  },
-  {
-    "sol_id": 5,
-    "tipo": "OPTIMO",
-    "roi_pct": 195.2,
-    "rj_portafolio": 0.208,
-    "n_skus": 14,
-    "capital_usd": 292.36,
-    "ganancia_usd": 570.69,
-    "skus": [
-      {
-        "sku": 3,
+        "sku": 1,
         "producto": "msi",
         "categoria": "MOTHERBOARD",
         "precio_costo_usd": 26.86,
@@ -767,30 +367,12 @@
       },
       {
         "sku": 6,
-        "producto": "Thermalright FW 240 Black ARGB-240mm AIO CPU Liquid Cooler,I",
-        "categoria": "COOLER",
-        "precio_costo_usd": 22.47,
-        "precio_venta_usd": 66.94,
-        "roi_pct": 197.89,
-        "r_j": 0.0051
-      },
-      {
-        "sku": 8,
-        "producto": "Thermalright FW 240 White ARGB-240mm AIO CPU Liquid Cooler,I",
-        "categoria": "COOLER",
-        "precio_costo_usd": 19.73,
-        "precio_venta_usd": 58.79,
-        "roi_pct": 197.9,
-        "r_j": 0.0072
-      },
-      {
-        "sku": 10,
-        "producto": "Thermalright FW 360 White ARGB V2 CPU Water Cooler with 3 PW",
-        "categoria": "COOLER",
-        "precio_costo_usd": 24.66,
-        "precio_venta_usd": 73.45,
-        "roi_pct": 197.9,
-        "r_j": 0.0103
+        "producto": "Seasonic CORE GX 850W Power Supply ATX 3.1 PCIe 5.1 (12V-2x6",
+        "categoria": "PSU",
+        "precio_costo_usd": 37.1,
+        "precio_venta_usd": 117.68,
+        "roi_pct": 217.21,
+        "r_j": 0.0258
       },
       {
         "sku": 14,
@@ -802,164 +384,61 @@
         "r_j": 0.0124
       },
       {
-        "sku": 34,
-        "producto": "ID-COOLING",
-        "categoria": "CPU",
-        "precio_costo_usd": 17.0,
-        "precio_venta_usd": 49.78,
-        "roi_pct": 192.9,
-        "r_j": 0.0027
-      },
-      {
-        "sku": 42,
-        "producto": "Intel Core i7-7700 Desktop Processor 4 Cores up to 4.2 GHz L",
-        "categoria": "CPU",
-        "precio_costo_usd": 19.78,
-        "precio_venta_usd": 57.96,
-        "roi_pct": 193.04,
-        "r_j": 0.0066
-      },
-      {
-        "sku": 56,
-        "producto": "Thermalrlght Frozen Notte 240 White ARGB V2 Water Cooling CP",
+        "sku": 16,
+        "producto": "Thermalright FW 240 White ARGB-240mm AIO CPU Liquid Cooler,I",
         "categoria": "COOLER",
-        "precio_costo_usd": 14.03,
-        "precio_venta_usd": 41.12,
-        "roi_pct": 193.07,
+        "precio_costo_usd": 19.73,
+        "precio_venta_usd": 58.79,
+        "roi_pct": 197.9,
+        "r_j": 0.0072
+      },
+      {
+        "sku": 26,
+        "producto": "Antec Luna 360 ARGB AIO Liquid CPU Cooler, 3x120mm PWM ARGB ",
+        "categoria": "COOLER",
+        "precio_costo_usd": 13.9,
+        "precio_venta_usd": 40.75,
+        "roi_pct": 193.08,
+        "r_j": 0.0179
+      },
+      {
+        "sku": 27,
+        "producto": "Dracaena 240mm AIO CPU Cooler, 240mm Radiator, 2x120mm ARGB ",
+        "categoria": "COOLER",
+        "precio_costo_usd": 16.69,
+        "precio_venta_usd": 48.9,
+        "roi_pct": 193.08,
         "r_j": 0.0134
       },
       {
-        "sku": 66,
-        "producto": "Intel Core i7-7700 Desktop Processor 4 Cores up to 4.2 GHz L",
-        "categoria": "CPU",
-        "precio_costo_usd": 19.78,
-        "precio_venta_usd": 57.96,
-        "roi_pct": 193.04,
-        "r_j": 0.0155
-      },
-      {
-        "sku": 79,
-        "producto": "Thermalrlght FW240 White ARGB V2 CPU Water Cooler with 2 PWM",
-        "categoria": "COOLER",
-        "precio_costo_usd": 18.2,
-        "precio_venta_usd": 53.35,
-        "roi_pct": 193.07,
-        "r_j": 0.0235
-      },
-      {
-        "sku": 92,
-        "producto": "MSI MAG Coreliquid A13 360 - AIO ARGB CPU Liquid Cooler - 36",
-        "categoria": "COOLER",
-        "precio_costo_usd": 27.82,
-        "precio_venta_usd": 81.47,
-        "roi_pct": 192.86,
-        "r_j": 0.0389
-      },
-      {
-        "sku": 323,
-        "producto": "Thermalright CORE Vision 360 Black ARGB-360mm AIO CPU Liquid",
-        "categoria": "COOLER",
-        "precio_costo_usd": 29.34,
-        "precio_venta_usd": 85.96,
-        "roi_pct": 193.03,
-        "r_j": 0.7862
-      },
-      {
-        "sku": 380,
-        "producto": "fanxiang S500 Pro 256GB NVMe SSD M.2 PCIe 3.0, Gen 3x4 2280 ",
-        "categoria": "SSD",
-        "precio_costo_usd": 15.86,
-        "precio_venta_usd": 46.46,
-        "roi_pct": 192.96,
-        "r_j": 0.9935
-      },
-      {
-        "sku": 381,
-        "producto": "fanxiang S500 Pro 256GB NVMe SSD M.2 PCIe 3.0, Gen 3x4 2280 ",
-        "categoria": "SSD",
-        "precio_costo_usd": 15.86,
-        "precio_venta_usd": 46.46,
-        "roi_pct": 192.96,
-        "r_j": 0.9935
-      }
-    ]
-  },
-  {
-    "sol_id": 6,
-    "tipo": "ESTRELLA",
-    "roi_pct": 193.0,
-    "rj_portafolio": 0.0051,
-    "n_skus": 3,
-    "capital_usd": 820.44,
-    "ganancia_usd": 1583.49,
-    "skus": [
-      {
-        "sku": 30,
-        "producto": "Panorama XL RTX 5070, Intel Ultra 7 265KF, 32GB DDR5 RAM, 1T",
-        "categoria": "CPU",
-        "precio_costo_usd": 741.93,
-        "precio_venta_usd": 2173.88,
-        "roi_pct": 193.0,
-        "r_j": 0.0018
-      },
-      {
-        "sku": 43,
-        "producto": "Intel Core i7-7700 Desktop Processor 4 Cores up to 4.2 GHz L",
-        "categoria": "CPU",
-        "precio_costo_usd": 19.78,
-        "precio_venta_usd": 57.96,
-        "roi_pct": 193.04,
-        "r_j": 0.0066
-      },
-      {
-        "sku": 45,
-        "producto": "Lian Li GA II Trinity SL-INF 360MM - AIO Liquid Cooler -Pre-",
-        "categoria": "COOLER",
-        "precio_costo_usd": 58.73,
-        "precio_venta_usd": 172.09,
-        "roi_pct": 193.02,
-        "r_j": 0.0068
-      }
-    ]
-  },
-  {
-    "sol_id": 7,
-    "tipo": "ESTRELLA",
-    "roi_pct": 193.73,
-    "rj_portafolio": 0.0209,
-    "n_skus": 14,
-    "capital_usd": 275.3,
-    "ganancia_usd": 533.33,
-    "skus": [
-      {
-        "sku": 3,
-        "producto": "msi",
-        "categoria": "MOTHERBOARD",
-        "precio_costo_usd": 26.86,
-        "precio_venta_usd": 80.86,
-        "roi_pct": 200.99,
-        "r_j": 0.0036
-      },
-      {
-        "sku": 37,
-        "producto": "GAMDIAS CHIONE E4 240mm AIO CPU Water Cooler, Real-time Digi",
+        "sku": 28,
+        "producto": "MSI MAG Coreliquid A13 240 - AIO ARGB CPU Liquid Cooler - 24",
         "categoria": "COOLER",
         "precio_costo_usd": 21.63,
-        "precio_venta_usd": 63.36,
-        "roi_pct": 192.92,
-        "r_j": 0.0034
+        "precio_venta_usd": 63.4,
+        "roi_pct": 193.08,
+        "r_j": 0.0143
       },
       {
-        "sku": 43,
-        "producto": "Intel Core i7-7700 Desktop Processor 4 Cores up to 4.2 GHz L",
-        "categoria": "CPU",
-        "precio_costo_usd": 19.78,
-        "precio_venta_usd": 57.96,
-        "roi_pct": 193.04,
-        "r_j": 0.0066
+        "sku": 40,
+        "producto": "GIGABYTE",
+        "categoria": "MOTHERBOARD",
+        "precio_costo_usd": 40.18,
+        "precio_venta_usd": 117.74,
+        "roi_pct": 193.03,
+        "r_j": 0.0003
       },
       {
-        "sku": 48,
+        "sku": 52,
+        "producto": "CoolerMaster MasterLiquid ML240L RGB V2, Close-Loop AIO CPU ",
+        "categoria": "COOLER",
+        "precio_costo_usd": 27.82,
+        "precio_venta_usd": 81.51,
+        "roi_pct": 193.01,
+        "r_j": 0.1241
+      },
+      {
+        "sku": 70,
         "producto": "Thermalright Frozen Edge 360 Black Liquid CPU Water Cooler w",
         "categoria": "COOLER",
         "precio_costo_usd": 16.97,
@@ -968,43 +447,211 @@
         "r_j": 0.0081
       },
       {
-        "sku": 65,
-        "producto": "Intel Core i7-7700 Desktop Processor 4 Cores up to 4.2 GHz L",
-        "categoria": "CPU",
-        "precio_costo_usd": 19.78,
-        "precio_venta_usd": 57.96,
-        "roi_pct": 193.04,
-        "r_j": 0.0155
+        "sku": 82,
+        "producto": "Thermalright Frozen Edge 240 Black AIO Water Cooler,Liquid C",
+        "categoria": "COOLER",
+        "precio_costo_usd": 12.8,
+        "precio_venta_usd": 37.49,
+        "roi_pct": 192.93,
+        "r_j": 0.0055
       },
       {
-        "sku": 66,
-        "producto": "Intel Core i7-7700 Desktop Processor 4 Cores up to 4.2 GHz L",
-        "categoria": "CPU",
-        "precio_costo_usd": 19.78,
-        "precio_venta_usd": 57.96,
-        "roi_pct": 193.04,
-        "r_j": 0.0155
+        "sku": 83,
+        "producto": "GAMDIAS CHIONE E4 240mm AIO CPU Water Cooler, Real-time Digi",
+        "categoria": "COOLER",
+        "precio_costo_usd": 21.63,
+        "precio_venta_usd": 63.36,
+        "roi_pct": 192.92,
+        "r_j": 0.0034
       },
       {
-        "sku": 67,
-        "producto": "Intel Core i7-7700 Desktop Processor 4 Cores up to 4.2 GHz L",
-        "categoria": "CPU",
-        "precio_costo_usd": 19.78,
-        "precio_venta_usd": 57.96,
-        "roi_pct": 193.04,
-        "r_j": 0.0155
+        "sku": 84,
+        "producto": "Thermalright FW 240 SE ARGB White-AIO CPU Liquid Cooler,IPS ",
+        "categoria": "COOLER",
+        "precio_costo_usd": 20.38,
+        "precio_venta_usd": 59.69,
+        "roi_pct": 192.92,
+        "r_j": 0.0757
       },
       {
-        "sku": 69,
-        "producto": "Intel Core i7-7700 Desktop Processor 4 Cores up to 4.2 GHz L",
+        "sku": 88,
+        "producto": "ID-COOLING",
         "categoria": "CPU",
-        "precio_costo_usd": 19.78,
-        "precio_venta_usd": 57.96,
-        "roi_pct": 193.04,
-        "r_j": 0.0155
+        "precio_costo_usd": 17.0,
+        "precio_venta_usd": 49.78,
+        "roi_pct": 192.9,
+        "r_j": 0.0027
+      },
+      {
+        "sku": 90,
+        "producto": "Lian Li Galahad II Trinity Performance 360 - AIO - CPU Liqui",
+        "categoria": "COOLER",
+        "precio_costo_usd": 24.73,
+        "precio_venta_usd": 72.42,
+        "roi_pct": 192.89,
+        "r_j": 0.0067
+      },
+      {
+        "sku": 111,
+        "producto": "GIGABYTE",
+        "categoria": "MOTHERBOARD",
+        "precio_costo_usd": 43.27,
+        "precio_venta_usd": 123.12,
+        "roi_pct": 184.52,
+        "r_j": 0.0027
+      },
+      {
+        "sku": 123,
+        "producto": "SIX NVME X7400 M.2 SSD PCIe 4.0-512GB m.2 2280 ssd, Read UP ",
+        "categoria": "SSD",
+        "precio_costo_usd": 30.91,
+        "precio_venta_usd": 84.23,
+        "roi_pct": 172.48,
+        "r_j": 0.1681
+      },
+      {
+        "sku": 125,
+        "producto": "MSI MAG Coreliquid A13 360 White - AIO ARGB CPU Liquid Coole",
+        "categoria": "COOLER",
+        "precio_costo_usd": 27.82,
+        "precio_venta_usd": 74.74,
+        "roi_pct": 168.66,
+        "r_j": 0.0164
+      },
+      {
+        "sku": 134,
+        "producto": "Thermalright Frozen Notte 360 White ARGB V2 Water Cooling CP",
+        "categoria": "COOLER",
+        "precio_costo_usd": 16.57,
+        "precio_venta_usd": 43.64,
+        "roi_pct": 163.34,
+        "r_j": 0.1279
+      }
+    ]
+  },
+  {
+    "sol_id": 4,
+    "tipo": "ESTRELLA",
+    "roi_pct": 192.88,
+    "rj_portafolio": 0.0985,
+    "n_skus": 6,
+    "capital_usd": 1961.76,
+    "ganancia_usd": 3783.77,
+    "skus": [
+      {
+        "sku": 20,
+        "producto": "Fikwot FX550 NVMe SSD 1TB M.2 SSD PCIe 3.0×4, Read Up to 3,5",
+        "categoria": "SSD",
+        "precio_costo_usd": 45.13,
+        "precio_venta_usd": 133.98,
+        "roi_pct": 196.89,
+        "r_j": 0.5573
+      },
+      {
+        "sku": 40,
+        "producto": "GIGABYTE",
+        "categoria": "MOTHERBOARD",
+        "precio_costo_usd": 40.18,
+        "precio_venta_usd": 117.74,
+        "roi_pct": 193.03,
+        "r_j": 0.0003
       },
       {
         "sku": 71,
+        "producto": "GeForce RTX 5090 OC Graphics Card, 32GB GDDR7 28Gbps VRAM, 2",
+        "categoria": "GPU",
+        "precio_costo_usd": 1282.93,
+        "precio_venta_usd": 3758.62,
+        "roi_pct": 192.97,
+        "r_j": 0.0234
+      },
+      {
+        "sku": 73,
+        "producto": "Centaurus Berserk GX3 Gaming PC, Intel Core Ultra 7 265K 20-",
+        "categoria": "CPU",
+        "precio_costo_usd": 525.53,
+        "precio_venta_usd": 1539.65,
+        "roi_pct": 192.97,
+        "r_j": 0.0005
+      },
+      {
+        "sku": 90,
+        "producto": "Lian Li Galahad II Trinity Performance 360 - AIO - CPU Liqui",
+        "categoria": "COOLER",
+        "precio_costo_usd": 24.73,
+        "precio_venta_usd": 72.42,
+        "roi_pct": 192.89,
+        "r_j": 0.0067
+      },
+      {
+        "sku": 111,
+        "producto": "GIGABYTE",
+        "categoria": "MOTHERBOARD",
+        "precio_costo_usd": 43.27,
+        "precio_venta_usd": 123.12,
+        "roi_pct": 184.52,
+        "r_j": 0.0027
+      }
+    ]
+  },
+  {
+    "sol_id": 5,
+    "tipo": "OPTIMO",
+    "roi_pct": 217.48,
+    "rj_portafolio": 0.2018,
+    "n_skus": 4,
+    "capital_usd": 664.17,
+    "ganancia_usd": 1444.45,
+    "skus": [
+      {
+        "sku": 6,
+        "producto": "Seasonic CORE GX 850W Power Supply ATX 3.1 PCIe 5.1 (12V-2x6",
+        "categoria": "PSU",
+        "precio_costo_usd": 37.1,
+        "precio_venta_usd": 117.68,
+        "roi_pct": 217.21,
+        "r_j": 0.0258
+      },
+      {
+        "sku": 7,
+        "producto": "Thermalright FW 240 SE ARGB Black-AIO CPU Liquid Cooler,IPS ",
+        "categoria": "COOLER",
+        "precio_costo_usd": 16.3,
+        "precio_venta_usd": 53.04,
+        "roi_pct": 225.5,
+        "r_j": 0.2799
+      },
+      {
+        "sku": 10,
+        "producto": "Bestoss 1TB PCIe 4.0 NVMe M.2 2280 SSD with Heatsink, PS5 St",
+        "categoria": "SSD",
+        "precio_costo_usd": 54.33,
+        "precio_venta_usd": 171.99,
+        "roi_pct": 216.59,
+        "r_j": 0.3294
+      },
+      {
+        "sku": 11,
+        "producto": "Envision S13 24-core Ultra 9 285K, 64GB DDR5 RAM, 1TB Gen4 N",
+        "categoria": "CPU",
+        "precio_costo_usd": 556.45,
+        "precio_venta_usd": 1765.91,
+        "roi_pct": 217.35,
+        "r_j": 0.1721
+      }
+    ]
+  },
+  {
+    "sol_id": 6,
+    "tipo": "ESTRELLA",
+    "roi_pct": 193.0,
+    "rj_portafolio": 0.0202,
+    "n_skus": 5,
+    "capital_usd": 135.29,
+    "ganancia_usd": 261.1,
+    "skus": [
+      {
+        "sku": 34,
         "producto": "Intel Core i7-7700 Desktop Processor 4 Cores up to 4.2 GHz L",
         "categoria": "CPU",
         "precio_costo_usd": 19.78,
@@ -1013,16 +660,117 @@
         "r_j": 0.0155
       },
       {
-        "sku": 79,
-        "producto": "Thermalrlght FW240 White ARGB V2 CPU Water Cooler with 2 PWM",
-        "categoria": "COOLER",
-        "precio_costo_usd": 18.2,
-        "precio_venta_usd": 53.35,
-        "roi_pct": 193.07,
-        "r_j": 0.0235
+        "sku": 40,
+        "producto": "GIGABYTE",
+        "categoria": "MOTHERBOARD",
+        "precio_costo_usd": 40.18,
+        "precio_venta_usd": 117.74,
+        "roi_pct": 193.03,
+        "r_j": 0.0003
       },
       {
-        "sku": 87,
+        "sku": 50,
+        "producto": "Seasonic Focus GX 850W Power Supply ATX 3.1 PCIe 5.1 (12V-2x",
+        "categoria": "PSU",
+        "precio_costo_usd": 45.53,
+        "precio_venta_usd": 133.41,
+        "roi_pct": 193.01,
+        "r_j": 0.077
+      },
+      {
+        "sku": 82,
+        "producto": "Thermalright Frozen Edge 240 Black AIO Water Cooler,Liquid C",
+        "categoria": "COOLER",
+        "precio_costo_usd": 12.8,
+        "precio_venta_usd": 37.49,
+        "roi_pct": 192.93,
+        "r_j": 0.0055
+      },
+      {
+        "sku": 88,
+        "producto": "ID-COOLING",
+        "categoria": "CPU",
+        "precio_costo_usd": 17.0,
+        "precio_venta_usd": 49.78,
+        "roi_pct": 192.9,
+        "r_j": 0.0027
+      }
+    ]
+  },
+  {
+    "sol_id": 7,
+    "tipo": "ESTRELLA",
+    "roi_pct": 202.54,
+    "rj_portafolio": 0.0485,
+    "n_skus": 9,
+    "capital_usd": 194.69,
+    "ganancia_usd": 394.33,
+    "skus": [
+      {
+        "sku": 1,
+        "producto": "msi",
+        "categoria": "MOTHERBOARD",
+        "precio_costo_usd": 26.86,
+        "precio_venta_usd": 80.86,
+        "roi_pct": 200.99,
+        "r_j": 0.0036
+      },
+      {
+        "sku": 6,
+        "producto": "Seasonic CORE GX 850W Power Supply ATX 3.1 PCIe 5.1 (12V-2x6",
+        "categoria": "PSU",
+        "precio_costo_usd": 37.1,
+        "precio_venta_usd": 117.68,
+        "roi_pct": 217.21,
+        "r_j": 0.0258
+      },
+      {
+        "sku": 7,
+        "producto": "Thermalright FW 240 SE ARGB Black-AIO CPU Liquid Cooler,IPS ",
+        "categoria": "COOLER",
+        "precio_costo_usd": 16.3,
+        "precio_venta_usd": 53.04,
+        "roi_pct": 225.5,
+        "r_j": 0.2799
+      },
+      {
+        "sku": 14,
+        "producto": "Thermalright FW240 White ARGB CPU Water Cooler with 2 PWM Fa",
+        "categoria": "COOLER",
+        "precio_costo_usd": 20.98,
+        "precio_venta_usd": 62.49,
+        "roi_pct": 197.92,
+        "r_j": 0.0124
+      },
+      {
+        "sku": 15,
+        "producto": "Thermalright FW 360 White ARGB V2 CPU Water Cooler with 3 PW",
+        "categoria": "COOLER",
+        "precio_costo_usd": 24.66,
+        "precio_venta_usd": 73.45,
+        "roi_pct": 197.9,
+        "r_j": 0.0103
+      },
+      {
+        "sku": 34,
+        "producto": "Intel Core i7-7700 Desktop Processor 4 Cores up to 4.2 GHz L",
+        "categoria": "CPU",
+        "precio_costo_usd": 19.78,
+        "precio_venta_usd": 57.96,
+        "roi_pct": 193.04,
+        "r_j": 0.0155
+      },
+      {
+        "sku": 82,
+        "producto": "Thermalright Frozen Edge 240 Black AIO Water Cooler,Liquid C",
+        "categoria": "COOLER",
+        "precio_costo_usd": 12.8,
+        "precio_venta_usd": 37.49,
+        "roi_pct": 192.93,
+        "r_j": 0.0055
+      },
+      {
+        "sku": 89,
         "producto": "Thermalright Frozen Notte 240 Black ARGB V2 Water Cooling CP",
         "categoria": "COOLER",
         "precio_costo_usd": 14.59,
@@ -1031,25 +779,7 @@
         "r_j": 0.0319
       },
       {
-        "sku": 96,
-        "producto": "Thermalright Frozen Edge 360 Black AIO Water Cooler,Liquid C",
-        "categoria": "COOLER",
-        "precio_costo_usd": 15.09,
-        "precio_venta_usd": 44.2,
-        "roi_pct": 192.95,
-        "r_j": 0.0434
-      },
-      {
-        "sku": 97,
-        "producto": "Cooler Master MasterLiquid LC240E RGB Close-Loop AIO CPU Liq",
-        "categoria": "COOLER",
-        "precio_costo_usd": 21.63,
-        "precio_venta_usd": 63.3,
-        "roi_pct": 192.63,
-        "r_j": 0.043
-      },
-      {
-        "sku": 98,
+        "sku": 104,
         "producto": "Cooler Master MasterLiquid LC240E RGB Close-Loop AIO CPU Liq",
         "categoria": "COOLER",
         "precio_costo_usd": 21.63,
@@ -1062,14 +792,261 @@
   {
     "sol_id": 8,
     "tipo": "ESTRELLA",
-    "roi_pct": 192.85,
-    "rj_portafolio": 0.0242,
-    "n_skus": 3,
-    "capital_usd": 78.51,
-    "ganancia_usd": 151.41,
+    "roi_pct": 186.49,
+    "rj_portafolio": 0.0878,
+    "n_skus": 7,
+    "capital_usd": 2030.75,
+    "ganancia_usd": 3787.23,
     "skus": [
       {
+        "sku": 20,
+        "producto": "Fikwot FX550 NVMe SSD 1TB M.2 SSD PCIe 3.0×4, Read Up to 3,5",
+        "categoria": "SSD",
+        "precio_costo_usd": 45.13,
+        "precio_venta_usd": 133.98,
+        "roi_pct": 196.89,
+        "r_j": 0.5573
+      },
+      {
         "sku": 40,
+        "producto": "GIGABYTE",
+        "categoria": "MOTHERBOARD",
+        "precio_costo_usd": 40.18,
+        "precio_venta_usd": 117.74,
+        "roi_pct": 193.03,
+        "r_j": 0.0003
+      },
+      {
+        "sku": 71,
+        "producto": "GeForce RTX 5090 OC Graphics Card, 32GB GDDR7 28Gbps VRAM, 2",
+        "categoria": "GPU",
+        "precio_costo_usd": 1282.93,
+        "precio_venta_usd": 3758.62,
+        "roi_pct": 192.97,
+        "r_j": 0.0234
+      },
+      {
+        "sku": 73,
+        "producto": "Centaurus Berserk GX3 Gaming PC, Intel Core Ultra 7 265K 20-",
+        "categoria": "CPU",
+        "precio_costo_usd": 525.53,
+        "precio_venta_usd": 1539.65,
+        "roi_pct": 192.97,
+        "r_j": 0.0005
+      },
+      {
+        "sku": 90,
+        "producto": "Lian Li Galahad II Trinity Performance 360 - AIO - CPU Liqui",
+        "categoria": "COOLER",
+        "precio_costo_usd": 24.73,
+        "precio_venta_usd": 72.42,
+        "roi_pct": 192.89,
+        "r_j": 0.0067
+      },
+      {
+        "sku": 111,
+        "producto": "GIGABYTE",
+        "categoria": "MOTHERBOARD",
+        "precio_costo_usd": 43.27,
+        "precio_venta_usd": 123.12,
+        "roi_pct": 184.52,
+        "r_j": 0.0027
+      },
+      {
+        "sku": 172,
+        "producto": "*For Parts* ASUS X870 GAMING WIFI7 W Socket AM5 DDR5 PCIE 5.",
+        "categoria": "nan",
+        "precio_costo_usd": 68.99,
+        "precio_venta_usd": 72.45,
+        "roi_pct": 5.02,
+        "r_j": 0.0238
+      }
+    ]
+  },
+  {
+    "sol_id": 9,
+    "tipo": "ESTRELLA",
+    "roi_pct": 196.87,
+    "rj_portafolio": 0.0368,
+    "n_skus": 6,
+    "capital_usd": 148.29,
+    "ganancia_usd": 291.95,
+    "skus": [
+      {
+        "sku": 1,
+        "producto": "msi",
+        "categoria": "MOTHERBOARD",
+        "precio_costo_usd": 26.86,
+        "precio_venta_usd": 80.86,
+        "roi_pct": 200.99,
+        "r_j": 0.0036
+      },
+      {
+        "sku": 6,
+        "producto": "Seasonic CORE GX 850W Power Supply ATX 3.1 PCIe 5.1 (12V-2x6",
+        "categoria": "PSU",
+        "precio_costo_usd": 37.1,
+        "precio_venta_usd": 117.68,
+        "roi_pct": 217.21,
+        "r_j": 0.0258
+      },
+      {
+        "sku": 16,
+        "producto": "Thermalright FW 240 White ARGB-240mm AIO CPU Liquid Cooler,I",
+        "categoria": "COOLER",
+        "precio_costo_usd": 19.73,
+        "precio_venta_usd": 58.79,
+        "roi_pct": 197.9,
+        "r_j": 0.0072
+      },
+      {
+        "sku": 27,
+        "producto": "Dracaena 240mm AIO CPU Cooler, 240mm Radiator, 2x120mm ARGB ",
+        "categoria": "COOLER",
+        "precio_costo_usd": 16.69,
+        "precio_venta_usd": 48.9,
+        "roi_pct": 193.08,
+        "r_j": 0.0134
+      },
+      {
+        "sku": 88,
+        "producto": "ID-COOLING",
+        "categoria": "CPU",
+        "precio_costo_usd": 17.0,
+        "precio_venta_usd": 49.78,
+        "roi_pct": 192.9,
+        "r_j": 0.0027
+      },
+      {
+        "sku": 123,
+        "producto": "SIX NVME X7400 M.2 SSD PCIe 4.0-512GB m.2 2280 ssd, Read UP ",
+        "categoria": "SSD",
+        "precio_costo_usd": 30.91,
+        "precio_venta_usd": 84.23,
+        "roi_pct": 172.48,
+        "r_j": 0.1681
+      }
+    ]
+  },
+  {
+    "sol_id": 10,
+    "tipo": "AGRESIVO",
+    "roi_pct": 193.33,
+    "rj_portafolio": 0.3512,
+    "n_skus": 14,
+    "capital_usd": 482.92,
+    "ganancia_usd": 933.62,
+    "skus": [
+      {
+        "sku": 20,
+        "producto": "Fikwot FX550 NVMe SSD 1TB M.2 SSD PCIe 3.0×4, Read Up to 3,5",
+        "categoria": "SSD",
+        "precio_costo_usd": 45.13,
+        "precio_venta_usd": 133.98,
+        "roi_pct": 196.89,
+        "r_j": 0.5573
+      },
+      {
+        "sku": 33,
+        "producto": "SANDISK 1TB Optimus 5100 NVMe SSD - PCIe 4.0 x4, M.2 2280, U",
+        "categoria": "SSD",
+        "precio_costo_usd": 52.47,
+        "precio_venta_usd": 153.77,
+        "roi_pct": 193.04,
+        "r_j": 0.5894
+      },
+      {
+        "sku": 36,
+        "producto": "msi",
+        "categoria": "MOTHERBOARD",
+        "precio_costo_usd": 42.65,
+        "precio_venta_usd": 124.99,
+        "roi_pct": 193.03,
+        "r_j": 0.0164
+      },
+      {
+        "sku": 38,
+        "producto": "1TB NVMe SSD M.2 SSD PCIe 3.0×4, Read Up to 3,500 MB/s, M.2 ",
+        "categoria": "SSD",
+        "precio_costo_usd": 45.13,
+        "precio_venta_usd": 132.23,
+        "roi_pct": 193.03,
+        "r_j": 0.9268
+      },
+      {
+        "sku": 39,
+        "producto": "Thermalright CORE Vision 360 Black ARGB-360mm AIO CPU Liquid",
+        "categoria": "COOLER",
+        "precio_costo_usd": 29.34,
+        "precio_venta_usd": 85.96,
+        "roi_pct": 193.03,
+        "r_j": 0.7862
+      },
+      {
+        "sku": 50,
+        "producto": "Seasonic Focus GX 850W Power Supply ATX 3.1 PCIe 5.1 (12V-2x",
+        "categoria": "PSU",
+        "precio_costo_usd": 45.53,
+        "precio_venta_usd": 133.41,
+        "roi_pct": 193.01,
+        "r_j": 0.077
+      },
+      {
+        "sku": 55,
+        "producto": "msi MAG CoreLiquid I360 Black - AIO ARGB CPU Liquid Cooler -",
+        "categoria": "COOLER",
+        "precio_costo_usd": 38.64,
+        "precio_venta_usd": 113.21,
+        "roi_pct": 193.0,
+        "r_j": 0.009
+      },
+      {
+        "sku": 77,
+        "producto": "Thermalright Mjolnir Vision 360 ARGB White AIO CPU Liquid Co",
+        "categoria": "COOLER",
+        "precio_costo_usd": 30.58,
+        "precio_venta_usd": 89.58,
+        "roi_pct": 192.96,
+        "r_j": 0.9273
+      },
+      {
+        "sku": 78,
+        "producto": "Thermalright Frozen Edge 360 Black AIO Water Cooler,Liquid C",
+        "categoria": "COOLER",
+        "precio_costo_usd": 15.09,
+        "precio_venta_usd": 44.2,
+        "roi_pct": 192.95,
+        "r_j": 0.0434
+      },
+      {
+        "sku": 82,
+        "producto": "Thermalright Frozen Edge 240 Black AIO Water Cooler,Liquid C",
+        "categoria": "COOLER",
+        "precio_costo_usd": 12.8,
+        "precio_venta_usd": 37.49,
+        "roi_pct": 192.93,
+        "r_j": 0.0055
+      },
+      {
+        "sku": 89,
+        "producto": "Thermalright Frozen Notte 240 Black ARGB V2 Water Cooling CP",
+        "categoria": "COOLER",
+        "precio_costo_usd": 14.59,
+        "precio_venta_usd": 42.74,
+        "roi_pct": 192.9,
+        "r_j": 0.0319
+      },
+      {
+        "sku": 90,
+        "producto": "Lian Li Galahad II Trinity Performance 360 - AIO - CPU Liqui",
+        "categoria": "COOLER",
+        "precio_costo_usd": 24.73,
+        "precio_venta_usd": 72.42,
+        "roi_pct": 192.89,
+        "r_j": 0.0067
+      },
+      {
+        "sku": 92,
         "producto": "ASRock",
         "categoria": "MOTHERBOARD",
         "precio_costo_usd": 37.1,
@@ -1078,7 +1055,54 @@
         "r_j": 0.0055
       },
       {
-        "sku": 64,
+        "sku": 102,
+        "producto": "Intel",
+        "categoria": "CPU",
+        "precio_costo_usd": 49.15,
+        "precio_venta_usd": 143.89,
+        "roi_pct": 192.75,
+        "r_j": 0.9341
+      }
+    ]
+  },
+  {
+    "sol_id": 11,
+    "tipo": "AGRESIVO",
+    "roi_pct": 207.17,
+    "rj_portafolio": 0.2637,
+    "n_skus": 5,
+    "capital_usd": 115.9,
+    "ganancia_usd": 240.11,
+    "skus": [
+      {
+        "sku": 1,
+        "producto": "msi",
+        "categoria": "MOTHERBOARD",
+        "precio_costo_usd": 26.86,
+        "precio_venta_usd": 80.86,
+        "roi_pct": 200.99,
+        "r_j": 0.0036
+      },
+      {
+        "sku": 6,
+        "producto": "Seasonic CORE GX 850W Power Supply ATX 3.1 PCIe 5.1 (12V-2x6",
+        "categoria": "PSU",
+        "precio_costo_usd": 37.1,
+        "precio_venta_usd": 117.68,
+        "roi_pct": 217.21,
+        "r_j": 0.0258
+      },
+      {
+        "sku": 7,
+        "producto": "Thermalright FW 240 SE ARGB Black-AIO CPU Liquid Cooler,IPS ",
+        "categoria": "COOLER",
+        "precio_costo_usd": 16.3,
+        "precio_venta_usd": 53.04,
+        "roi_pct": 225.5,
+        "r_j": 0.2799
+      },
+      {
+        "sku": 34,
         "producto": "Intel Core i7-7700 Desktop Processor 4 Cores up to 4.2 GHz L",
         "categoria": "CPU",
         "precio_costo_usd": 19.78,
@@ -1087,7 +1111,904 @@
         "r_j": 0.0155
       },
       {
-        "sku": 99,
+        "sku": 75,
+        "producto": "fanxiang S500 Pro 256GB NVMe SSD M.2 PCIe 3.0, Gen 3x4 2280 ",
+        "categoria": "SSD",
+        "precio_costo_usd": 15.86,
+        "precio_venta_usd": 46.46,
+        "roi_pct": 192.96,
+        "r_j": 0.9935
+      }
+    ]
+  },
+  {
+    "sol_id": 12,
+    "tipo": "ESTRELLA",
+    "roi_pct": 187.16,
+    "rj_portafolio": 0.0235,
+    "n_skus": 6,
+    "capital_usd": 151.49,
+    "ganancia_usd": 283.53,
+    "skus": [
+      {
+        "sku": 6,
+        "producto": "Seasonic CORE GX 850W Power Supply ATX 3.1 PCIe 5.1 (12V-2x6",
+        "categoria": "PSU",
+        "precio_costo_usd": 37.1,
+        "precio_venta_usd": 117.68,
+        "roi_pct": 217.21,
+        "r_j": 0.0258
+      },
+      {
+        "sku": 15,
+        "producto": "Thermalright FW 360 White ARGB V2 CPU Water Cooler with 3 PW",
+        "categoria": "COOLER",
+        "precio_costo_usd": 24.66,
+        "precio_venta_usd": 73.45,
+        "roi_pct": 197.9,
+        "r_j": 0.0103
+      },
+      {
+        "sku": 16,
+        "producto": "Thermalright FW 240 White ARGB-240mm AIO CPU Liquid Cooler,I",
+        "categoria": "COOLER",
+        "precio_costo_usd": 19.73,
+        "precio_venta_usd": 58.79,
+        "roi_pct": 197.9,
+        "r_j": 0.0072
+      },
+      {
+        "sku": 88,
+        "producto": "ID-COOLING",
+        "categoria": "CPU",
+        "precio_costo_usd": 17.0,
+        "precio_venta_usd": 49.78,
+        "roi_pct": 192.9,
+        "r_j": 0.0027
+      },
+      {
+        "sku": 92,
+        "producto": "ASRock",
+        "categoria": "MOTHERBOARD",
+        "precio_costo_usd": 37.1,
+        "precio_venta_usd": 108.66,
+        "roi_pct": 192.88,
+        "r_j": 0.0055
+      },
+      {
+        "sku": 139,
+        "producto": "Adaptador Tarjeta PCIe 3.0 x4 a M.2 NVMe SSD 32 Gbps",
+        "categoria": "discos_ssd",
+        "precio_costo_usd": 15.9,
+        "precio_venta_usd": 26.67,
+        "roi_pct": 67.67,
+        "r_j": 0.0893
+      }
+    ]
+  },
+  {
+    "sol_id": 13,
+    "tipo": "SEGURO",
+    "roi_pct": 14.03,
+    "rj_portafolio": 0.008,
+    "n_skus": 4,
+    "capital_usd": 2684.76,
+    "ganancia_usd": 376.65,
+    "skus": [
+      {
+        "sku": 90,
+        "producto": "Lian Li Galahad II Trinity Performance 360 - AIO - CPU Liqui",
+        "categoria": "COOLER",
+        "precio_costo_usd": 24.73,
+        "precio_venta_usd": 72.42,
+        "roi_pct": 192.89,
+        "r_j": 0.0067
+      },
+      {
+        "sku": 144,
+        "producto": "Prime RTX 5070 Ti - Tarjeta Gráfica NVIDIA GeForce - PCIe 5.",
+        "categoria": "tarjetas_video",
+        "precio_costo_usd": 1878.69,
+        "precio_venta_usd": 2072.0,
+        "roi_pct": 10.29,
+        "r_j": 0.0001
+      },
+      {
+        "sku": 158,
+        "producto": "Tarjeta de video DUAL-RTX5060-O8G, 8GB GDDR7, PCIe Gen 5.0",
+        "categoria": "tarjetas_video",
+        "precio_costo_usd": 712.36,
+        "precio_venta_usd": 844.53,
+        "roi_pct": 18.55,
+        "r_j": 0.0014
+      },
+      {
+        "sku": 172,
+        "producto": "*For Parts* ASUS X870 GAMING WIFI7 W Socket AM5 DDR5 PCIE 5.",
+        "categoria": "nan",
+        "precio_costo_usd": 68.99,
+        "precio_venta_usd": 72.45,
+        "roi_pct": 5.02,
+        "r_j": 0.0238
+      }
+    ]
+  },
+  {
+    "sol_id": 14,
+    "tipo": "AGRESIVO",
+    "roi_pct": 191.49,
+    "rj_portafolio": 0.2603,
+    "n_skus": 19,
+    "capital_usd": 560.11,
+    "ganancia_usd": 1072.55,
+    "skus": [
+      {
+        "sku": 7,
+        "producto": "Thermalright FW 240 SE ARGB Black-AIO CPU Liquid Cooler,IPS ",
+        "categoria": "COOLER",
+        "precio_costo_usd": 16.3,
+        "precio_venta_usd": 53.04,
+        "roi_pct": 225.5,
+        "r_j": 0.2799
+      },
+      {
+        "sku": 13,
+        "producto": "Bestoss 1TB NVMe M.2 SSD PCIe 3.0 2280 Internal SSD Up to 24",
+        "categoria": "SSD",
+        "precio_costo_usd": 44.51,
+        "precio_venta_usd": 134.0,
+        "roi_pct": 201.1,
+        "r_j": 0.9932
+      },
+      {
+        "sku": 14,
+        "producto": "Thermalright FW240 White ARGB CPU Water Cooler with 2 PWM Fa",
+        "categoria": "COOLER",
+        "precio_costo_usd": 20.98,
+        "precio_venta_usd": 62.49,
+        "roi_pct": 197.92,
+        "r_j": 0.0124
+      },
+      {
+        "sku": 20,
+        "producto": "Fikwot FX550 NVMe SSD 1TB M.2 SSD PCIe 3.0×4, Read Up to 3,5",
+        "categoria": "SSD",
+        "precio_costo_usd": 45.13,
+        "precio_venta_usd": 133.98,
+        "roi_pct": 196.89,
+        "r_j": 0.5573
+      },
+      {
+        "sku": 28,
+        "producto": "MSI MAG Coreliquid A13 240 - AIO ARGB CPU Liquid Cooler - 24",
+        "categoria": "COOLER",
+        "precio_costo_usd": 21.63,
+        "precio_venta_usd": 63.4,
+        "roi_pct": 193.08,
+        "r_j": 0.0143
+      },
+      {
+        "sku": 31,
+        "producto": "Thermalrlght FW240 White ARGB V2 CPU Water Cooler with 2 PWM",
+        "categoria": "COOLER",
+        "precio_costo_usd": 18.2,
+        "precio_venta_usd": 53.35,
+        "roi_pct": 193.07,
+        "r_j": 0.0235
+      },
+      {
+        "sku": 34,
+        "producto": "Intel Core i7-7700 Desktop Processor 4 Cores up to 4.2 GHz L",
+        "categoria": "CPU",
+        "precio_costo_usd": 19.78,
+        "precio_venta_usd": 57.96,
+        "roi_pct": 193.04,
+        "r_j": 0.0155
+      },
+      {
+        "sku": 36,
+        "producto": "msi",
+        "categoria": "MOTHERBOARD",
+        "precio_costo_usd": 42.65,
+        "precio_venta_usd": 124.99,
+        "roi_pct": 193.03,
+        "r_j": 0.0164
+      },
+      {
+        "sku": 38,
+        "producto": "1TB NVMe SSD M.2 SSD PCIe 3.0×4, Read Up to 3,500 MB/s, M.2 ",
+        "categoria": "SSD",
+        "precio_costo_usd": 45.13,
+        "precio_venta_usd": 132.23,
+        "roi_pct": 193.03,
+        "r_j": 0.9268
+      },
+      {
+        "sku": 39,
+        "producto": "Thermalright CORE Vision 360 Black ARGB-360mm AIO CPU Liquid",
+        "categoria": "COOLER",
+        "precio_costo_usd": 29.34,
+        "precio_venta_usd": 85.96,
+        "roi_pct": 193.03,
+        "r_j": 0.7862
+      },
+      {
+        "sku": 50,
+        "producto": "Seasonic Focus GX 850W Power Supply ATX 3.1 PCIe 5.1 (12V-2x",
+        "categoria": "PSU",
+        "precio_costo_usd": 45.53,
+        "precio_venta_usd": 133.41,
+        "roi_pct": 193.01,
+        "r_j": 0.077
+      },
+      {
+        "sku": 78,
+        "producto": "Thermalright Frozen Edge 360 Black AIO Water Cooler,Liquid C",
+        "categoria": "COOLER",
+        "precio_costo_usd": 15.09,
+        "precio_venta_usd": 44.2,
+        "roi_pct": 192.95,
+        "r_j": 0.0434
+      },
+      {
+        "sku": 84,
+        "producto": "Thermalright FW 240 SE ARGB White-AIO CPU Liquid Cooler,IPS ",
+        "categoria": "COOLER",
+        "precio_costo_usd": 20.38,
+        "precio_venta_usd": 59.69,
+        "roi_pct": 192.92,
+        "r_j": 0.0757
+      },
+      {
+        "sku": 89,
+        "producto": "Thermalright Frozen Notte 240 Black ARGB V2 Water Cooling CP",
+        "categoria": "COOLER",
+        "precio_costo_usd": 14.59,
+        "precio_venta_usd": 42.74,
+        "roi_pct": 192.9,
+        "r_j": 0.0319
+      },
+      {
+        "sku": 92,
+        "producto": "ASRock",
+        "categoria": "MOTHERBOARD",
+        "precio_costo_usd": 37.1,
+        "precio_venta_usd": 108.66,
+        "roi_pct": 192.88,
+        "r_j": 0.0055
+      },
+      {
+        "sku": 93,
+        "producto": "MSI MAG Coreliquid A13 360 - AIO ARGB CPU Liquid Cooler - 36",
+        "categoria": "COOLER",
+        "precio_costo_usd": 27.82,
+        "precio_venta_usd": 81.47,
+        "roi_pct": 192.86,
+        "r_j": 0.0389
+      },
+      {
+        "sku": 100,
+        "producto": "MSI MAG Coreliquid A15 360 - AIO ARGB Liquid Cooling - 360mm",
+        "categoria": "COOLER",
+        "precio_costo_usd": 30.91,
+        "precio_venta_usd": 90.52,
+        "roi_pct": 192.84,
+        "r_j": 0.0242
+      },
+      {
+        "sku": 102,
+        "producto": "Intel",
+        "categoria": "CPU",
+        "precio_costo_usd": 49.15,
+        "precio_venta_usd": 143.89,
+        "roi_pct": 192.75,
+        "r_j": 0.9341
+      },
+      {
+        "sku": 139,
+        "producto": "Adaptador Tarjeta PCIe 3.0 x4 a M.2 NVMe SSD 32 Gbps",
+        "categoria": "discos_ssd",
+        "precio_costo_usd": 15.9,
+        "precio_venta_usd": 26.67,
+        "roi_pct": 67.67,
+        "r_j": 0.0893
+      }
+    ]
+  },
+  {
+    "sol_id": 15,
+    "tipo": "ESTRELLA",
+    "roi_pct": 188.15,
+    "rj_portafolio": 0.15,
+    "n_skus": 15,
+    "capital_usd": 391.49,
+    "ganancia_usd": 736.58,
+    "skus": [
+      {
+        "sku": 14,
+        "producto": "Thermalright FW240 White ARGB CPU Water Cooler with 2 PWM Fa",
+        "categoria": "COOLER",
+        "precio_costo_usd": 20.98,
+        "precio_venta_usd": 62.49,
+        "roi_pct": 197.92,
+        "r_j": 0.0124
+      },
+      {
+        "sku": 28,
+        "producto": "MSI MAG Coreliquid A13 240 - AIO ARGB CPU Liquid Cooler - 24",
+        "categoria": "COOLER",
+        "precio_costo_usd": 21.63,
+        "precio_venta_usd": 63.4,
+        "roi_pct": 193.08,
+        "r_j": 0.0143
+      },
+      {
+        "sku": 29,
+        "producto": "Thermalrlght Frozen Notte 240 White ARGB V2 Water Cooling CP",
+        "categoria": "COOLER",
+        "precio_costo_usd": 14.03,
+        "precio_venta_usd": 41.12,
+        "roi_pct": 193.07,
+        "r_j": 0.0134
+      },
+      {
+        "sku": 31,
+        "producto": "Thermalrlght FW240 White ARGB V2 CPU Water Cooler with 2 PWM",
+        "categoria": "COOLER",
+        "precio_costo_usd": 18.2,
+        "precio_venta_usd": 53.35,
+        "roi_pct": 193.07,
+        "r_j": 0.0235
+      },
+      {
+        "sku": 34,
+        "producto": "Intel Core i7-7700 Desktop Processor 4 Cores up to 4.2 GHz L",
+        "categoria": "CPU",
+        "precio_costo_usd": 19.78,
+        "precio_venta_usd": 57.96,
+        "roi_pct": 193.04,
+        "r_j": 0.0155
+      },
+      {
+        "sku": 36,
+        "producto": "msi",
+        "categoria": "MOTHERBOARD",
+        "precio_costo_usd": 42.65,
+        "precio_venta_usd": 124.99,
+        "roi_pct": 193.03,
+        "r_j": 0.0164
+      },
+      {
+        "sku": 50,
+        "producto": "Seasonic Focus GX 850W Power Supply ATX 3.1 PCIe 5.1 (12V-2x",
+        "categoria": "PSU",
+        "precio_costo_usd": 45.53,
+        "precio_venta_usd": 133.41,
+        "roi_pct": 193.01,
+        "r_j": 0.077
+      },
+      {
+        "sku": 56,
+        "producto": "SANDISK 500GB Optimus 5100 NVMe SSD - PCIe 4.0 x4, M.2 2280,",
+        "categoria": "SSD",
+        "precio_costo_usd": 30.91,
+        "precio_venta_usd": 90.57,
+        "roi_pct": 193.0,
+        "r_j": 0.8726
+      },
+      {
+        "sku": 77,
+        "producto": "Thermalright Mjolnir Vision 360 ARGB White AIO CPU Liquid Co",
+        "categoria": "COOLER",
+        "precio_costo_usd": 30.58,
+        "precio_venta_usd": 89.58,
+        "roi_pct": 192.96,
+        "r_j": 0.9273
+      },
+      {
+        "sku": 78,
+        "producto": "Thermalright Frozen Edge 360 Black AIO Water Cooler,Liquid C",
+        "categoria": "COOLER",
+        "precio_costo_usd": 15.09,
+        "precio_venta_usd": 44.2,
+        "roi_pct": 192.95,
+        "r_j": 0.0434
+      },
+      {
+        "sku": 84,
+        "producto": "Thermalright FW 240 SE ARGB White-AIO CPU Liquid Cooler,IPS ",
+        "categoria": "COOLER",
+        "precio_costo_usd": 20.38,
+        "precio_venta_usd": 59.69,
+        "roi_pct": 192.92,
+        "r_j": 0.0757
+      },
+      {
+        "sku": 92,
+        "producto": "ASRock",
+        "categoria": "MOTHERBOARD",
+        "precio_costo_usd": 37.1,
+        "precio_venta_usd": 108.66,
+        "roi_pct": 192.88,
+        "r_j": 0.0055
+      },
+      {
+        "sku": 93,
+        "producto": "MSI MAG Coreliquid A13 360 - AIO ARGB CPU Liquid Cooler - 36",
+        "categoria": "COOLER",
+        "precio_costo_usd": 27.82,
+        "precio_venta_usd": 81.47,
+        "roi_pct": 192.86,
+        "r_j": 0.0389
+      },
+      {
+        "sku": 100,
+        "producto": "MSI MAG Coreliquid A15 360 - AIO ARGB Liquid Cooling - 360mm",
+        "categoria": "COOLER",
+        "precio_costo_usd": 30.91,
+        "precio_venta_usd": 90.52,
+        "roi_pct": 192.84,
+        "r_j": 0.0242
+      },
+      {
+        "sku": 139,
+        "producto": "Adaptador Tarjeta PCIe 3.0 x4 a M.2 NVMe SSD 32 Gbps",
+        "categoria": "discos_ssd",
+        "precio_costo_usd": 15.9,
+        "precio_venta_usd": 26.67,
+        "roi_pct": 67.67,
+        "r_j": 0.0893
+      }
+    ]
+  },
+  {
+    "sol_id": 16,
+    "tipo": "ESTRELLA",
+    "roi_pct": 142.88,
+    "rj_portafolio": 0.077,
+    "n_skus": 8,
+    "capital_usd": 2743.11,
+    "ganancia_usd": 3919.41,
+    "skus": [
+      {
+        "sku": 20,
+        "producto": "Fikwot FX550 NVMe SSD 1TB M.2 SSD PCIe 3.0×4, Read Up to 3,5",
+        "categoria": "SSD",
+        "precio_costo_usd": 45.13,
+        "precio_venta_usd": 133.98,
+        "roi_pct": 196.89,
+        "r_j": 0.5573
+      },
+      {
+        "sku": 40,
+        "producto": "GIGABYTE",
+        "categoria": "MOTHERBOARD",
+        "precio_costo_usd": 40.18,
+        "precio_venta_usd": 117.74,
+        "roi_pct": 193.03,
+        "r_j": 0.0003
+      },
+      {
+        "sku": 71,
+        "producto": "GeForce RTX 5090 OC Graphics Card, 32GB GDDR7 28Gbps VRAM, 2",
+        "categoria": "GPU",
+        "precio_costo_usd": 1282.93,
+        "precio_venta_usd": 3758.62,
+        "roi_pct": 192.97,
+        "r_j": 0.0234
+      },
+      {
+        "sku": 73,
+        "producto": "Centaurus Berserk GX3 Gaming PC, Intel Core Ultra 7 265K 20-",
+        "categoria": "CPU",
+        "precio_costo_usd": 525.53,
+        "precio_venta_usd": 1539.65,
+        "roi_pct": 192.97,
+        "r_j": 0.0005
+      },
+      {
+        "sku": 90,
+        "producto": "Lian Li Galahad II Trinity Performance 360 - AIO - CPU Liqui",
+        "categoria": "COOLER",
+        "precio_costo_usd": 24.73,
+        "precio_venta_usd": 72.42,
+        "roi_pct": 192.89,
+        "r_j": 0.0067
+      },
+      {
+        "sku": 111,
+        "producto": "GIGABYTE",
+        "categoria": "MOTHERBOARD",
+        "precio_costo_usd": 43.27,
+        "precio_venta_usd": 123.12,
+        "roi_pct": 184.52,
+        "r_j": 0.0027
+      },
+      {
+        "sku": 158,
+        "producto": "Tarjeta de video DUAL-RTX5060-O8G, 8GB GDDR7, PCIe Gen 5.0",
+        "categoria": "tarjetas_video",
+        "precio_costo_usd": 712.36,
+        "precio_venta_usd": 844.53,
+        "roi_pct": 18.55,
+        "r_j": 0.0014
+      },
+      {
+        "sku": 172,
+        "producto": "*For Parts* ASUS X870 GAMING WIFI7 W Socket AM5 DDR5 PCIE 5.",
+        "categoria": "nan",
+        "precio_costo_usd": 68.99,
+        "precio_venta_usd": 72.45,
+        "roi_pct": 5.02,
+        "r_j": 0.0238
+      }
+    ]
+  },
+  {
+    "sol_id": 17,
+    "tipo": "AGRESIVO",
+    "roi_pct": 192.97,
+    "rj_portafolio": 0.3796,
+    "n_skus": 5,
+    "capital_usd": 163.9,
+    "ganancia_usd": 316.28,
+    "skus": [
+      {
+        "sku": 34,
+        "producto": "Intel Core i7-7700 Desktop Processor 4 Cores up to 4.2 GHz L",
+        "categoria": "CPU",
+        "precio_costo_usd": 19.78,
+        "precio_venta_usd": 57.96,
+        "roi_pct": 193.04,
+        "r_j": 0.0155
+      },
+      {
+        "sku": 50,
+        "producto": "Seasonic Focus GX 850W Power Supply ATX 3.1 PCIe 5.1 (12V-2x",
+        "categoria": "PSU",
+        "precio_costo_usd": 45.53,
+        "precio_venta_usd": 133.41,
+        "roi_pct": 193.01,
+        "r_j": 0.077
+      },
+      {
+        "sku": 56,
+        "producto": "SANDISK 500GB Optimus 5100 NVMe SSD - PCIe 4.0 x4, M.2 2280,",
+        "categoria": "SSD",
+        "precio_costo_usd": 30.91,
+        "precio_venta_usd": 90.57,
+        "roi_pct": 193.0,
+        "r_j": 0.8726
+      },
+      {
+        "sku": 77,
+        "producto": "Thermalright Mjolnir Vision 360 ARGB White AIO CPU Liquid Co",
+        "categoria": "COOLER",
+        "precio_costo_usd": 30.58,
+        "precio_venta_usd": 89.58,
+        "roi_pct": 192.96,
+        "r_j": 0.9273
+      },
+      {
+        "sku": 92,
+        "producto": "ASRock",
+        "categoria": "MOTHERBOARD",
+        "precio_costo_usd": 37.1,
+        "precio_venta_usd": 108.66,
+        "roi_pct": 192.88,
+        "r_j": 0.0055
+      }
+    ]
+  },
+  {
+    "sol_id": 18,
+    "tipo": "ESTRELLA",
+    "roi_pct": 197.9,
+    "rj_portafolio": 0.0082,
+    "n_skus": 3,
+    "capital_usd": 63.18,
+    "ganancia_usd": 125.04,
+    "skus": [
+      {
+        "sku": 14,
+        "producto": "Thermalright FW240 White ARGB CPU Water Cooler with 2 PWM Fa",
+        "categoria": "COOLER",
+        "precio_costo_usd": 20.98,
+        "precio_venta_usd": 62.49,
+        "roi_pct": 197.92,
+        "r_j": 0.0124
+      },
+      {
+        "sku": 16,
+        "producto": "Thermalright FW 240 White ARGB-240mm AIO CPU Liquid Cooler,I",
+        "categoria": "COOLER",
+        "precio_costo_usd": 19.73,
+        "precio_venta_usd": 58.79,
+        "roi_pct": 197.9,
+        "r_j": 0.0072
+      },
+      {
+        "sku": 18,
+        "producto": "Thermalright FW 240 Black ARGB-240mm AIO CPU Liquid Cooler,I",
+        "categoria": "COOLER",
+        "precio_costo_usd": 22.47,
+        "precio_venta_usd": 66.94,
+        "roi_pct": 197.89,
+        "r_j": 0.0051
+      }
+    ]
+  },
+  {
+    "sol_id": 19,
+    "tipo": "OPTIMO",
+    "roi_pct": 218.15,
+    "rj_portafolio": 0.2117,
+    "n_skus": 3,
+    "capital_usd": 107.72,
+    "ganancia_usd": 234.99,
+    "skus": [
+      {
+        "sku": 6,
+        "producto": "Seasonic CORE GX 850W Power Supply ATX 3.1 PCIe 5.1 (12V-2x6",
+        "categoria": "PSU",
+        "precio_costo_usd": 37.1,
+        "precio_venta_usd": 117.68,
+        "roi_pct": 217.21,
+        "r_j": 0.0258
+      },
+      {
+        "sku": 7,
+        "producto": "Thermalright FW 240 SE ARGB Black-AIO CPU Liquid Cooler,IPS ",
+        "categoria": "COOLER",
+        "precio_costo_usd": 16.3,
+        "precio_venta_usd": 53.04,
+        "roi_pct": 225.5,
+        "r_j": 0.2799
+      },
+      {
+        "sku": 10,
+        "producto": "Bestoss 1TB PCIe 4.0 NVMe M.2 2280 SSD with Heatsink, PS5 St",
+        "categoria": "SSD",
+        "precio_costo_usd": 54.33,
+        "precio_venta_usd": 171.99,
+        "roi_pct": 216.59,
+        "r_j": 0.3294
+      }
+    ]
+  },
+  {
+    "sol_id": 20,
+    "tipo": "OPTIMO",
+    "roi_pct": 192.95,
+    "rj_portafolio": 0.199,
+    "n_skus": 5,
+    "capital_usd": 164.23,
+    "ganancia_usd": 316.89,
+    "skus": [
+      {
+        "sku": 34,
+        "producto": "Intel Core i7-7700 Desktop Processor 4 Cores up to 4.2 GHz L",
+        "categoria": "CPU",
+        "precio_costo_usd": 19.78,
+        "precio_venta_usd": 57.96,
+        "roi_pct": 193.04,
+        "r_j": 0.0155
+      },
+      {
+        "sku": 50,
+        "producto": "Seasonic Focus GX 850W Power Supply ATX 3.1 PCIe 5.1 (12V-2x",
+        "categoria": "PSU",
+        "precio_costo_usd": 45.53,
+        "precio_venta_usd": 133.41,
+        "roi_pct": 193.01,
+        "r_j": 0.077
+      },
+      {
+        "sku": 56,
+        "producto": "SANDISK 500GB Optimus 5100 NVMe SSD - PCIe 4.0 x4, M.2 2280,",
+        "categoria": "SSD",
+        "precio_costo_usd": 30.91,
+        "precio_venta_usd": 90.57,
+        "roi_pct": 193.0,
+        "r_j": 0.8726
+      },
+      {
+        "sku": 92,
+        "producto": "ASRock",
+        "categoria": "MOTHERBOARD",
+        "precio_costo_usd": 37.1,
+        "precio_venta_usd": 108.66,
+        "roi_pct": 192.88,
+        "r_j": 0.0055
+      },
+      {
+        "sku": 100,
+        "producto": "MSI MAG Coreliquid A15 360 - AIO ARGB Liquid Cooling - 360mm",
+        "categoria": "COOLER",
+        "precio_costo_usd": 30.91,
+        "precio_venta_usd": 90.52,
+        "roi_pct": 192.84,
+        "r_j": 0.0242
+      }
+    ]
+  },
+  {
+    "sol_id": 21,
+    "tipo": "ESTRELLA",
+    "roi_pct": 186.3,
+    "rj_portafolio": 0.0109,
+    "n_skus": 5,
+    "capital_usd": 1942.35,
+    "ganancia_usd": 3618.53,
+    "skus": [
+      {
+        "sku": 40,
+        "producto": "GIGABYTE",
+        "categoria": "MOTHERBOARD",
+        "precio_costo_usd": 40.18,
+        "precio_venta_usd": 117.74,
+        "roi_pct": 193.03,
+        "r_j": 0.0003
+      },
+      {
+        "sku": 71,
+        "producto": "GeForce RTX 5090 OC Graphics Card, 32GB GDDR7 28Gbps VRAM, 2",
+        "categoria": "GPU",
+        "precio_costo_usd": 1282.93,
+        "precio_venta_usd": 3758.62,
+        "roi_pct": 192.97,
+        "r_j": 0.0234
+      },
+      {
+        "sku": 73,
+        "producto": "Centaurus Berserk GX3 Gaming PC, Intel Core Ultra 7 265K 20-",
+        "categoria": "CPU",
+        "precio_costo_usd": 525.53,
+        "precio_venta_usd": 1539.65,
+        "roi_pct": 192.97,
+        "r_j": 0.0005
+      },
+      {
+        "sku": 90,
+        "producto": "Lian Li Galahad II Trinity Performance 360 - AIO - CPU Liqui",
+        "categoria": "COOLER",
+        "precio_costo_usd": 24.73,
+        "precio_venta_usd": 72.42,
+        "roi_pct": 192.89,
+        "r_j": 0.0067
+      },
+      {
+        "sku": 172,
+        "producto": "*For Parts* ASUS X870 GAMING WIFI7 W Socket AM5 DDR5 PCIE 5.",
+        "categoria": "nan",
+        "precio_costo_usd": 68.99,
+        "precio_venta_usd": 72.45,
+        "roi_pct": 5.02,
+        "r_j": 0.0238
+      }
+    ]
+  },
+  {
+    "sol_id": 22,
+    "tipo": "ESTRELLA",
+    "roi_pct": 217.21,
+    "rj_portafolio": 0.0258,
+    "n_skus": 1,
+    "capital_usd": 37.1,
+    "ganancia_usd": 80.58,
+    "skus": [
+      {
+        "sku": 6,
+        "producto": "Seasonic CORE GX 850W Power Supply ATX 3.1 PCIe 5.1 (12V-2x6",
+        "categoria": "PSU",
+        "precio_costo_usd": 37.1,
+        "precio_venta_usd": 117.68,
+        "roi_pct": 217.21,
+        "r_j": 0.0258
+      }
+    ]
+  },
+  {
+    "sol_id": 23,
+    "tipo": "ESTRELLA",
+    "roi_pct": 194.48,
+    "rj_portafolio": 0.0194,
+    "n_skus": 11,
+    "capital_usd": 201.55,
+    "ganancia_usd": 391.97,
+    "skus": [
+      {
+        "sku": 14,
+        "producto": "Thermalright FW240 White ARGB CPU Water Cooler with 2 PWM Fa",
+        "categoria": "COOLER",
+        "precio_costo_usd": 20.98,
+        "precio_venta_usd": 62.49,
+        "roi_pct": 197.92,
+        "r_j": 0.0124
+      },
+      {
+        "sku": 16,
+        "producto": "Thermalright FW 240 White ARGB-240mm AIO CPU Liquid Cooler,I",
+        "categoria": "COOLER",
+        "precio_costo_usd": 19.73,
+        "precio_venta_usd": 58.79,
+        "roi_pct": 197.9,
+        "r_j": 0.0072
+      },
+      {
+        "sku": 18,
+        "producto": "Thermalright FW 240 Black ARGB-240mm AIO CPU Liquid Cooler,I",
+        "categoria": "COOLER",
+        "precio_costo_usd": 22.47,
+        "precio_venta_usd": 66.94,
+        "roi_pct": 197.89,
+        "r_j": 0.0051
+      },
+      {
+        "sku": 29,
+        "producto": "Thermalrlght Frozen Notte 240 White ARGB V2 Water Cooling CP",
+        "categoria": "COOLER",
+        "precio_costo_usd": 14.03,
+        "precio_venta_usd": 41.12,
+        "roi_pct": 193.07,
+        "r_j": 0.0134
+      },
+      {
+        "sku": 32,
+        "producto": "Thermalright Grand Vision 240 ARGB White CPU AIO Cooler,PC 2",
+        "categoria": "COOLER",
+        "precio_costo_usd": 23.46,
+        "precio_venta_usd": 68.75,
+        "roi_pct": 193.05,
+        "r_j": 0.0214
+      },
+      {
+        "sku": 74,
+        "producto": "Thermalright Frozen Notte 360 Black ARGB Water Cooling CPU C",
+        "categoria": "COOLER",
+        "precio_costo_usd": 15.13,
+        "precio_venta_usd": 44.34,
+        "roi_pct": 192.97,
+        "r_j": 0.0185
+      },
+      {
+        "sku": 78,
+        "producto": "Thermalright Frozen Edge 360 Black AIO Water Cooler,Liquid C",
+        "categoria": "COOLER",
+        "precio_costo_usd": 15.09,
+        "precio_venta_usd": 44.2,
+        "roi_pct": 192.95,
+        "r_j": 0.0434
+      },
+      {
+        "sku": 82,
+        "producto": "Thermalright Frozen Edge 240 Black AIO Water Cooler,Liquid C",
+        "categoria": "COOLER",
+        "precio_costo_usd": 12.8,
+        "precio_venta_usd": 37.49,
+        "roi_pct": 192.93,
+        "r_j": 0.0055
+      },
+      {
+        "sku": 83,
+        "producto": "GAMDIAS CHIONE E4 240mm AIO CPU Water Cooler, Real-time Digi",
+        "categoria": "COOLER",
+        "precio_costo_usd": 21.63,
+        "precio_venta_usd": 63.36,
+        "roi_pct": 192.92,
+        "r_j": 0.0034
+      },
+      {
+        "sku": 89,
+        "producto": "Thermalright Frozen Notte 240 Black ARGB V2 Water Cooling CP",
+        "categoria": "COOLER",
+        "precio_costo_usd": 14.59,
+        "precio_venta_usd": 42.74,
+        "roi_pct": 192.9,
+        "r_j": 0.0319
+      },
+      {
+        "sku": 104,
         "producto": "Cooler Master MasterLiquid LC240E RGB Close-Loop AIO CPU Liq",
         "categoria": "COOLER",
         "precio_costo_usd": 21.63,
@@ -1098,944 +2019,14 @@
     ]
   },
   {
-    "sol_id": 9,
-    "tipo": "AGRESIVO",
-    "roi_pct": 192.97,
-    "rj_portafolio": 0.3817,
-    "n_skus": 4,
-    "capital_usd": 280.65,
-    "ganancia_usd": 541.55,
-    "skus": [
-      {
-        "sku": 40,
-        "producto": "ASRock",
-        "categoria": "MOTHERBOARD",
-        "precio_costo_usd": 37.1,
-        "precio_venta_usd": 108.66,
-        "roi_pct": 192.88,
-        "r_j": 0.0055
-      },
-      {
-        "sku": 96,
-        "producto": "Thermalright Frozen Edge 360 Black AIO Water Cooler,Liquid C",
-        "categoria": "COOLER",
-        "precio_costo_usd": 15.09,
-        "precio_venta_usd": 44.2,
-        "roi_pct": 192.95,
-        "r_j": 0.0434
-      },
-      {
-        "sku": 212,
-        "producto": "Gigastone 2TB Game Turbo PCIe Gen4x4 SSD (2-Pack) Up to 7,30",
-        "categoria": "SSD",
-        "precio_costo_usd": 185.48,
-        "precio_venta_usd": 543.46,
-        "roi_pct": 193.0,
-        "r_j": 0.5089
-      },
-      {
-        "sku": 374,
-        "producto": "Intel",
-        "categoria": "CPU",
-        "precio_costo_usd": 42.98,
-        "precio_venta_usd": 125.88,
-        "roi_pct": 192.9,
-        "r_j": 0.9691
-      }
-    ]
-  },
-  {
-    "sol_id": 10,
-    "tipo": "OPTIMO",
-    "roi_pct": 41.46,
-    "rj_portafolio": 0.0931,
-    "n_skus": 9,
-    "capital_usd": 4597.22,
-    "ganancia_usd": 1905.86,
-    "skus": [
-      {
-        "sku": 56,
-        "producto": "Thermalrlght Frozen Notte 240 White ARGB V2 Water Cooling CP",
-        "categoria": "COOLER",
-        "precio_costo_usd": 14.03,
-        "precio_venta_usd": 41.12,
-        "roi_pct": 193.07,
-        "r_j": 0.0134
-      },
-      {
-        "sku": 111,
-        "producto": "KOOTION 2TB NVMe Internal SSD PCIe 4.0, M.2 2280 NVMe Gen 4 ",
-        "categoria": "SSD",
-        "precio_costo_usd": 83.01,
-        "precio_venta_usd": 247.27,
-        "roi_pct": 197.89,
-        "r_j": 0.1007
-      },
-      {
-        "sku": 117,
-        "producto": "SIX NVME M.2 SSD PCIe 4.0-1TB m.2 2280 ssd, Read UP to 7350M",
-        "categoria": "SSD",
-        "precio_costo_usd": 54.1,
-        "precio_venta_usd": 156.69,
-        "roi_pct": 189.66,
-        "r_j": 0.083
-      },
-      {
-        "sku": 167,
-        "producto": "Vansuny 2TB NVMe M.2 SSD,M2 2280 PCIe 4.0 Internal Solid Sta",
-        "categoria": "SSD",
-        "precio_costo_usd": 85.32,
-        "precio_venta_usd": 238.26,
-        "roi_pct": 179.25,
-        "r_j": 0.2537
-      },
-      {
-        "sku": 193,
-        "producto": "Tarjeta De Video Geforce Rtx5060 8Gb Gddr7 Pcie 5.0",
-        "categoria": "tarjetas_video",
-        "precio_costo_usd": 700.49,
-        "precio_venta_usd": 919.73,
-        "roi_pct": 31.3,
-        "r_j": 0.0017
-      },
-      {
-        "sku": 201,
-        "producto": "Tarjeta de video GeForce RTX 5070 Ti 16 GB GDDR7 PCIe 5.0",
-        "categoria": "tarjetas_video",
-        "precio_costo_usd": 1851.6,
-        "precio_venta_usd": 2431.73,
-        "roi_pct": 31.33,
-        "r_j": 0.007
-      },
-      {
-        "sku": 207,
-        "producto": "Procesador Core i5-14400 2.50/4.70GHz, 20 MB Smart Caché, LG",
-        "categoria": "procesadores",
-        "precio_costo_usd": 482.79,
-        "precio_venta_usd": 671.2,
-        "roi_pct": 39.02,
-        "r_j": 0.0371
-      },
-      {
-        "sku": 209,
-        "producto": "Tarjeta Gráfica Geforce Eagle Rtx 5070 Pcie 5.0 X16 - Alto R",
-        "categoria": "tarjetas_video",
-        "precio_costo_usd": 1309.3,
-        "precio_venta_usd": 1770.4,
-        "roi_pct": 35.22,
-        "r_j": 0.0269
-      },
-      {
-        "sku": 308,
-        "producto": "Tarjeta de Expansión PCIe 3.0 x 4 soporta 4TB disco solido N",
-        "categoria": "discos_ssd",
-        "precio_costo_usd": 16.58,
-        "precio_venta_usd": 26.67,
-        "roi_pct": 60.81,
-        "r_j": 0.3143
-      }
-    ]
-  },
-  {
-    "sol_id": 11,
-    "tipo": "OPTIMO",
-    "roi_pct": 43.17,
-    "rj_portafolio": 0.0772,
-    "n_skus": 5,
-    "capital_usd": 1267.99,
-    "ganancia_usd": 547.42,
-    "skus": [
-      {
-        "sku": 56,
-        "producto": "Thermalrlght Frozen Notte 240 White ARGB V2 Water Cooling CP",
-        "categoria": "COOLER",
-        "precio_costo_usd": 14.03,
-        "precio_venta_usd": 41.12,
-        "roi_pct": 193.07,
-        "r_j": 0.0134
-      },
-      {
-        "sku": 117,
-        "producto": "SIX NVME M.2 SSD PCIe 4.0-1TB m.2 2280 ssd, Read UP to 7350M",
-        "categoria": "SSD",
-        "precio_costo_usd": 54.1,
-        "precio_venta_usd": 156.69,
-        "roi_pct": 189.66,
-        "r_j": 0.083
-      },
-      {
-        "sku": 193,
-        "producto": "Tarjeta De Video Geforce Rtx5060 8Gb Gddr7 Pcie 5.0",
-        "categoria": "tarjetas_video",
-        "precio_costo_usd": 700.49,
-        "precio_venta_usd": 919.73,
-        "roi_pct": 31.3,
-        "r_j": 0.0017
-      },
-      {
-        "sku": 207,
-        "producto": "Procesador Core i5-14400 2.50/4.70GHz, 20 MB Smart Caché, LG",
-        "categoria": "procesadores",
-        "precio_costo_usd": 482.79,
-        "precio_venta_usd": 671.2,
-        "roi_pct": 39.02,
-        "r_j": 0.0371
-      },
-      {
-        "sku": 296,
-        "producto": "Tarjeta de Expansión PCIe 3.0 x 4 soporta 4TB disco solido N",
-        "categoria": "discos_ssd",
-        "precio_costo_usd": 16.58,
-        "precio_venta_usd": 26.67,
-        "roi_pct": 60.81,
-        "r_j": 0.251
-      }
-    ]
-  },
-  {
-    "sol_id": 12,
-    "tipo": "OPTIMO",
-    "roi_pct": 217.48,
-    "rj_portafolio": 0.2018,
-    "n_skus": 4,
-    "capital_usd": 664.17,
-    "ganancia_usd": 1444.45,
-    "skus": [
-      {
-        "sku": 1,
-        "producto": "Seasonic CORE GX 850W Power Supply ATX 3.1 PCIe 5.1 (12V-2x6",
-        "categoria": "PSU",
-        "precio_costo_usd": 37.1,
-        "precio_venta_usd": 117.68,
-        "roi_pct": 217.21,
-        "r_j": 0.0258
-      },
-      {
-        "sku": 122,
-        "producto": "Envision S13 24-core Ultra 9 285K, 64GB DDR5 RAM, 1TB Gen4 N",
-        "categoria": "CPU",
-        "precio_costo_usd": 556.45,
-        "precio_venta_usd": 1765.91,
-        "roi_pct": 217.35,
-        "r_j": 0.1721
-      },
-      {
-        "sku": 142,
-        "producto": "Thermalright FW 240 SE ARGB Black-AIO CPU Liquid Cooler,IPS ",
-        "categoria": "COOLER",
-        "precio_costo_usd": 16.3,
-        "precio_venta_usd": 53.04,
-        "roi_pct": 225.5,
-        "r_j": 0.2799
-      },
-      {
-        "sku": 166,
-        "producto": "Bestoss 1TB PCIe 4.0 NVMe M.2 2280 SSD with Heatsink, PS5 St",
-        "categoria": "SSD",
-        "precio_costo_usd": 54.33,
-        "precio_venta_usd": 171.99,
-        "roi_pct": 216.59,
-        "r_j": 0.3294
-      }
-    ]
-  },
-  {
-    "sol_id": 13,
-    "tipo": "SEGURO",
-    "roi_pct": 10.29,
-    "rj_portafolio": 0.0001,
-    "n_skus": 1,
-    "capital_usd": 1878.69,
-    "ganancia_usd": 193.31,
-    "skus": [
-      {
-        "sku": 244,
-        "producto": "Prime RTX 5070 Ti - Tarjeta Gráfica NVIDIA GeForce - PCIe 5.",
-        "categoria": "tarjetas_video",
-        "precio_costo_usd": 1878.69,
-        "precio_venta_usd": 2072.0,
-        "roi_pct": 10.29,
-        "r_j": 0.0001
-      }
-    ]
-  },
-  {
-    "sol_id": 14,
-    "tipo": "OPTIMO",
-    "roi_pct": 218.15,
-    "rj_portafolio": 0.2117,
-    "n_skus": 3,
-    "capital_usd": 107.72,
-    "ganancia_usd": 234.99,
-    "skus": [
-      {
-        "sku": 1,
-        "producto": "Seasonic CORE GX 850W Power Supply ATX 3.1 PCIe 5.1 (12V-2x6",
-        "categoria": "PSU",
-        "precio_costo_usd": 37.1,
-        "precio_venta_usd": 117.68,
-        "roi_pct": 217.21,
-        "r_j": 0.0258
-      },
-      {
-        "sku": 142,
-        "producto": "Thermalright FW 240 SE ARGB Black-AIO CPU Liquid Cooler,IPS ",
-        "categoria": "COOLER",
-        "precio_costo_usd": 16.3,
-        "precio_venta_usd": 53.04,
-        "roi_pct": 225.5,
-        "r_j": 0.2799
-      },
-      {
-        "sku": 166,
-        "producto": "Bestoss 1TB PCIe 4.0 NVMe M.2 2280 SSD with Heatsink, PS5 St",
-        "categoria": "SSD",
-        "precio_costo_usd": 54.33,
-        "precio_venta_usd": 171.99,
-        "roi_pct": 216.59,
-        "r_j": 0.3294
-      }
-    ]
-  },
-  {
-    "sol_id": 15,
-    "tipo": "AGRESIVO",
-    "roi_pct": 225.5,
-    "rj_portafolio": 0.2799,
-    "n_skus": 1,
-    "capital_usd": 16.3,
-    "ganancia_usd": 36.75,
-    "skus": [
-      {
-        "sku": 142,
-        "producto": "Thermalright FW 240 SE ARGB Black-AIO CPU Liquid Cooler,IPS ",
-        "categoria": "COOLER",
-        "precio_costo_usd": 16.3,
-        "precio_venta_usd": 53.04,
-        "roi_pct": 225.5,
-        "r_j": 0.2799
-      }
-    ]
-  },
-  {
-    "sol_id": 16,
-    "tipo": "ESTRELLA",
-    "roi_pct": 73.96,
-    "rj_portafolio": 0.007,
-    "n_skus": 3,
-    "capital_usd": 2514.82,
-    "ganancia_usd": 1859.98,
-    "skus": [
-      {
-        "sku": 22,
-        "producto": "Panorama XL RTX 5060 Ti, Intel 20-Core Ultra 7 265KF Process",
-        "categoria": "CPU",
-        "precio_costo_usd": 649.19,
-        "precio_venta_usd": 1901.95,
-        "roi_pct": 192.97,
-        "r_j": 0.0007
-      },
-      {
-        "sku": 56,
-        "producto": "Thermalrlght Frozen Notte 240 White ARGB V2 Water Cooling CP",
-        "categoria": "COOLER",
-        "precio_costo_usd": 14.03,
-        "precio_venta_usd": 41.12,
-        "roi_pct": 193.07,
-        "r_j": 0.0134
-      },
-      {
-        "sku": 201,
-        "producto": "Tarjeta de video GeForce RTX 5070 Ti 16 GB GDDR7 PCIe 5.0",
-        "categoria": "tarjetas_video",
-        "precio_costo_usd": 1851.6,
-        "precio_venta_usd": 2431.73,
-        "roi_pct": 31.33,
-        "r_j": 0.007
-      }
-    ]
-  },
-  {
-    "sol_id": 17,
-    "tipo": "ESTRELLA",
-    "roi_pct": 190.64,
-    "rj_portafolio": 0.0915,
-    "n_skus": 4,
-    "capital_usd": 762.81,
-    "ganancia_usd": 1454.2,
-    "skus": [
-      {
-        "sku": 22,
-        "producto": "Panorama XL RTX 5060 Ti, Intel 20-Core Ultra 7 265KF Process",
-        "categoria": "CPU",
-        "precio_costo_usd": 649.19,
-        "precio_venta_usd": 1901.95,
-        "roi_pct": 192.97,
-        "r_j": 0.0007
-      },
-      {
-        "sku": 56,
-        "producto": "Thermalrlght Frozen Notte 240 White ARGB V2 Water Cooling CP",
-        "categoria": "COOLER",
-        "precio_costo_usd": 14.03,
-        "precio_venta_usd": 41.12,
-        "roi_pct": 193.07,
-        "r_j": 0.0134
-      },
-      {
-        "sku": 111,
-        "producto": "KOOTION 2TB NVMe Internal SSD PCIe 4.0, M.2 2280 NVMe Gen 4 ",
-        "categoria": "SSD",
-        "precio_costo_usd": 83.01,
-        "precio_venta_usd": 247.27,
-        "roi_pct": 197.89,
-        "r_j": 0.1007
-      },
-      {
-        "sku": 296,
-        "producto": "Tarjeta de Expansión PCIe 3.0 x 4 soporta 4TB disco solido N",
-        "categoria": "discos_ssd",
-        "precio_costo_usd": 16.58,
-        "precio_venta_usd": 26.67,
-        "roi_pct": 60.81,
-        "r_j": 0.251
-      }
-    ]
-  },
-  {
-    "sol_id": 18,
-    "tipo": "ESTRELLA",
-    "roi_pct": 199.51,
-    "rj_portafolio": 0.0069,
-    "n_skus": 2,
-    "capital_usd": 51.52,
-    "ganancia_usd": 102.79,
-    "skus": [
-      {
-        "sku": 3,
-        "producto": "msi",
-        "categoria": "MOTHERBOARD",
-        "precio_costo_usd": 26.86,
-        "precio_venta_usd": 80.86,
-        "roi_pct": 200.99,
-        "r_j": 0.0036
-      },
-      {
-        "sku": 10,
-        "producto": "Thermalright FW 360 White ARGB V2 CPU Water Cooler with 3 PW",
-        "categoria": "COOLER",
-        "precio_costo_usd": 24.66,
-        "precio_venta_usd": 73.45,
-        "roi_pct": 197.9,
-        "r_j": 0.0103
-      }
-    ]
-  },
-  {
-    "sol_id": 19,
-    "tipo": "ESTRELLA",
-    "roi_pct": 60.21,
-    "rj_portafolio": 0.0775,
-    "n_skus": 10,
-    "capital_usd": 5246.4,
-    "ganancia_usd": 3158.62,
-    "skus": [
-      {
-        "sku": 22,
-        "producto": "Panorama XL RTX 5060 Ti, Intel 20-Core Ultra 7 265KF Process",
-        "categoria": "CPU",
-        "precio_costo_usd": 649.19,
-        "precio_venta_usd": 1901.95,
-        "roi_pct": 192.97,
-        "r_j": 0.0007
-      },
-      {
-        "sku": 56,
-        "producto": "Thermalrlght Frozen Notte 240 White ARGB V2 Water Cooling CP",
-        "categoria": "COOLER",
-        "precio_costo_usd": 14.03,
-        "precio_venta_usd": 41.12,
-        "roi_pct": 193.07,
-        "r_j": 0.0134
-      },
-      {
-        "sku": 111,
-        "producto": "KOOTION 2TB NVMe Internal SSD PCIe 4.0, M.2 2280 NVMe Gen 4 ",
-        "categoria": "SSD",
-        "precio_costo_usd": 83.01,
-        "precio_venta_usd": 247.27,
-        "roi_pct": 197.89,
-        "r_j": 0.1007
-      },
-      {
-        "sku": 117,
-        "producto": "SIX NVME M.2 SSD PCIe 4.0-1TB m.2 2280 ssd, Read UP to 7350M",
-        "categoria": "SSD",
-        "precio_costo_usd": 54.1,
-        "precio_venta_usd": 156.69,
-        "roi_pct": 189.66,
-        "r_j": 0.083
-      },
-      {
-        "sku": 167,
-        "producto": "Vansuny 2TB NVMe M.2 SSD,M2 2280 PCIe 4.0 Internal Solid Sta",
-        "categoria": "SSD",
-        "precio_costo_usd": 85.32,
-        "precio_venta_usd": 238.26,
-        "roi_pct": 179.25,
-        "r_j": 0.2537
-      },
-      {
-        "sku": 193,
-        "producto": "Tarjeta De Video Geforce Rtx5060 8Gb Gddr7 Pcie 5.0",
-        "categoria": "tarjetas_video",
-        "precio_costo_usd": 700.49,
-        "precio_venta_usd": 919.73,
-        "roi_pct": 31.3,
-        "r_j": 0.0017
-      },
-      {
-        "sku": 201,
-        "producto": "Tarjeta de video GeForce RTX 5070 Ti 16 GB GDDR7 PCIe 5.0",
-        "categoria": "tarjetas_video",
-        "precio_costo_usd": 1851.6,
-        "precio_venta_usd": 2431.73,
-        "roi_pct": 31.33,
-        "r_j": 0.007
-      },
-      {
-        "sku": 207,
-        "producto": "Procesador Core i5-14400 2.50/4.70GHz, 20 MB Smart Caché, LG",
-        "categoria": "procesadores",
-        "precio_costo_usd": 482.79,
-        "precio_venta_usd": 671.2,
-        "roi_pct": 39.02,
-        "r_j": 0.0371
-      },
-      {
-        "sku": 209,
-        "producto": "Tarjeta Gráfica Geforce Eagle Rtx 5070 Pcie 5.0 X16 - Alto R",
-        "categoria": "tarjetas_video",
-        "precio_costo_usd": 1309.3,
-        "precio_venta_usd": 1770.4,
-        "roi_pct": 35.22,
-        "r_j": 0.0269
-      },
-      {
-        "sku": 296,
-        "producto": "Tarjeta de Expansión PCIe 3.0 x 4 soporta 4TB disco solido N",
-        "categoria": "discos_ssd",
-        "precio_costo_usd": 16.58,
-        "precio_venta_usd": 26.67,
-        "roi_pct": 60.81,
-        "r_j": 0.251
-      }
-    ]
-  },
-  {
-    "sol_id": 20,
-    "tipo": "ESTRELLA",
-    "roi_pct": 197.21,
-    "rj_portafolio": 0.0104,
-    "n_skus": 10,
-    "capital_usd": 204.68,
-    "ganancia_usd": 403.63,
-    "skus": [
-      {
-        "sku": 3,
-        "producto": "msi",
-        "categoria": "MOTHERBOARD",
-        "precio_costo_usd": 26.86,
-        "precio_venta_usd": 80.86,
-        "roi_pct": 200.99,
-        "r_j": 0.0036
-      },
-      {
-        "sku": 4,
-        "producto": "msi",
-        "categoria": "MOTHERBOARD",
-        "precio_costo_usd": 26.86,
-        "precio_venta_usd": 80.86,
-        "roi_pct": 200.99,
-        "r_j": 0.0111
-      },
-      {
-        "sku": 6,
-        "producto": "Thermalright FW 240 Black ARGB-240mm AIO CPU Liquid Cooler,I",
-        "categoria": "COOLER",
-        "precio_costo_usd": 22.47,
-        "precio_venta_usd": 66.94,
-        "roi_pct": 197.89,
-        "r_j": 0.0051
-      },
-      {
-        "sku": 8,
-        "producto": "Thermalright FW 240 White ARGB-240mm AIO CPU Liquid Cooler,I",
-        "categoria": "COOLER",
-        "precio_costo_usd": 19.73,
-        "precio_venta_usd": 58.79,
-        "roi_pct": 197.9,
-        "r_j": 0.0072
-      },
-      {
-        "sku": 10,
-        "producto": "Thermalright FW 360 White ARGB V2 CPU Water Cooler with 3 PW",
-        "categoria": "COOLER",
-        "precio_costo_usd": 24.66,
-        "precio_venta_usd": 73.45,
-        "roi_pct": 197.9,
-        "r_j": 0.0103
-      },
-      {
-        "sku": 14,
-        "producto": "Thermalright FW240 White ARGB CPU Water Cooler with 2 PWM Fa",
-        "categoria": "COOLER",
-        "precio_costo_usd": 20.98,
-        "precio_venta_usd": 62.49,
-        "roi_pct": 197.92,
-        "r_j": 0.0124
-      },
-      {
-        "sku": 38,
-        "producto": "Thermalright Frozen Edge 240 White Liquid CPU Water Cooler w",
-        "categoria": "COOLER",
-        "precio_costo_usd": 14.19,
-        "precio_venta_usd": 41.55,
-        "roi_pct": 192.82,
-        "r_j": 0.0038
-      },
-      {
-        "sku": 55,
-        "producto": "Dracaena 240mm AIO CPU Cooler, 240mm Radiator, 2x120mm ARGB ",
-        "categoria": "COOLER",
-        "precio_costo_usd": 16.69,
-        "precio_venta_usd": 48.9,
-        "roi_pct": 193.08,
-        "r_j": 0.0134
-      },
-      {
-        "sku": 56,
-        "producto": "Thermalrlght Frozen Notte 240 White ARGB V2 Water Cooling CP",
-        "categoria": "COOLER",
-        "precio_costo_usd": 14.03,
-        "precio_venta_usd": 41.12,
-        "roi_pct": 193.07,
-        "r_j": 0.0134
-      },
-      {
-        "sku": 79,
-        "producto": "Thermalrlght FW240 White ARGB V2 CPU Water Cooler with 2 PWM",
-        "categoria": "COOLER",
-        "precio_costo_usd": 18.2,
-        "precio_venta_usd": 53.35,
-        "roi_pct": 193.07,
-        "r_j": 0.0235
-      }
-    ]
-  },
-  {
-    "sol_id": 21,
-    "tipo": "ESTRELLA",
-    "roi_pct": 194.55,
-    "rj_portafolio": 0.1368,
-    "n_skus": 14,
-    "capital_usd": 277.81,
-    "ganancia_usd": 540.47,
-    "skus": [
-      {
-        "sku": 3,
-        "producto": "msi",
-        "categoria": "MOTHERBOARD",
-        "precio_costo_usd": 26.86,
-        "precio_venta_usd": 80.86,
-        "roi_pct": 200.99,
-        "r_j": 0.0036
-      },
-      {
-        "sku": 6,
-        "producto": "Thermalright FW 240 Black ARGB-240mm AIO CPU Liquid Cooler,I",
-        "categoria": "COOLER",
-        "precio_costo_usd": 22.47,
-        "precio_venta_usd": 66.94,
-        "roi_pct": 197.89,
-        "r_j": 0.0051
-      },
-      {
-        "sku": 14,
-        "producto": "Thermalright FW240 White ARGB CPU Water Cooler with 2 PWM Fa",
-        "categoria": "COOLER",
-        "precio_costo_usd": 20.98,
-        "precio_venta_usd": 62.49,
-        "roi_pct": 197.92,
-        "r_j": 0.0124
-      },
-      {
-        "sku": 38,
-        "producto": "Thermalright Frozen Edge 240 White Liquid CPU Water Cooler w",
-        "categoria": "COOLER",
-        "precio_costo_usd": 14.19,
-        "precio_venta_usd": 41.55,
-        "roi_pct": 192.82,
-        "r_j": 0.0038
-      },
-      {
-        "sku": 42,
-        "producto": "Intel Core i7-7700 Desktop Processor 4 Cores up to 4.2 GHz L",
-        "categoria": "CPU",
-        "precio_costo_usd": 19.78,
-        "precio_venta_usd": 57.96,
-        "roi_pct": 193.04,
-        "r_j": 0.0066
-      },
-      {
-        "sku": 43,
-        "producto": "Intel Core i7-7700 Desktop Processor 4 Cores up to 4.2 GHz L",
-        "categoria": "CPU",
-        "precio_costo_usd": 19.78,
-        "precio_venta_usd": 57.96,
-        "roi_pct": 193.04,
-        "r_j": 0.0066
-      },
-      {
-        "sku": 48,
-        "producto": "Thermalright Frozen Edge 360 Black Liquid CPU Water Cooler w",
-        "categoria": "COOLER",
-        "precio_costo_usd": 16.97,
-        "precio_venta_usd": 49.73,
-        "roi_pct": 192.97,
-        "r_j": 0.0081
-      },
-      {
-        "sku": 56,
-        "producto": "Thermalrlght Frozen Notte 240 White ARGB V2 Water Cooling CP",
-        "categoria": "COOLER",
-        "precio_costo_usd": 14.03,
-        "precio_venta_usd": 41.12,
-        "roi_pct": 193.07,
-        "r_j": 0.0134
-      },
-      {
-        "sku": 63,
-        "producto": "Intel Core i7-7700 Desktop Processor 4 Cores up to 4.2 GHz L",
-        "categoria": "CPU",
-        "precio_costo_usd": 19.78,
-        "precio_venta_usd": 57.96,
-        "roi_pct": 193.04,
-        "r_j": 0.0155
-      },
-      {
-        "sku": 66,
-        "producto": "Intel Core i7-7700 Desktop Processor 4 Cores up to 4.2 GHz L",
-        "categoria": "CPU",
-        "precio_costo_usd": 19.78,
-        "precio_venta_usd": 57.96,
-        "roi_pct": 193.04,
-        "r_j": 0.0155
-      },
-      {
-        "sku": 77,
-        "producto": "Intel Core i7-7700 Desktop Processor 4 Cores up to 4.2 GHz L",
-        "categoria": "CPU",
-        "precio_costo_usd": 19.78,
-        "precio_venta_usd": 57.96,
-        "roi_pct": 193.04,
-        "r_j": 0.0208
-      },
-      {
-        "sku": 79,
-        "producto": "Thermalrlght FW240 White ARGB V2 CPU Water Cooler with 2 PWM",
-        "categoria": "COOLER",
-        "precio_costo_usd": 18.2,
-        "precio_venta_usd": 53.35,
-        "roi_pct": 193.07,
-        "r_j": 0.0235
-      },
-      {
-        "sku": 323,
-        "producto": "Thermalright CORE Vision 360 Black ARGB-360mm AIO CPU Liquid",
-        "categoria": "COOLER",
-        "precio_costo_usd": 29.34,
-        "precio_venta_usd": 85.96,
-        "roi_pct": 193.03,
-        "r_j": 0.7862
-      },
-      {
-        "sku": 381,
-        "producto": "fanxiang S500 Pro 256GB NVMe SSD M.2 PCIe 3.0, Gen 3x4 2280 ",
-        "categoria": "SSD",
-        "precio_costo_usd": 15.86,
-        "precio_venta_usd": 46.46,
-        "roi_pct": 192.96,
-        "r_j": 0.9935
-      }
-    ]
-  },
-  {
-    "sol_id": 22,
-    "tipo": "OPTIMO",
-    "roi_pct": 117.7,
-    "rj_portafolio": 0.1828,
-    "n_skus": 6,
-    "capital_usd": 2794.94,
-    "ganancia_usd": 3289.65,
-    "skus": [
-      {
-        "sku": 24,
-        "producto": "Phantom Gaming PC Desktop Computer, Intel Core Ultra 7 265K,",
-        "categoria": "CPU",
-        "precio_costo_usd": 1533.02,
-        "precio_venta_usd": 4490.87,
-        "roi_pct": 192.94,
-        "r_j": 0.0007
-      },
-      {
-        "sku": 103,
-        "producto": "MSI MAG Coreliquid A12 240 - AIO ARGB CPU Liquid Cooler - 24",
-        "categoria": "COOLER",
-        "precio_costo_usd": 20.26,
-        "precio_venta_usd": 55.43,
-        "roi_pct": 173.58,
-        "r_j": 0.0055
-      },
-      {
-        "sku": 276,
-        "producto": "*For Parts* Strix X870E-E GAMING WIFI Socket AM5 DDR5 PCIE 5",
-        "categoria": "nan",
-        "precio_costo_usd": 114.99,
-        "precio_venta_usd": 135.79,
-        "roi_pct": 18.09,
-        "r_j": 0.0409
-      },
-      {
-        "sku": 281,
-        "producto": "Computadora PC GAMER Ryzen 5 5500 + RAM 16GB + SSD 500GB + V",
-        "categoria": "tarjetas_video",
-        "precio_costo_usd": 880.23,
-        "precio_venta_usd": 959.73,
-        "roi_pct": 9.03,
-        "r_j": 0.0256
-      },
-      {
-        "sku": 318,
-        "producto": "Bestoss M.2 2280 NVMe SSD 2TB Internal PCIe Gen4, Up to 7350",
-        "categoria": "SSD",
-        "precio_costo_usd": 88.1,
-        "precio_venta_usd": 256.36,
-        "roi_pct": 190.98,
-        "r_j": 0.7577
-      },
-      {
-        "sku": 324,
-        "producto": "Disco Sólido 512GB NVMe M.2 SSD 80mm PCIe 3.0 x4 SSDPEKNW512",
-        "categoria": "discos_ssd",
-        "precio_costo_usd": 158.33,
-        "precio_venta_usd": 186.4,
-        "roi_pct": 17.73,
-        "r_j": 0.2662
-      }
-    ]
-  },
-  {
-    "sol_id": 23,
-    "tipo": "ESTRELLA",
-    "roi_pct": 199.66,
-    "rj_portafolio": 0.0086,
-    "n_skus": 4,
-    "capital_usd": 94.44,
-    "ganancia_usd": 188.56,
-    "skus": [
-      {
-        "sku": 3,
-        "producto": "msi",
-        "categoria": "MOTHERBOARD",
-        "precio_costo_usd": 26.86,
-        "precio_venta_usd": 80.86,
-        "roi_pct": 200.99,
-        "r_j": 0.0036
-      },
-      {
-        "sku": 4,
-        "producto": "msi",
-        "categoria": "MOTHERBOARD",
-        "precio_costo_usd": 26.86,
-        "precio_venta_usd": 80.86,
-        "roi_pct": 200.99,
-        "r_j": 0.0111
-      },
-      {
-        "sku": 8,
-        "producto": "Thermalright FW 240 White ARGB-240mm AIO CPU Liquid Cooler,I",
-        "categoria": "COOLER",
-        "precio_costo_usd": 19.73,
-        "precio_venta_usd": 58.79,
-        "roi_pct": 197.9,
-        "r_j": 0.0072
-      },
-      {
-        "sku": 14,
-        "producto": "Thermalright FW240 White ARGB CPU Water Cooler with 2 PWM Fa",
-        "categoria": "COOLER",
-        "precio_costo_usd": 20.98,
-        "precio_venta_usd": 62.49,
-        "roi_pct": 197.92,
-        "r_j": 0.0124
-      }
-    ]
-  },
-  {
     "sol_id": 24,
     "tipo": "ESTRELLA",
-    "roi_pct": 191.62,
-    "rj_portafolio": 0.0195,
-    "n_skus": 13,
-    "capital_usd": 284.07,
-    "ganancia_usd": 544.34,
+    "roi_pct": 193.3,
+    "rj_portafolio": 0.106,
+    "n_skus": 11,
+    "capital_usd": 311.72,
+    "ganancia_usd": 602.55,
     "skus": [
-      {
-        "sku": 2,
-        "producto": "msi",
-        "categoria": "MOTHERBOARD",
-        "precio_costo_usd": 26.86,
-        "precio_venta_usd": 80.86,
-        "roi_pct": 200.99,
-        "r_j": 0.0036
-      },
-      {
-        "sku": 4,
-        "producto": "msi",
-        "categoria": "MOTHERBOARD",
-        "precio_costo_usd": 26.86,
-        "precio_venta_usd": 80.86,
-        "roi_pct": 200.99,
-        "r_j": 0.0111
-      },
-      {
-        "sku": 6,
-        "producto": "Thermalright FW 240 Black ARGB-240mm AIO CPU Liquid Cooler,I",
-        "categoria": "COOLER",
-        "precio_costo_usd": 22.47,
-        "precio_venta_usd": 66.94,
-        "roi_pct": 197.89,
-        "r_j": 0.0051
-      },
-      {
-        "sku": 7,
-        "producto": "Thermalright FW 240 Black ARGB-240mm AIO CPU Liquid Cooler,I",
-        "categoria": "COOLER",
-        "precio_costo_usd": 22.47,
-        "precio_venta_usd": 66.94,
-        "roi_pct": 197.89,
-        "r_j": 0.0051
-      },
-      {
-        "sku": 10,
-        "producto": "Thermalright FW 360 White ARGB V2 CPU Water Cooler with 3 PW",
-        "categoria": "COOLER",
-        "precio_costo_usd": 24.66,
-        "precio_venta_usd": 73.45,
-        "roi_pct": 197.9,
-        "r_j": 0.0103
-      },
       {
         "sku": 14,
         "producto": "Thermalright FW240 White ARGB CPU Water Cooler with 2 PWM Fa",
@@ -2046,16 +2037,16 @@
         "r_j": 0.0124
       },
       {
-        "sku": 42,
-        "producto": "Intel Core i7-7700 Desktop Processor 4 Cores up to 4.2 GHz L",
-        "categoria": "CPU",
-        "precio_costo_usd": 19.78,
-        "precio_venta_usd": 57.96,
-        "roi_pct": 193.04,
-        "r_j": 0.0066
+        "sku": 28,
+        "producto": "MSI MAG Coreliquid A13 240 - AIO ARGB CPU Liquid Cooler - 24",
+        "categoria": "COOLER",
+        "precio_costo_usd": 21.63,
+        "precio_venta_usd": 63.4,
+        "roi_pct": 193.08,
+        "r_j": 0.0143
       },
       {
-        "sku": 56,
+        "sku": 29,
         "producto": "Thermalrlght Frozen Notte 240 White ARGB V2 Water Cooling CP",
         "categoria": "COOLER",
         "precio_costo_usd": 14.03,
@@ -2064,7 +2055,7 @@
         "r_j": 0.0134
       },
       {
-        "sku": 71,
+        "sku": 34,
         "producto": "Intel Core i7-7700 Desktop Processor 4 Cores up to 4.2 GHz L",
         "categoria": "CPU",
         "precio_costo_usd": 19.78,
@@ -2073,25 +2064,34 @@
         "r_j": 0.0155
       },
       {
-        "sku": 77,
-        "producto": "Intel Core i7-7700 Desktop Processor 4 Cores up to 4.2 GHz L",
-        "categoria": "CPU",
-        "precio_costo_usd": 19.78,
-        "precio_venta_usd": 57.96,
-        "roi_pct": 193.04,
-        "r_j": 0.0208
+        "sku": 36,
+        "producto": "msi",
+        "categoria": "MOTHERBOARD",
+        "precio_costo_usd": 42.65,
+        "precio_venta_usd": 124.99,
+        "roi_pct": 193.03,
+        "r_j": 0.0164
       },
       {
-        "sku": 79,
-        "producto": "Thermalrlght FW240 White ARGB V2 CPU Water Cooler with 2 PWM",
-        "categoria": "COOLER",
-        "precio_costo_usd": 18.2,
-        "precio_venta_usd": 53.35,
-        "roi_pct": 193.07,
-        "r_j": 0.0235
+        "sku": 50,
+        "producto": "Seasonic Focus GX 850W Power Supply ATX 3.1 PCIe 5.1 (12V-2x",
+        "categoria": "PSU",
+        "precio_costo_usd": 45.53,
+        "precio_venta_usd": 133.41,
+        "roi_pct": 193.01,
+        "r_j": 0.077
       },
       {
-        "sku": 106,
+        "sku": 56,
+        "producto": "SANDISK 500GB Optimus 5100 NVMe SSD - PCIe 4.0 x4, M.2 2280,",
+        "categoria": "SSD",
+        "precio_costo_usd": 30.91,
+        "precio_venta_usd": 90.57,
+        "roi_pct": 193.0,
+        "r_j": 0.8726
+      },
+      {
+        "sku": 84,
         "producto": "Thermalright FW 240 SE ARGB White-AIO CPU Liquid Cooler,IPS ",
         "categoria": "COOLER",
         "precio_costo_usd": 20.38,
@@ -2100,382 +2100,16 @@
         "r_j": 0.0757
       },
       {
-        "sku": 143,
-        "producto": "PCCOOLER AIO CPU Cooler - 3 Pack F5 R120 Case Fans - 2.4 Inc",
-        "categoria": "COOLER",
-        "precio_costo_usd": 27.82,
-        "precio_venta_usd": 68.83,
-        "roi_pct": 147.43,
-        "r_j": 0.0498
-      }
-    ]
-  },
-  {
-    "sol_id": 25,
-    "tipo": "ESTRELLA",
-    "roi_pct": 197.31,
-    "rj_portafolio": 0.1066,
-    "n_skus": 13,
-    "capital_usd": 249.88,
-    "ganancia_usd": 493.05,
-    "skus": [
-      {
-        "sku": 3,
-        "producto": "msi",
-        "categoria": "MOTHERBOARD",
-        "precio_costo_usd": 26.86,
-        "precio_venta_usd": 80.86,
-        "roi_pct": 200.99,
-        "r_j": 0.0036
-      },
-      {
-        "sku": 6,
-        "producto": "Thermalright FW 240 Black ARGB-240mm AIO CPU Liquid Cooler,I",
-        "categoria": "COOLER",
-        "precio_costo_usd": 22.47,
-        "precio_venta_usd": 66.94,
-        "roi_pct": 197.89,
-        "r_j": 0.0051
-      },
-      {
-        "sku": 10,
-        "producto": "Thermalright FW 360 White ARGB V2 CPU Water Cooler with 3 PW",
-        "categoria": "COOLER",
-        "precio_costo_usd": 24.66,
-        "precio_venta_usd": 73.45,
-        "roi_pct": 197.9,
-        "r_j": 0.0103
-      },
-      {
-        "sku": 14,
-        "producto": "Thermalright FW240 White ARGB CPU Water Cooler with 2 PWM Fa",
-        "categoria": "COOLER",
-        "precio_costo_usd": 20.98,
-        "precio_venta_usd": 62.49,
-        "roi_pct": 197.92,
-        "r_j": 0.0124
-      },
-      {
-        "sku": 34,
-        "producto": "ID-COOLING",
-        "categoria": "CPU",
-        "precio_costo_usd": 17.0,
-        "precio_venta_usd": 49.78,
-        "roi_pct": 192.9,
-        "r_j": 0.0027
-      },
-      {
-        "sku": 38,
-        "producto": "Thermalright Frozen Edge 240 White Liquid CPU Water Cooler w",
-        "categoria": "COOLER",
-        "precio_costo_usd": 14.19,
-        "precio_venta_usd": 41.55,
-        "roi_pct": 192.82,
-        "r_j": 0.0038
-      },
-      {
-        "sku": 43,
-        "producto": "Intel Core i7-7700 Desktop Processor 4 Cores up to 4.2 GHz L",
-        "categoria": "CPU",
-        "precio_costo_usd": 19.78,
-        "precio_venta_usd": 57.96,
-        "roi_pct": 193.04,
-        "r_j": 0.0066
-      },
-      {
-        "sku": 56,
-        "producto": "Thermalrlght Frozen Notte 240 White ARGB V2 Water Cooling CP",
-        "categoria": "COOLER",
-        "precio_costo_usd": 14.03,
-        "precio_venta_usd": 41.12,
-        "roi_pct": 193.07,
-        "r_j": 0.0134
-      },
-      {
-        "sku": 63,
-        "producto": "Intel Core i7-7700 Desktop Processor 4 Cores up to 4.2 GHz L",
-        "categoria": "CPU",
-        "precio_costo_usd": 19.78,
-        "precio_venta_usd": 57.96,
-        "roi_pct": 193.04,
-        "r_j": 0.0155
-      },
-      {
-        "sku": 66,
-        "producto": "Intel Core i7-7700 Desktop Processor 4 Cores up to 4.2 GHz L",
-        "categoria": "CPU",
-        "precio_costo_usd": 19.78,
-        "precio_venta_usd": 57.96,
-        "roi_pct": 193.04,
-        "r_j": 0.0155
-      },
-      {
-        "sku": 79,
-        "producto": "Thermalrlght FW240 White ARGB V2 CPU Water Cooler with 2 PWM",
-        "categoria": "COOLER",
-        "precio_costo_usd": 18.2,
-        "precio_venta_usd": 53.35,
-        "roi_pct": 193.07,
-        "r_j": 0.0235
-      },
-      {
-        "sku": 142,
-        "producto": "Thermalright FW 240 SE ARGB Black-AIO CPU Liquid Cooler,IPS ",
-        "categoria": "COOLER",
-        "precio_costo_usd": 16.3,
-        "precio_venta_usd": 53.04,
-        "roi_pct": 225.5,
-        "r_j": 0.2799
-      },
-      {
-        "sku": 380,
-        "producto": "fanxiang S500 Pro 256GB NVMe SSD M.2 PCIe 3.0, Gen 3x4 2280 ",
-        "categoria": "SSD",
-        "precio_costo_usd": 15.86,
-        "precio_venta_usd": 46.46,
-        "roi_pct": 192.96,
-        "r_j": 0.9935
-      }
-    ]
-  },
-  {
-    "sol_id": 26,
-    "tipo": "ESTRELLA",
-    "roi_pct": 185.85,
-    "rj_portafolio": 0.0303,
-    "n_skus": 11,
-    "capital_usd": 216.45,
-    "ganancia_usd": 402.28,
-    "skus": [
-      {
-        "sku": 3,
-        "producto": "msi",
-        "categoria": "MOTHERBOARD",
-        "precio_costo_usd": 26.86,
-        "precio_venta_usd": 80.86,
-        "roi_pct": 200.99,
-        "r_j": 0.0036
-      },
-      {
-        "sku": 4,
-        "producto": "msi",
-        "categoria": "MOTHERBOARD",
-        "precio_costo_usd": 26.86,
-        "precio_venta_usd": 80.86,
-        "roi_pct": 200.99,
-        "r_j": 0.0111
-      },
-      {
-        "sku": 8,
-        "producto": "Thermalright FW 240 White ARGB-240mm AIO CPU Liquid Cooler,I",
-        "categoria": "COOLER",
-        "precio_costo_usd": 19.73,
-        "precio_venta_usd": 58.79,
-        "roi_pct": 197.9,
-        "r_j": 0.0072
-      },
-      {
-        "sku": 10,
-        "producto": "Thermalright FW 360 White ARGB V2 CPU Water Cooler with 3 PW",
-        "categoria": "COOLER",
-        "precio_costo_usd": 24.66,
-        "precio_venta_usd": 73.45,
-        "roi_pct": 197.9,
-        "r_j": 0.0103
-      },
-      {
-        "sku": 34,
-        "producto": "ID-COOLING",
-        "categoria": "CPU",
-        "precio_costo_usd": 17.0,
-        "precio_venta_usd": 49.78,
-        "roi_pct": 192.9,
-        "r_j": 0.0027
-      },
-      {
-        "sku": 38,
-        "producto": "Thermalright Frozen Edge 240 White Liquid CPU Water Cooler w",
-        "categoria": "COOLER",
-        "precio_costo_usd": 14.19,
-        "precio_venta_usd": 41.55,
-        "roi_pct": 192.82,
-        "r_j": 0.0038
-      },
-      {
-        "sku": 42,
-        "producto": "Intel Core i7-7700 Desktop Processor 4 Cores up to 4.2 GHz L",
-        "categoria": "CPU",
-        "precio_costo_usd": 19.78,
-        "precio_venta_usd": 57.96,
-        "roi_pct": 193.04,
-        "r_j": 0.0066
-      },
-      {
-        "sku": 48,
-        "producto": "Thermalright Frozen Edge 360 Black Liquid CPU Water Cooler w",
-        "categoria": "COOLER",
-        "precio_costo_usd": 16.97,
-        "precio_venta_usd": 49.73,
-        "roi_pct": 192.97,
-        "r_j": 0.0081
-      },
-      {
-        "sku": 56,
-        "producto": "Thermalrlght Frozen Notte 240 White ARGB V2 Water Cooling CP",
-        "categoria": "COOLER",
-        "precio_costo_usd": 14.03,
-        "precio_venta_usd": 41.12,
-        "roi_pct": 193.07,
-        "r_j": 0.0134
-      },
-      {
-        "sku": 63,
-        "producto": "Intel Core i7-7700 Desktop Processor 4 Cores up to 4.2 GHz L",
-        "categoria": "CPU",
-        "precio_costo_usd": 19.78,
-        "precio_venta_usd": 57.96,
-        "roi_pct": 193.04,
-        "r_j": 0.0155
-      },
-      {
-        "sku": 296,
-        "producto": "Tarjeta de Expansión PCIe 3.0 x 4 soporta 4TB disco solido N",
-        "categoria": "discos_ssd",
-        "precio_costo_usd": 16.58,
-        "precio_venta_usd": 26.67,
-        "roi_pct": 60.81,
-        "r_j": 0.251
-      }
-    ]
-  },
-  {
-    "sol_id": 27,
-    "tipo": "ESTRELLA",
-    "roi_pct": 187.56,
-    "rj_portafolio": 0.0878,
-    "n_skus": 17,
-    "capital_usd": 331.38,
-    "ganancia_usd": 621.54,
-    "skus": [
-      {
-        "sku": 3,
-        "producto": "msi",
-        "categoria": "MOTHERBOARD",
-        "precio_costo_usd": 26.86,
-        "precio_venta_usd": 80.86,
-        "roi_pct": 200.99,
-        "r_j": 0.0036
-      },
-      {
-        "sku": 6,
-        "producto": "Thermalright FW 240 Black ARGB-240mm AIO CPU Liquid Cooler,I",
-        "categoria": "COOLER",
-        "precio_costo_usd": 22.47,
-        "precio_venta_usd": 66.94,
-        "roi_pct": 197.89,
-        "r_j": 0.0051
-      },
-      {
-        "sku": 8,
-        "producto": "Thermalright FW 240 White ARGB-240mm AIO CPU Liquid Cooler,I",
-        "categoria": "COOLER",
-        "precio_costo_usd": 19.73,
-        "precio_venta_usd": 58.79,
-        "roi_pct": 197.9,
-        "r_j": 0.0072
-      },
-      {
-        "sku": 10,
-        "producto": "Thermalright FW 360 White ARGB V2 CPU Water Cooler with 3 PW",
-        "categoria": "COOLER",
-        "precio_costo_usd": 24.66,
-        "precio_venta_usd": 73.45,
-        "roi_pct": 197.9,
-        "r_j": 0.0103
-      },
-      {
-        "sku": 14,
-        "producto": "Thermalright FW240 White ARGB CPU Water Cooler with 2 PWM Fa",
-        "categoria": "COOLER",
-        "precio_costo_usd": 20.98,
-        "precio_venta_usd": 62.49,
-        "roi_pct": 197.92,
-        "r_j": 0.0124
-      },
-      {
-        "sku": 34,
-        "producto": "ID-COOLING",
-        "categoria": "CPU",
-        "precio_costo_usd": 17.0,
-        "precio_venta_usd": 49.78,
-        "roi_pct": 192.9,
-        "r_j": 0.0027
-      },
-      {
-        "sku": 38,
-        "producto": "Thermalright Frozen Edge 240 White Liquid CPU Water Cooler w",
-        "categoria": "COOLER",
-        "precio_costo_usd": 14.19,
-        "precio_venta_usd": 41.55,
-        "roi_pct": 192.82,
-        "r_j": 0.0038
-      },
-      {
-        "sku": 42,
-        "producto": "Intel Core i7-7700 Desktop Processor 4 Cores up to 4.2 GHz L",
-        "categoria": "CPU",
-        "precio_costo_usd": 19.78,
-        "precio_venta_usd": 57.96,
-        "roi_pct": 193.04,
-        "r_j": 0.0066
-      },
-      {
-        "sku": 43,
-        "producto": "Intel Core i7-7700 Desktop Processor 4 Cores up to 4.2 GHz L",
-        "categoria": "CPU",
-        "precio_costo_usd": 19.78,
-        "precio_venta_usd": 57.96,
-        "roi_pct": 193.04,
-        "r_j": 0.0066
-      },
-      {
-        "sku": 48,
-        "producto": "Thermalright Frozen Edge 360 Black Liquid CPU Water Cooler w",
-        "categoria": "COOLER",
-        "precio_costo_usd": 16.97,
-        "precio_venta_usd": 49.73,
-        "roi_pct": 192.97,
-        "r_j": 0.0081
-      },
-      {
-        "sku": 56,
-        "producto": "Thermalrlght Frozen Notte 240 White ARGB V2 Water Cooling CP",
-        "categoria": "COOLER",
-        "precio_costo_usd": 14.03,
-        "precio_venta_usd": 41.12,
-        "roi_pct": 193.07,
-        "r_j": 0.0134
-      },
-      {
-        "sku": 66,
-        "producto": "Intel Core i7-7700 Desktop Processor 4 Cores up to 4.2 GHz L",
-        "categoria": "CPU",
-        "precio_costo_usd": 19.78,
-        "precio_venta_usd": 57.96,
-        "roi_pct": 193.04,
-        "r_j": 0.0155
-      },
-      {
-        "sku": 79,
-        "producto": "Thermalrlght FW240 White ARGB V2 CPU Water Cooler with 2 PWM",
-        "categoria": "COOLER",
-        "precio_costo_usd": 18.2,
-        "precio_venta_usd": 53.35,
-        "roi_pct": 193.07,
-        "r_j": 0.0235
-      },
-      {
         "sku": 92,
+        "producto": "ASRock",
+        "categoria": "MOTHERBOARD",
+        "precio_costo_usd": 37.1,
+        "precio_venta_usd": 108.66,
+        "roi_pct": 192.88,
+        "r_j": 0.0055
+      },
+      {
+        "sku": 93,
         "producto": "MSI MAG Coreliquid A13 360 - AIO ARGB CPU Liquid Cooler - 36",
         "categoria": "COOLER",
         "precio_costo_usd": 27.82,
@@ -2484,45 +2118,27 @@
         "r_j": 0.0389
       },
       {
-        "sku": 132,
-        "producto": "Corsair H60x RGB Elite Liquid CPU Cooler - 16 Dynamic RGBLED",
+        "sku": 100,
+        "producto": "MSI MAG Coreliquid A15 360 - AIO ARGB Liquid Cooling - 360mm",
         "categoria": "COOLER",
-        "precio_costo_usd": 16.69,
-        "precio_venta_usd": 46.38,
-        "roi_pct": 177.97,
-        "r_j": 0.0898
-      },
-      {
-        "sku": 296,
-        "producto": "Tarjeta de Expansión PCIe 3.0 x 4 soporta 4TB disco solido N",
-        "categoria": "discos_ssd",
-        "precio_costo_usd": 16.58,
-        "precio_venta_usd": 26.67,
-        "roi_pct": 60.81,
-        "r_j": 0.251
-      },
-      {
-        "sku": 381,
-        "producto": "fanxiang S500 Pro 256GB NVMe SSD M.2 PCIe 3.0, Gen 3x4 2280 ",
-        "categoria": "SSD",
-        "precio_costo_usd": 15.86,
-        "precio_venta_usd": 46.46,
-        "roi_pct": 192.96,
-        "r_j": 0.9935
+        "precio_costo_usd": 30.91,
+        "precio_venta_usd": 90.52,
+        "roi_pct": 192.84,
+        "r_j": 0.0242
       }
     ]
   },
   {
-    "sol_id": 28,
+    "sol_id": 25,
     "tipo": "ESTRELLA",
-    "roi_pct": 187.74,
-    "rj_portafolio": 0.092,
-    "n_skus": 15,
-    "capital_usd": 294.88,
-    "ganancia_usd": 553.62,
+    "roi_pct": 186.18,
+    "rj_portafolio": 0.0324,
+    "n_skus": 18,
+    "capital_usd": 397.7,
+    "ganancia_usd": 740.46,
     "skus": [
       {
-        "sku": 3,
+        "sku": 1,
         "producto": "msi",
         "categoria": "MOTHERBOARD",
         "precio_costo_usd": 26.86,
@@ -2531,22 +2147,13 @@
         "r_j": 0.0036
       },
       {
-        "sku": 4,
-        "producto": "msi",
-        "categoria": "MOTHERBOARD",
-        "precio_costo_usd": 26.86,
-        "precio_venta_usd": 80.86,
-        "roi_pct": 200.99,
-        "r_j": 0.0111
-      },
-      {
         "sku": 6,
-        "producto": "Thermalright FW 240 Black ARGB-240mm AIO CPU Liquid Cooler,I",
-        "categoria": "COOLER",
-        "precio_costo_usd": 22.47,
-        "precio_venta_usd": 66.94,
-        "roi_pct": 197.89,
-        "r_j": 0.0051
+        "producto": "Seasonic CORE GX 850W Power Supply ATX 3.1 PCIe 5.1 (12V-2x6",
+        "categoria": "PSU",
+        "precio_costo_usd": 37.1,
+        "precio_venta_usd": 117.68,
+        "roi_pct": 217.21,
+        "r_j": 0.0258
       },
       {
         "sku": 14,
@@ -2558,126 +2165,25 @@
         "r_j": 0.0124
       },
       {
-        "sku": 34,
-        "producto": "ID-COOLING",
-        "categoria": "CPU",
-        "precio_costo_usd": 17.0,
-        "precio_venta_usd": 49.78,
-        "roi_pct": 192.9,
-        "r_j": 0.0027
-      },
-      {
-        "sku": 38,
-        "producto": "Thermalright Frozen Edge 240 White Liquid CPU Water Cooler w",
+        "sku": 15,
+        "producto": "Thermalright FW 360 White ARGB V2 CPU Water Cooler with 3 PW",
         "categoria": "COOLER",
-        "precio_costo_usd": 14.19,
-        "precio_venta_usd": 41.55,
-        "roi_pct": 192.82,
-        "r_j": 0.0038
+        "precio_costo_usd": 24.66,
+        "precio_venta_usd": 73.45,
+        "roi_pct": 197.9,
+        "r_j": 0.0103
       },
       {
-        "sku": 42,
-        "producto": "Intel Core i7-7700 Desktop Processor 4 Cores up to 4.2 GHz L",
-        "categoria": "CPU",
-        "precio_costo_usd": 19.78,
-        "precio_venta_usd": 57.96,
-        "roi_pct": 193.04,
-        "r_j": 0.0066
-      },
-      {
-        "sku": 43,
-        "producto": "Intel Core i7-7700 Desktop Processor 4 Cores up to 4.2 GHz L",
-        "categoria": "CPU",
-        "precio_costo_usd": 19.78,
-        "precio_venta_usd": 57.96,
-        "roi_pct": 193.04,
-        "r_j": 0.0066
-      },
-      {
-        "sku": 48,
-        "producto": "Thermalright Frozen Edge 360 Black Liquid CPU Water Cooler w",
+        "sku": 16,
+        "producto": "Thermalright FW 240 White ARGB-240mm AIO CPU Liquid Cooler,I",
         "categoria": "COOLER",
-        "precio_costo_usd": 16.97,
-        "precio_venta_usd": 49.73,
-        "roi_pct": 192.97,
-        "r_j": 0.0081
+        "precio_costo_usd": 19.73,
+        "precio_venta_usd": 58.79,
+        "roi_pct": 197.9,
+        "r_j": 0.0072
       },
       {
-        "sku": 63,
-        "producto": "Intel Core i7-7700 Desktop Processor 4 Cores up to 4.2 GHz L",
-        "categoria": "CPU",
-        "precio_costo_usd": 19.78,
-        "precio_venta_usd": 57.96,
-        "roi_pct": 193.04,
-        "r_j": 0.0155
-      },
-      {
-        "sku": 66,
-        "producto": "Intel Core i7-7700 Desktop Processor 4 Cores up to 4.2 GHz L",
-        "categoria": "CPU",
-        "precio_costo_usd": 19.78,
-        "precio_venta_usd": 57.96,
-        "roi_pct": 193.04,
-        "r_j": 0.0155
-      },
-      {
-        "sku": 77,
-        "producto": "Intel Core i7-7700 Desktop Processor 4 Cores up to 4.2 GHz L",
-        "categoria": "CPU",
-        "precio_costo_usd": 19.78,
-        "precio_venta_usd": 57.96,
-        "roi_pct": 193.04,
-        "r_j": 0.0208
-      },
-      {
-        "sku": 79,
-        "producto": "Thermalrlght FW240 White ARGB V2 CPU Water Cooler with 2 PWM",
-        "categoria": "COOLER",
-        "precio_costo_usd": 18.2,
-        "precio_venta_usd": 53.35,
-        "roi_pct": 193.07,
-        "r_j": 0.0235
-      },
-      {
-        "sku": 296,
-        "producto": "Tarjeta de Expansión PCIe 3.0 x 4 soporta 4TB disco solido N",
-        "categoria": "discos_ssd",
-        "precio_costo_usd": 16.58,
-        "precio_venta_usd": 26.67,
-        "roi_pct": 60.81,
-        "r_j": 0.251
-      },
-      {
-        "sku": 381,
-        "producto": "fanxiang S500 Pro 256GB NVMe SSD M.2 PCIe 3.0, Gen 3x4 2280 ",
-        "categoria": "SSD",
-        "precio_costo_usd": 15.86,
-        "precio_venta_usd": 46.46,
-        "roi_pct": 192.96,
-        "r_j": 0.9935
-      }
-    ]
-  },
-  {
-    "sol_id": 29,
-    "tipo": "ESTRELLA",
-    "roi_pct": 190.57,
-    "rj_portafolio": 0.0898,
-    "n_skus": 5,
-    "capital_usd": 816.9,
-    "ganancia_usd": 1556.79,
-    "skus": [
-      {
-        "sku": 22,
-        "producto": "Panorama XL RTX 5060 Ti, Intel 20-Core Ultra 7 265KF Process",
-        "categoria": "CPU",
-        "precio_costo_usd": 649.19,
-        "precio_venta_usd": 1901.95,
-        "roi_pct": 192.97,
-        "r_j": 0.0007
-      },
-      {
-        "sku": 56,
+        "sku": 29,
         "producto": "Thermalrlght Frozen Notte 240 White ARGB V2 Water Cooling CP",
         "categoria": "COOLER",
         "precio_costo_usd": 14.03,
@@ -2686,31 +2192,305 @@
         "r_j": 0.0134
       },
       {
-        "sku": 111,
-        "producto": "KOOTION 2TB NVMe Internal SSD PCIe 4.0, M.2 2280 NVMe Gen 4 ",
-        "categoria": "SSD",
-        "precio_costo_usd": 83.01,
-        "precio_venta_usd": 247.27,
-        "roi_pct": 197.89,
-        "r_j": 0.1007
+        "sku": 32,
+        "producto": "Thermalright Grand Vision 240 ARGB White CPU AIO Cooler,PC 2",
+        "categoria": "COOLER",
+        "precio_costo_usd": 23.46,
+        "precio_venta_usd": 68.75,
+        "roi_pct": 193.05,
+        "r_j": 0.0214
       },
       {
-        "sku": 117,
-        "producto": "SIX NVME M.2 SSD PCIe 4.0-1TB m.2 2280 ssd, Read UP to 7350M",
-        "categoria": "SSD",
-        "precio_costo_usd": 54.1,
-        "precio_venta_usd": 156.69,
-        "roi_pct": 189.66,
-        "r_j": 0.083
+        "sku": 34,
+        "producto": "Intel Core i7-7700 Desktop Processor 4 Cores up to 4.2 GHz L",
+        "categoria": "CPU",
+        "precio_costo_usd": 19.78,
+        "precio_venta_usd": 57.96,
+        "roi_pct": 193.04,
+        "r_j": 0.0155
       },
       {
-        "sku": 296,
-        "producto": "Tarjeta de Expansión PCIe 3.0 x 4 soporta 4TB disco solido N",
+        "sku": 55,
+        "producto": "msi MAG CoreLiquid I360 Black - AIO ARGB CPU Liquid Cooler -",
+        "categoria": "COOLER",
+        "precio_costo_usd": 38.64,
+        "precio_venta_usd": 113.21,
+        "roi_pct": 193.0,
+        "r_j": 0.009
+      },
+      {
+        "sku": 70,
+        "producto": "Thermalright Frozen Edge 360 Black Liquid CPU Water Cooler w",
+        "categoria": "COOLER",
+        "precio_costo_usd": 16.97,
+        "precio_venta_usd": 49.73,
+        "roi_pct": 192.97,
+        "r_j": 0.0081
+      },
+      {
+        "sku": 82,
+        "producto": "Thermalright Frozen Edge 240 Black AIO Water Cooler,Liquid C",
+        "categoria": "COOLER",
+        "precio_costo_usd": 12.8,
+        "precio_venta_usd": 37.49,
+        "roi_pct": 192.93,
+        "r_j": 0.0055
+      },
+      {
+        "sku": 89,
+        "producto": "Thermalright Frozen Notte 240 Black ARGB V2 Water Cooling CP",
+        "categoria": "COOLER",
+        "precio_costo_usd": 14.59,
+        "precio_venta_usd": 42.74,
+        "roi_pct": 192.9,
+        "r_j": 0.0319
+      },
+      {
+        "sku": 104,
+        "producto": "Cooler Master MasterLiquid LC240E RGB Close-Loop AIO CPU Liq",
+        "categoria": "COOLER",
+        "precio_costo_usd": 21.63,
+        "precio_venta_usd": 63.3,
+        "roi_pct": 192.63,
+        "r_j": 0.0517
+      },
+      {
+        "sku": 118,
+        "producto": "Corsair H60x RGB Elite Liquid CPU Cooler - 16 Dynamic RGBLED",
+        "categoria": "COOLER",
+        "precio_costo_usd": 16.69,
+        "precio_venta_usd": 46.38,
+        "roi_pct": 177.97,
+        "r_j": 0.0898
+      },
+      {
+        "sku": 123,
+        "producto": "SIX NVME X7400 M.2 SSD PCIe 4.0-512GB m.2 2280 ssd, Read UP ",
+        "categoria": "SSD",
+        "precio_costo_usd": 30.91,
+        "precio_venta_usd": 84.23,
+        "roi_pct": 172.48,
+        "r_j": 0.1681
+      },
+      {
+        "sku": 131,
+        "producto": "Thermalright FW 360 White ARGB-360mm AIO CPU Liquid Cooler,I",
+        "categoria": "COOLER",
+        "precio_costo_usd": 25.84,
+        "precio_venta_usd": 68.16,
+        "roi_pct": 163.76,
+        "r_j": 0.0074
+      },
+      {
+        "sku": 132,
+        "producto": "Thermalright Frozen Notte 360 Black ARGB V2 Water Cooling CP",
+        "categoria": "COOLER",
+        "precio_costo_usd": 17.12,
+        "precio_venta_usd": 45.15,
+        "roi_pct": 163.7,
+        "r_j": 0.0131
+      },
+      {
+        "sku": 139,
+        "producto": "Adaptador Tarjeta PCIe 3.0 x4 a M.2 NVMe SSD 32 Gbps",
         "categoria": "discos_ssd",
-        "precio_costo_usd": 16.58,
+        "precio_costo_usd": 15.9,
         "precio_venta_usd": 26.67,
-        "roi_pct": 60.81,
-        "r_j": 0.251
+        "roi_pct": 67.67,
+        "r_j": 0.0893
+      }
+    ]
+  },
+  {
+    "sol_id": 26,
+    "tipo": "ESTRELLA",
+    "roi_pct": 197.36,
+    "rj_portafolio": 0.0415,
+    "n_skus": 5,
+    "capital_usd": 131.61,
+    "ganancia_usd": 259.73,
+    "skus": [
+      {
+        "sku": 1,
+        "producto": "msi",
+        "categoria": "MOTHERBOARD",
+        "precio_costo_usd": 26.86,
+        "precio_venta_usd": 80.86,
+        "roi_pct": 200.99,
+        "r_j": 0.0036
+      },
+      {
+        "sku": 6,
+        "producto": "Seasonic CORE GX 850W Power Supply ATX 3.1 PCIe 5.1 (12V-2x6",
+        "categoria": "PSU",
+        "precio_costo_usd": 37.1,
+        "precio_venta_usd": 117.68,
+        "roi_pct": 217.21,
+        "r_j": 0.0258
+      },
+      {
+        "sku": 16,
+        "producto": "Thermalright FW 240 White ARGB-240mm AIO CPU Liquid Cooler,I",
+        "categoria": "COOLER",
+        "precio_costo_usd": 19.73,
+        "precio_venta_usd": 58.79,
+        "roi_pct": 197.9,
+        "r_j": 0.0072
+      },
+      {
+        "sku": 88,
+        "producto": "ID-COOLING",
+        "categoria": "CPU",
+        "precio_costo_usd": 17.0,
+        "precio_venta_usd": 49.78,
+        "roi_pct": 192.9,
+        "r_j": 0.0027
+      },
+      {
+        "sku": 123,
+        "producto": "SIX NVME X7400 M.2 SSD PCIe 4.0-512GB m.2 2280 ssd, Read UP ",
+        "categoria": "SSD",
+        "precio_costo_usd": 30.91,
+        "precio_venta_usd": 84.23,
+        "roi_pct": 172.48,
+        "r_j": 0.1681
+      }
+    ]
+  },
+  {
+    "sol_id": 27,
+    "tipo": "ESTRELLA",
+    "roi_pct": 187.74,
+    "rj_portafolio": 0.0944,
+    "n_skus": 14,
+    "capital_usd": 360.92,
+    "ganancia_usd": 677.57,
+    "skus": [
+      {
+        "sku": 14,
+        "producto": "Thermalright FW240 White ARGB CPU Water Cooler with 2 PWM Fa",
+        "categoria": "COOLER",
+        "precio_costo_usd": 20.98,
+        "precio_venta_usd": 62.49,
+        "roi_pct": 197.92,
+        "r_j": 0.0124
+      },
+      {
+        "sku": 28,
+        "producto": "MSI MAG Coreliquid A13 240 - AIO ARGB CPU Liquid Cooler - 24",
+        "categoria": "COOLER",
+        "precio_costo_usd": 21.63,
+        "precio_venta_usd": 63.4,
+        "roi_pct": 193.08,
+        "r_j": 0.0143
+      },
+      {
+        "sku": 29,
+        "producto": "Thermalrlght Frozen Notte 240 White ARGB V2 Water Cooling CP",
+        "categoria": "COOLER",
+        "precio_costo_usd": 14.03,
+        "precio_venta_usd": 41.12,
+        "roi_pct": 193.07,
+        "r_j": 0.0134
+      },
+      {
+        "sku": 31,
+        "producto": "Thermalrlght FW240 White ARGB V2 CPU Water Cooler with 2 PWM",
+        "categoria": "COOLER",
+        "precio_costo_usd": 18.2,
+        "precio_venta_usd": 53.35,
+        "roi_pct": 193.07,
+        "r_j": 0.0235
+      },
+      {
+        "sku": 34,
+        "producto": "Intel Core i7-7700 Desktop Processor 4 Cores up to 4.2 GHz L",
+        "categoria": "CPU",
+        "precio_costo_usd": 19.78,
+        "precio_venta_usd": 57.96,
+        "roi_pct": 193.04,
+        "r_j": 0.0155
+      },
+      {
+        "sku": 36,
+        "producto": "msi",
+        "categoria": "MOTHERBOARD",
+        "precio_costo_usd": 42.65,
+        "precio_venta_usd": 124.99,
+        "roi_pct": 193.03,
+        "r_j": 0.0164
+      },
+      {
+        "sku": 50,
+        "producto": "Seasonic Focus GX 850W Power Supply ATX 3.1 PCIe 5.1 (12V-2x",
+        "categoria": "PSU",
+        "precio_costo_usd": 45.53,
+        "precio_venta_usd": 133.41,
+        "roi_pct": 193.01,
+        "r_j": 0.077
+      },
+      {
+        "sku": 56,
+        "producto": "SANDISK 500GB Optimus 5100 NVMe SSD - PCIe 4.0 x4, M.2 2280,",
+        "categoria": "SSD",
+        "precio_costo_usd": 30.91,
+        "precio_venta_usd": 90.57,
+        "roi_pct": 193.0,
+        "r_j": 0.8726
+      },
+      {
+        "sku": 78,
+        "producto": "Thermalright Frozen Edge 360 Black AIO Water Cooler,Liquid C",
+        "categoria": "COOLER",
+        "precio_costo_usd": 15.09,
+        "precio_venta_usd": 44.2,
+        "roi_pct": 192.95,
+        "r_j": 0.0434
+      },
+      {
+        "sku": 84,
+        "producto": "Thermalright FW 240 SE ARGB White-AIO CPU Liquid Cooler,IPS ",
+        "categoria": "COOLER",
+        "precio_costo_usd": 20.38,
+        "precio_venta_usd": 59.69,
+        "roi_pct": 192.92,
+        "r_j": 0.0757
+      },
+      {
+        "sku": 92,
+        "producto": "ASRock",
+        "categoria": "MOTHERBOARD",
+        "precio_costo_usd": 37.1,
+        "precio_venta_usd": 108.66,
+        "roi_pct": 192.88,
+        "r_j": 0.0055
+      },
+      {
+        "sku": 93,
+        "producto": "MSI MAG Coreliquid A13 360 - AIO ARGB CPU Liquid Cooler - 36",
+        "categoria": "COOLER",
+        "precio_costo_usd": 27.82,
+        "precio_venta_usd": 81.47,
+        "roi_pct": 192.86,
+        "r_j": 0.0389
+      },
+      {
+        "sku": 100,
+        "producto": "MSI MAG Coreliquid A15 360 - AIO ARGB Liquid Cooling - 360mm",
+        "categoria": "COOLER",
+        "precio_costo_usd": 30.91,
+        "precio_venta_usd": 90.52,
+        "roi_pct": 192.84,
+        "r_j": 0.0242
+      },
+      {
+        "sku": 139,
+        "producto": "Adaptador Tarjeta PCIe 3.0 x4 a M.2 NVMe SSD 32 Gbps",
+        "categoria": "discos_ssd",
+        "precio_costo_usd": 15.9,
+        "precio_venta_usd": 26.67,
+        "roi_pct": 67.67,
+        "r_j": 0.0893
       }
     ]
   }

@@ -1,31 +1,29 @@
 sol_id,tipo,n_skus,n_categorias,capital_usd,ingresos_usd,ganancia_usd,roi_pct,rj_portafolio,skus_top3
-15,AGRESIVO,1,1,16.3,53.04,36.75,225.5,0.2799,Thermalright FW 240 SE ARGB Black-AIO CP
-14,OPTIMO,3,3,107.72,342.71,234.99,218.15,0.2117,Bestoss 1TB PCIe 4.0 NVMe M.2 2280 SSD w | Seasonic CORE GX 850W Power Supply ATX 3 | Thermalright FW 240 SE ARGB Black-AIO CP
-12,OPTIMO,4,4,664.17,2108.62,1444.45,217.48,0.2018,"Envision S13 24-core Ultra 9 285K, 64GB  | Bestoss 1TB PCIe 4.0 NVMe M.2 2280 SSD w | Seasonic CORE GX 850W Power Supply ATX 3"
-23,ESTRELLA,4,2,94.44,282.99,188.56,199.66,0.0086,msi | msi | Thermalright FW240 White ARGB CPU Water 
-18,ESTRELLA,2,2,51.52,154.31,102.79,199.51,0.0069,msi | Thermalright FW 360 White ARGB V2 CPU Wa
-25,ESTRELLA,13,4,249.88,742.94,493.05,197.31,0.1066,msi | Thermalright FW 360 White ARGB V2 CPU Wa | Thermalright FW 240 Black ARGB-240mm AIO
-20,ESTRELLA,10,2,204.68,608.31,403.63,197.21,0.0104,msi | msi | Thermalright FW 360 White ARGB V2 CPU Wa
-5,OPTIMO,14,4,292.36,863.05,570.69,195.2,0.208,Thermalright CORE Vision 360 Black ARGB- | msi | MSI MAG Coreliquid A13 360 - AIO ARGB CP
-21,ESTRELLA,14,4,277.81,818.28,540.47,194.55,0.1368,Thermalright CORE Vision 360 Black ARGB- | msi | Thermalright FW 240 Black ARGB-240mm AIO
-7,ESTRELLA,14,3,275.3,808.62,533.33,193.73,0.0209,msi | GAMDIAS CHIONE E4 240mm AIO CPU Water Co | Cooler Master MasterLiquid LC240E RGB Cl
-6,ESTRELLA,3,2,820.44,2403.93,1583.49,193.0,0.0051,"Panorama XL RTX 5070, Intel Ultra 7 265K | Lian Li GA II Trinity SL-INF 360MM - AIO | Intel Core i7-7700 Desktop Processor 4 C"
-9,AGRESIVO,4,4,280.65,822.2,541.55,192.97,0.3817,Gigastone 2TB Game Turbo PCIe Gen4x4 SSD | Intel | ASRock
-8,ESTRELLA,3,3,78.51,229.92,151.41,192.85,0.0242,ASRock | Cooler Master MasterLiquid LC240E RGB Cl | Intel Core i7-7700 Desktop Processor 4 C
-24,ESTRELLA,13,3,284.07,828.42,544.34,191.62,0.0195,msi | msi | Thermalright FW 360 White ARGB V2 CPU Wa
-0,OPTIMO,23,5,459.3,1335.18,875.88,190.7,0.1565,Thermalright CORE Vision 360 Black ARGB- | msi | msi
-17,ESTRELLA,4,4,762.81,2217.0,1454.2,190.64,0.0915,"Panorama XL RTX 5060 Ti, Intel 20-Core U | KOOTION 2TB NVMe Internal SSD PCIe 4.0,  | Thermalrlght Frozen Notte 240 White ARGB"
-29,ESTRELLA,5,4,816.9,2373.7,1556.79,190.57,0.0898,"Panorama XL RTX 5060 Ti, Intel 20-Core U | KOOTION 2TB NVMe Internal SSD PCIe 4.0,  | SIX NVME M.2 SSD PCIe 4.0-1TB m.2 2280 s"
-28,ESTRELLA,15,5,294.88,848.5,553.62,187.74,0.092,msi | msi | Thermalright FW 240 Black ARGB-240mm AIO
-27,ESTRELLA,17,5,331.38,952.93,621.54,187.56,0.0878,msi | MSI MAG Coreliquid A13 360 - AIO ARGB CP | Thermalright FW 360 White ARGB V2 CPU Wa
-26,ESTRELLA,11,4,216.45,618.73,402.28,185.85,0.0303,msi | msi | Thermalright FW 360 White ARGB V2 CPU Wa
-1,ESTRELLA,38,4,783.78,2223.54,1439.76,183.69,0.0554,"msi | msi | CoolerMaster MasterLiquid ML240L RGB V2,"
-22,OPTIMO,6,5,2794.94,6084.58,3289.65,117.7,0.1828,"Phantom Gaming PC Desktop Computer, Inte | Bestoss M.2 2280 NVMe SSD 2TB Internal P | Computadora PC GAMER Ryzen 5 5500 + RAM "
-16,ESTRELLA,3,3,2514.82,4374.8,1859.98,73.96,0.007,"Panorama XL RTX 5060 Ti, Intel 20-Core U | Tarjeta de video GeForce RTX 5070 Ti 16  | Thermalrlght Frozen Notte 240 White ARGB"
-19,ESTRELLA,10,6,5246.4,8405.02,3158.62,60.21,0.0775,"Panorama XL RTX 5060 Ti, Intel 20-Core U | Tarjeta de video GeForce RTX 5070 Ti 16  | Tarjeta Gráfica Geforce Eagle Rtx 5070 P"
-11,OPTIMO,5,5,1267.99,1815.41,547.42,43.17,0.0772,"Tarjeta De Video Geforce Rtx5060 8Gb Gdd | Procesador Core i5-14400 2.50/4.70GHz, 2 | SIX NVME M.2 SSD PCIe 4.0-1TB m.2 2280 s"
-10,OPTIMO,9,5,4597.22,6503.07,1905.86,41.46,0.0931,Tarjeta de video GeForce RTX 5070 Ti 16  | Tarjeta Gráfica Geforce Eagle Rtx 5070 P | Tarjeta De Video Geforce Rtx5060 8Gb Gdd
-4,SEGURO,5,4,3065.5,4090.45,1024.95,33.44,0.062,"Tarjeta de video GeForce RTX 5070 Ti 16  | Tarjeta De Video Geforce Rtx5060 8Gb Gdd | Procesador Core i5-14400 2.50/4.70GHz, 2"
-3,SEGURO,4,1,5694.71,6580.8,886.09,15.56,0.0019,Tarjeta Gráfica Geforce Eagle Rtx 5070 P | Prime RTX 5070 Ti - Tarjeta Gráfica NVID | Prime RTX 5070 Ti - Tarjeta Gráfica NVID
-2,SEGURO,7,3,2920.83,3339.09,418.26,14.32,0.0613,Tarjeta Gráfica Geforce Rtx 3050 6Gb Gdd | Computadora PC GAMER Ryzen 5 5500 + RAM  | Tarjeta de video GeForce RTX 5050 WINDFO
-13,SEGURO,1,1,1878.69,2072.0,193.31,10.29,0.0001,Prime RTX 5070 Ti - Tarjeta Gráfica NVID
+19,OPTIMO,3,3,107.72,342.71,234.99,218.15,0.2117,Bestoss 1TB PCIe 4.0 NVMe M.2 2280 SSD w | Seasonic CORE GX 850W Power Supply ATX 3 | Thermalright FW 240 SE ARGB Black-AIO CP
+5,OPTIMO,4,4,664.17,2108.62,1444.45,217.48,0.2018,"Envision S13 24-core Ultra 9 285K, 64GB  | Bestoss 1TB PCIe 4.0 NVMe M.2 2280 SSD w | Seasonic CORE GX 850W Power Supply ATX 3"
+22,ESTRELLA,1,1,37.1,117.68,80.58,217.21,0.0258,Seasonic CORE GX 850W Power Supply ATX 3
+11,AGRESIVO,5,5,115.9,356.0,240.11,207.17,0.2637,Seasonic CORE GX 850W Power Supply ATX 3 | msi | Intel Core i7-7700 Desktop Processor 4 C
+7,ESTRELLA,9,4,194.69,589.02,394.33,202.54,0.0485,Seasonic CORE GX 850W Power Supply ATX 3 | msi | Thermalright FW 360 White ARGB V2 CPU Wa
+1,OPTIMO,9,5,182.59,551.37,368.78,201.98,0.1514,Seasonic CORE GX 850W Power Supply ATX 3 | msi | Lian Li Galahad II Trinity Performance 3
+18,ESTRELLA,3,1,63.18,188.22,125.04,197.9,0.0082,Thermalright FW 240 Black ARGB-240mm AIO | Thermalright FW240 White ARGB CPU Water  | Thermalright FW 240 White ARGB-240mm AIO
+26,ESTRELLA,5,5,131.61,391.34,259.73,197.36,0.0415,Seasonic CORE GX 850W Power Supply ATX 3 | msi | SIX NVME X7400 M.2 SSD PCIe 4.0-512GB m.
+9,ESTRELLA,6,5,148.29,440.24,291.95,196.87,0.0368,Seasonic CORE GX 850W Power Supply ATX 3 | msi | SIX NVME X7400 M.2 SSD PCIe 4.0-512GB m.
+23,ESTRELLA,11,1,201.55,593.52,391.97,194.48,0.0194,Thermalright Grand Vision 240 ARGB White | Thermalright FW 240 Black ARGB-240mm AIO | GAMDIAS CHIONE E4 240mm AIO CPU Water Co
+0,AGRESIVO,14,4,474.02,1394.25,920.24,194.14,0.3701,Kingston NV3 1TB M.2 2280 NVMe SSD | PCI | Bestoss 1TB NVMe M.2 SSD PCIe 3.0 2280 I | Fikwot FX550 NVMe SSD 1TB M.2 SSD PCIe 3
+10,AGRESIVO,14,5,482.92,1416.53,933.62,193.33,0.3512,SANDISK 1TB Optimus 5100 NVMe SSD - PCIe | Intel | Fikwot FX550 NVMe SSD 1TB M.2 SSD PCIe 3
+24,ESTRELLA,11,5,311.72,914.27,602.55,193.3,0.106,Seasonic Focus GX 850W Power Supply ATX  | msi | ASRock
+2,ESTRELLA,12,4,314.1,921.25,607.15,193.3,0.03,Seasonic Focus GX 850W Power Supply ATX  | msi | ASRock
+6,ESTRELLA,5,4,135.29,396.39,261.1,193.0,0.0202,Seasonic Focus GX 850W Power Supply ATX  | GIGABYTE | Intel Core i7-7700 Desktop Processor 4 C
+17,AGRESIVO,5,5,163.9,480.18,316.28,192.97,0.3796,Seasonic Focus GX 850W Power Supply ATX  | ASRock | SANDISK 500GB Optimus 5100 NVMe SSD - PC
+20,OPTIMO,5,5,164.23,481.12,316.89,192.95,0.199,Seasonic Focus GX 850W Power Supply ATX  | ASRock | SANDISK 500GB Optimus 5100 NVMe SSD - PC
+4,ESTRELLA,6,5,1961.76,5745.53,3783.77,192.88,0.0985,"GeForce RTX 5090 OC Graphics Card, 32GB  | Centaurus Berserk GX3 Gaming PC, Intel C | Fikwot FX550 NVMe SSD 1TB M.2 SSD PCIe 3"
+14,AGRESIVO,19,6,560.11,1632.66,1072.55,191.49,0.2603,Intel | Bestoss 1TB NVMe M.2 SSD PCIe 3.0 2280 I | Fikwot FX550 NVMe SSD 1TB M.2 SSD PCIe 3
+3,ESTRELLA,19,5,456.98,1330.32,873.35,191.11,0.0335,Seasonic CORE GX 850W Power Supply ATX 3 | GIGABYTE | GIGABYTE
+15,ESTRELLA,15,6,391.49,1128.07,736.58,188.15,0.15,Seasonic Focus GX 850W Power Supply ATX  | msi | ASRock
+27,ESTRELLA,14,6,360.92,1038.49,677.57,187.74,0.0944,Seasonic Focus GX 850W Power Supply ATX  | msi | ASRock
+12,ESTRELLA,6,5,151.49,435.02,283.53,187.16,0.0235,Seasonic CORE GX 850W Power Supply ATX 3 | ASRock | Thermalright FW 360 White ARGB V2 CPU Wa
+8,ESTRELLA,7,5,2030.75,5817.98,3787.23,186.49,0.0878,"GeForce RTX 5090 OC Graphics Card, 32GB  | Centaurus Berserk GX3 Gaming PC, Intel C | Fikwot FX550 NVMe SSD 1TB M.2 SSD PCIe 3"
+21,ESTRELLA,5,4,1942.35,5560.88,3618.53,186.3,0.0109,"GeForce RTX 5090 OC Graphics Card, 32GB  | Centaurus Berserk GX3 Gaming PC, Intel C | GIGABYTE"
+25,ESTRELLA,18,6,397.7,1138.17,740.46,186.18,0.0324,Seasonic CORE GX 850W Power Supply ATX 3 | msi MAG CoreLiquid I360 Black - AIO ARGB | msi
+16,ESTRELLA,8,6,2743.11,6662.52,3919.41,142.88,0.077,"GeForce RTX 5090 OC Graphics Card, 32GB  | Centaurus Berserk GX3 Gaming PC, Intel C | Tarjeta de video DUAL-RTX5060-O8G, 8GB G"
+13,SEGURO,4,2,2684.76,3061.4,376.65,14.03,0.008,"Prime RTX 5070 Ti - Tarjeta Gráfica NVID | Tarjeta de video DUAL-RTX5060-O8G, 8GB G | Lian Li Galahad II Trinity Performance 3"
