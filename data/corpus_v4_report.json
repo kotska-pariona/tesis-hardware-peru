@@ -1,0 +1,14 @@
+{
+  "version": "v4.3-FINAL",
+  "unidad_analisis": "SKU (modelo) con protecci\u00f3n l\u00e9xica bidireccional",
+  "timestamp": "2026-08-06T14:21:19.832340",
+  "corpus_rows": 3000,
+  "actual_counts": {
+    "VIGENTE": 1000,
+    "EN_RIESGO": 1000,
+    "OBSOLETO": 1000
+  },
+  "coverage_pct": 85.41,
+  "casos_protegidos": 4066,
+  "elapsed_sec": 55.6
+}
