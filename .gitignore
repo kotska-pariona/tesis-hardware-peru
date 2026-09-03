@@ -105,3 +105,11 @@ data/raw/report_*.json
 data/raw/MASTER_hardware_peru.csv
 data/raw/MASTER_hardware_peru_CONSOLIDADO.csv
 data/raw/report_*.json
+
+# ── Datos grandes — gestionados por DVC ──────────────────
+data/corpus_obsolescencia*.csv
+data/embeddings_meta.csv
+data/raw/MASTER_hardware_peru_CONSOLIDADO.csv
+logs/pe2_tft*/
+logs/pe2_tft_v2*/
+models/test_predictions_*.csv
