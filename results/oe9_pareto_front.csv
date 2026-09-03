@@ -1,29 +1,30 @@
 sol_id,tipo,n_skus,n_categorias,capital_usd,ingresos_usd,ganancia_usd,roi_pct,rj_portafolio,skus_top3
-16,AGRESIVO,1,1,33.49,120.91,87.42,261.03,0.9613,"Fuente de poder Antryx Kirin 850 GOLD, 8"
-23,AGRESIVO,3,1,111.48,383.47,271.99,243.98,0.6479,"Fuente de poder Teros TE-7175W 750W, 80  | Fuente de poder Antryx Kirin 850 GOLD, 8 | Fuente de poder Seasonic A12, 600W, 80 P"
-2,AGRESIVO,4,2,147.48,491.84,344.36,233.5,0.5012,"Fuente de poder Teros TE-7175W 750W, 80  | Fuente de poder Antryx Kirin 850 GOLD, 8 | Memoria RAM TeamGroup T-Force Vulcan Z 8"
-20,OPTIMO,2,2,85.94,277.24,191.3,222.6,0.1579,"Fuente de poder Teros TE-7175W 750W, 80  | Memoria RAM TeamGroup T-Force Vulcan Z 8"
-26,AGRESIVO,5,3,247.15,758.71,511.56,206.98,0.2806,"Unidad de estado sólido SSD Kingston NV3 | Fuente de poder Teros TE-7175W 750W, 80  | Memoria RAM TeamGroup T-Force Vulcan Z 8"
-13,AGRESIVO,5,3,176.85,541.7,364.85,206.3,0.5688,"Fuente de poder Teros TE-7175W 750W, 80  | Fuente de poder Antryx Kirin 850 GOLD, 8 | Memoria RAM TeamGroup T-Force Vulcan Z 8"
-11,ESTRELLA,3,2,121.13,365.05,243.92,201.37,0.1149,"Fuente de poder Teros TE-7175W 750W, 80  | Memoria RAM TeamGroup T-Force Vulcan Z 8 | Memoria ram para laptop Kingston KCP 8GB"
-1,ESTRELLA,1,1,36.0,108.37,72.37,201.03,0.0611,Memoria RAM TeamGroup T-Force Vulcan Z 8
-24,AGRESIVO,5,4,291.96,876.19,584.23,200.11,0.2788,"Unidad de estado sólido SSD Kingston NV3 | Placa madre Asrock Prime B860M-A LGA1851 | Fuente de poder Teros TE-7175W 750W, 80 "
-8,OPTIMO,6,4,327.15,964.0,636.85,194.67,0.2372,"Unidad de estado sólido SSD Kingston NV3 | Placa madre Asrock Prime B860M-A LGA1851 | Fuente de poder Teros TE-7175W 750W, 80 "
-27,ESTRELLA,3,3,312.29,907.31,595.02,190.53,0.1306,Tarjeta de video Asus Dual NVIDIA GeForc | Unidad de estado sólido SSD Kingston NV3 | Memoria RAM TeamGroup T-Force Vulcan Z 8
-3,ESTRELLA,3,2,392.64,1106.31,713.67,181.76,0.0204,Tarjeta de video Asus Dual NVIDIA GeForc | Tarjeta de video Asus Dual NVIDIA GeForc | Memoria RAM TeamGroup T-Force Vulcan Z 8
-22,OPTIMO,6,6,558.18,1486.36,928.18,166.29,0.1904,"Tarjeta de video Asus Dual NVIDIA GeForc | Unidad de estado sólido SSD Kingston NV3 | Procesador Intel Core Ultra 5 225F, 4.9G"
-10,ESTRELLA,6,3,394.74,1047.24,652.5,165.3,0.1413,Fuente de poder Seasonic Focus GX-1000W  | Memoria ram Kingston Fury Beast 16GB (1x | Placa madre Asrock Prime B860M-A LGA1851
-25,ESTRELLA,2,2,300.99,792.36,491.37,163.25,0.0003,"Tarjeta de video Asus Dual NVIDIA GeForc | Placa madre Asrock Z890 PRO-A LGA1851, D"
-15,ESTRELLA,4,4,314.35,806.46,492.11,156.55,0.0693,"Tarjeta de video Asus Dual NVIDIA GeForc | Placa madre MSI PRO B650M-P, socket AM5, | Memoria ram para laptop Kingston KCP 8GB"
-0,AGRESIVO,8,7,683.37,1691.61,1008.24,147.54,0.2711,"Tarjeta de video Asus Dual NVIDIA GeForc | Unidad de estado sólido SSD Kingston NV3 | Procesador Intel Core Ultra 5 225F, 4.9G"
-21,ESTRELLA,6,4,825.51,1709.92,884.41,107.13,0.0215,"Tarjeta de video Asus Dual NVIDIA GeForc | Procesador Intel Core Ultra 5 225F, 4.9G | Placa madre Asrock Z890 PRO-A LGA1851, D"
-19,AGRESIVO,3,2,137.35,260.73,123.38,89.83,0.5029,"Fuente de poder Antryx Kirin 750 GOLD, 7 | Fuente de poder Seasonic A12 500W, 80 Pl | Unidad de estado sólido SSD Kingston A40"
-18,OPTIMO,6,6,1618.1,2778.15,1160.05,71.69,0.2255,"Unidad de estado sólido SSD Kingston NV3 | Procesador Intel Core Ultra 7 265KF, 5.5 | Placa madre MSI PRO B650M-P, socket AM5,"
-17,ESTRELLA,14,7,2019.81,3446.57,1426.76,70.64,0.1485,"Tarjeta de video Asus Dual NVIDIA GeForc | Procesador Intel Core Ultra 5 225F, 4.9G | Placa madre Asrock Z890 PRO-A LGA1851, D"
-14,AGRESIVO,11,6,1204.41,1860.14,655.73,54.44,0.4301,"Unidad de estado sólido SSD Kingston NV3 | Procesador AMD Ryzen 5 8600G (IA), 5Ghz, | Fuente de poder Antryx Kirin 750 GOLD, 7"
-5,BALANCEADO,4,4,307.28,448.65,141.37,46.01,0.4897,"Memoria Ram para Laptop Kingston KCP 16G | Placa madre Asrock H610M-HDV/M.2 R2.0, D | Gabinete Antryx XM-330 Xtreme, ITX/Micro"
-12,OPTIMO,8,6,1314.45,1832.44,517.99,39.41,0.1504,"Unidad de estado sólido SSD Kingston Fur | Fuente de poder Seasonic Vertex GX-1200W | Procesador AMD Ryzen 5 8600G (IA), 5Ghz,"
-7,OPTIMO,12,4,2075.69,2863.06,787.37,37.93,0.0491,Procesador Intel Core i5-14400 6+4-Cores | Placa madre Asrock Prime B860M-A LGA1851 | Fuente de poder Antryx Kirin Gold Evo II
-4,OPTIMO,6,5,1188.46,1625.19,436.73,36.75,0.178,"Unidad de estado sólido SSD Kingston Fur | Fuente de poder Seasonic Vertex GX-1200W | Procesador AMD Ryzen 5 8600G (IA), 5Ghz,"
-9,SEGURO,4,2,948.36,1279.85,331.49,34.95,0.0143,"Fuente de poder Seasonic Vertex GX-1200W | Procesador AMD Ryzen 5 7600X 6 cores, 5. | Procesador Intel Core i3-13100F, 4.5Ghz,"
-6,SEGURO,3,3,638.11,819.07,180.96,28.36,0.0393,"Fuente de poder Seasonic Vertex GX-1200W | Procesador AMD Ryzen 5 7600X 6 cores, 5. | Placa madre Gigabyte B550M-K AM4, DDR4 ("
+0,ESTRELLA,6,3,2002.49,5006.22,3003.73,150.0,0.0665,Alienware Aurora ACT1250 Gaming Desktop  | Centaurus Virgo 4 PC - Intel Core Ultra  | 16.1 Inch Gaming Laptop Computer RTX4050
+10,ESTRELLA,3,2,947.55,2368.87,1421.32,150.0,0.0366,Alienware Aurora ACT1250 Gaming Desktop  | MSI PRO Z890-P WiFi ProSeries Motherboar | INTEL Core i5 7400 3.0GHz Quad-Core Quad
+26,ESTRELLA,6,2,2834.77,7086.92,4252.15,150.0,0.0761,HP OMEN 45L GT22 Gaming Desktop PC- Inte | Alienware Aurora ACT1250 Gaming Desktop  | Centaurus Virgo 4 PC - Intel Core Ultra 
+24,ESTRELLA,5,2,1759.57,4398.92,2639.35,150.0,0.0271,Alienware Aurora ACT1250 Gaming Desktop  | Centaurus Virgo 4 PC - Intel Core Ultra  | 16.1 Inch Gaming Laptop Computer RTX4050
+15,ESTRELLA,2,1,1361.84,3404.6,2042.76,150.0,0.0063,Alienware Aurora ACT1250 Gaming Desktop  | Centaurus Virgo 4 PC - Intel Core Ultra 
+6,ESTRELLA,7,3,3077.69,7694.22,4616.53,150.0,0.1029,HP OMEN 45L GT22 Gaming Desktop PC- Inte | Alienware Aurora ACT1250 Gaming Desktop  | Centaurus Virgo 4 PC - Intel Core Ultra 
+25,ESTRELLA,4,3,728.35,1756.1,1027.75,141.11,0.0669,"Centaurus Virgo 4 PC - Intel Core Ultra  | Tarjeta de video Palit, NVIDIA GeForce R | Intel Core i7 4790K Processor 4.0GHz Qua"
+1,ESTRELLA,4,3,2413.26,5736.52,3323.26,137.71,0.0336,"Panorama XL RTX 5080, Intel 24-Core Ultr | Centaurus Virgo 4 PC - Intel Core Ultra  | Tarjeta de video Palit, NVIDIA GeForce R"
+28,ESTRELLA,3,1,2732.91,6347.92,3615.01,132.28,0.0059,"Panorama XL RTX 5080, Intel 24-Core Ultr | Centaurus Virgo 4 PC - Intel Core Ultra  | MSI GeForce RTX 4070 SUPER GAMING X SLIM"
+13,ESTRELLA,4,3,1210.41,2717.03,1506.62,124.47,0.0333,"Centaurus Virgo 4 PC - Intel Core Ultra  | MSI GeForce RTX 4070 SUPER GAMING X SLIM | Tarjeta de video Palit, NVIDIA GeForce R"
+23,ESTRELLA,5,4,284.7,620.5,335.79,117.94,0.0392,"KOOTION 2TB NVMe Internal SSD PCIe 4.0,  | msi | SOYO New Intel B760M Motherboard USB3.2 "
+8,ESTRELLA,3,2,260.49,558.18,297.69,114.28,0.0129,ASUS NVIDIA GeForce RTX 4060 Dual 8GB GD | msi | SOYO New Intel B760M Motherboard USB3.2 
+5,ESTRELLA,8,2,93.24,198.42,105.18,112.8,0.0675,Thermalright Frozen Edge 240 White Liqui | Intel Core i5 7500T 2.7GHz Quad-Core LGA | AMD RADEON R938G2401U2S 8GB DDR3 PC3-240
+21,ESTRELLA,6,1,60.43,127.0,66.57,110.16,0.0172,Thermalright Frozen Edge 240 White Liqui | LOT Samsung 16GB 8GB 4GB 2GB 1GB 2RX8 DD | LOT Samsung 16GB 8GB 4GB 2GB 1GB 2RX8 DD
+7,ESTRELLA,3,0,230.09,479.96,249.87,108.6,0.0234,ASUS ROG STRIX X870E-E Gaming WiFi Mothe | (NO POST) Intel Core i5-13600K 5.10GHz 1 | Corsair Vengeance CMZ8GX3M2A1600C9 DDR3 
+11,ESTRELLA,5,2,1599.41,3329.29,1729.88,108.16,0.0344,Centaurus Virgo 4 PC - Intel Core Ultra  | MSI GeForce RTX 4070 SUPER GAMING X SLIM | MSI GeForce RTX 4070 SUPER 12GB GDDR6X G
+20,ESTRELLA,3,2,811.76,1669.28,857.52,105.64,0.0151,"Tarjeta de video DUAL-RTX5070-O12G, 12GB | Thermalright Frozen Edge 240 White Liqui | LOT Samsung 16GB 8GB 4GB 2GB 1GB 2RX8 DD"
+16,ESTRELLA,7,4,579.27,1187.49,608.21,105.0,0.0289,"ASUS NVIDIA GeForce RTX 4060 Dual 8GB GD | KOOTION 2TB NVMe Internal SSD PCIe 4.0,  | GIGABYTE X870 GAMING X WIFI7 AM5 LGA 171"
+12,ESTRELLA,6,0,52.13,104.8,52.67,101.03,0.0732,Ramaxel 8GB DDR3‑1600 PC3‑12800 Desktop  | LOT Samsung 16GB 8GB 4GB 2GB 1GB 2RX8 DD | Ramaxel 8GB DDR3‑1600 PC3‑12800 Desktop 
+4,ESTRELLA,26,3,301.89,590.0,288.11,95.44,0.0539,Thermalright Frozen Edge 240 White Liqui | Black Corsair Vengeance LP 16GB (4x4GB)  | Intel Core i5-7600 i5 7600 3.5 GHz Quad-
+22,ESTRELLA,8,2,104.87,202.03,97.16,92.65,0.0579,INTEL Core i5 7500 3.4GHz Quad-Core Quad | Kingston HyperX Genesis PC3 DDR3 16GB (4 | Black Corsair Vengeance LP 16GB (4x4GB) 
+19,ESTRELLA,4,3,1995.99,3785.35,1789.37,89.65,0.004,"Panorama XL RTX 5070 Ti, Intel 24-Core U | ROG Strix X870E-E GAMING WIFI Socket AM5 | GIGABYTE AORUS Gen4 7300 SSD 1TB (w/o He"
+2,ESTRELLA,11,2,1356.53,2552.03,1195.5,88.13,0.0226,PNY RTX 4060 Ti 8GB GDDR6 Graphics Card  | Intel Core i7-14700K QS 2.50GHz 20core 2 | ASUS ROG Strix GeForce RTX 4060 OC Editi
+14,ESTRELLA,8,4,2445.4,4566.02,2120.62,86.72,0.0255,"Panorama RTX 5080, 24-Core Ultra 9 285K, | Intel core i7-14700k LGA1700 16c/28t sup | ASUS NVIDIA GeForce RTX 4060 Dual 8GB GD"
+9,ESTRELLA,10,4,2162.19,4015.59,1853.4,85.72,0.0216,"Laptop Gamer Nitro Lite Intel Core I5-13 | Dell G16 7630 Gaming Laptop i7-13650HX R | ASUS TUF F15 Gaming Laptop 15.6"" 144Hz, "
+3,ESTRELLA,6,0,63.1,116.94,53.84,85.32,0.0117,LOT Samsung 16GB 8GB 4GB 2GB 1GB 2RX8 DD | LOT Samsung 16GB 8GB 4GB 2GB 1GB 2RX8 DD | LOT Samsung 16GB 8GB 4GB 2GB 1GB 2RX8 DD
+17,ESTRELLA,6,4,1693.02,3105.69,1412.66,83.44,0.009,"Laptop Gamer Nitro Lite Intel Core I5-13 | Dell G16 7630 Gaming Laptop i7-13650HX R | ASUS TUF F15 Gaming Laptop 15.6"" 144Hz, "
+18,ESTRELLA,3,2,1167.6,2117.1,949.5,81.32,0.0074,"Laptop Gamer Nitro Lite Intel Core I5-13 | ASUS TUF F15 Gaming Laptop 15.6"" 144Hz,  | MSI MAG Coreliquid A12 240 - AIO ARGB CP"
+27,ESTRELLA,1,0,166.01,289.99,123.98,74.68,0.0001,MSI MPG X870E EDGE TI WIFI AM5 ATX Mothe
