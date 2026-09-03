@@ -1,30 +1,31 @@
 sol_id,tipo,n_skus,n_categorias,capital_usd,ingresos_usd,ganancia_usd,roi_pct,rj_portafolio,skus_top3
-0,ESTRELLA,6,3,2002.49,5006.22,3003.73,150.0,0.0665,Alienware Aurora ACT1250 Gaming Desktop  | Centaurus Virgo 4 PC - Intel Core Ultra  | 16.1 Inch Gaming Laptop Computer RTX4050
-10,ESTRELLA,3,2,947.55,2368.87,1421.32,150.0,0.0366,Alienware Aurora ACT1250 Gaming Desktop  | MSI PRO Z890-P WiFi ProSeries Motherboar | INTEL Core i5 7400 3.0GHz Quad-Core Quad
-26,ESTRELLA,6,2,2834.77,7086.92,4252.15,150.0,0.0761,HP OMEN 45L GT22 Gaming Desktop PC- Inte | Alienware Aurora ACT1250 Gaming Desktop  | Centaurus Virgo 4 PC - Intel Core Ultra 
-24,ESTRELLA,5,2,1759.57,4398.92,2639.35,150.0,0.0271,Alienware Aurora ACT1250 Gaming Desktop  | Centaurus Virgo 4 PC - Intel Core Ultra  | 16.1 Inch Gaming Laptop Computer RTX4050
-15,ESTRELLA,2,1,1361.84,3404.6,2042.76,150.0,0.0063,Alienware Aurora ACT1250 Gaming Desktop  | Centaurus Virgo 4 PC - Intel Core Ultra 
-6,ESTRELLA,7,3,3077.69,7694.22,4616.53,150.0,0.1029,HP OMEN 45L GT22 Gaming Desktop PC- Inte | Alienware Aurora ACT1250 Gaming Desktop  | Centaurus Virgo 4 PC - Intel Core Ultra 
-25,ESTRELLA,4,3,728.35,1756.1,1027.75,141.11,0.0669,"Centaurus Virgo 4 PC - Intel Core Ultra  | Tarjeta de video Palit, NVIDIA GeForce R | Intel Core i7 4790K Processor 4.0GHz Qua"
-1,ESTRELLA,4,3,2413.26,5736.52,3323.26,137.71,0.0336,"Panorama XL RTX 5080, Intel 24-Core Ultr | Centaurus Virgo 4 PC - Intel Core Ultra  | Tarjeta de video Palit, NVIDIA GeForce R"
-28,ESTRELLA,3,1,2732.91,6347.92,3615.01,132.28,0.0059,"Panorama XL RTX 5080, Intel 24-Core Ultr | Centaurus Virgo 4 PC - Intel Core Ultra  | MSI GeForce RTX 4070 SUPER GAMING X SLIM"
-13,ESTRELLA,4,3,1210.41,2717.03,1506.62,124.47,0.0333,"Centaurus Virgo 4 PC - Intel Core Ultra  | MSI GeForce RTX 4070 SUPER GAMING X SLIM | Tarjeta de video Palit, NVIDIA GeForce R"
-23,ESTRELLA,5,4,284.7,620.5,335.79,117.94,0.0392,"KOOTION 2TB NVMe Internal SSD PCIe 4.0,  | msi | SOYO New Intel B760M Motherboard USB3.2 "
-8,ESTRELLA,3,2,260.49,558.18,297.69,114.28,0.0129,ASUS NVIDIA GeForce RTX 4060 Dual 8GB GD | msi | SOYO New Intel B760M Motherboard USB3.2 
-5,ESTRELLA,8,2,93.24,198.42,105.18,112.8,0.0675,Thermalright Frozen Edge 240 White Liqui | Intel Core i5 7500T 2.7GHz Quad-Core LGA | AMD RADEON R938G2401U2S 8GB DDR3 PC3-240
-21,ESTRELLA,6,1,60.43,127.0,66.57,110.16,0.0172,Thermalright Frozen Edge 240 White Liqui | LOT Samsung 16GB 8GB 4GB 2GB 1GB 2RX8 DD | LOT Samsung 16GB 8GB 4GB 2GB 1GB 2RX8 DD
-7,ESTRELLA,3,0,230.09,479.96,249.87,108.6,0.0234,ASUS ROG STRIX X870E-E Gaming WiFi Mothe | (NO POST) Intel Core i5-13600K 5.10GHz 1 | Corsair Vengeance CMZ8GX3M2A1600C9 DDR3 
-11,ESTRELLA,5,2,1599.41,3329.29,1729.88,108.16,0.0344,Centaurus Virgo 4 PC - Intel Core Ultra  | MSI GeForce RTX 4070 SUPER GAMING X SLIM | MSI GeForce RTX 4070 SUPER 12GB GDDR6X G
-20,ESTRELLA,3,2,811.76,1669.28,857.52,105.64,0.0151,"Tarjeta de video DUAL-RTX5070-O12G, 12GB | Thermalright Frozen Edge 240 White Liqui | LOT Samsung 16GB 8GB 4GB 2GB 1GB 2RX8 DD"
-16,ESTRELLA,7,4,579.27,1187.49,608.21,105.0,0.0289,"ASUS NVIDIA GeForce RTX 4060 Dual 8GB GD | KOOTION 2TB NVMe Internal SSD PCIe 4.0,  | GIGABYTE X870 GAMING X WIFI7 AM5 LGA 171"
-12,ESTRELLA,6,0,52.13,104.8,52.67,101.03,0.0732,Ramaxel 8GB DDR3‑1600 PC3‑12800 Desktop  | LOT Samsung 16GB 8GB 4GB 2GB 1GB 2RX8 DD | Ramaxel 8GB DDR3‑1600 PC3‑12800 Desktop 
-4,ESTRELLA,26,3,301.89,590.0,288.11,95.44,0.0539,Thermalright Frozen Edge 240 White Liqui | Black Corsair Vengeance LP 16GB (4x4GB)  | Intel Core i5-7600 i5 7600 3.5 GHz Quad-
-22,ESTRELLA,8,2,104.87,202.03,97.16,92.65,0.0579,INTEL Core i5 7500 3.4GHz Quad-Core Quad | Kingston HyperX Genesis PC3 DDR3 16GB (4 | Black Corsair Vengeance LP 16GB (4x4GB) 
-19,ESTRELLA,4,3,1995.99,3785.35,1789.37,89.65,0.004,"Panorama XL RTX 5070 Ti, Intel 24-Core U | ROG Strix X870E-E GAMING WIFI Socket AM5 | GIGABYTE AORUS Gen4 7300 SSD 1TB (w/o He"
-2,ESTRELLA,11,2,1356.53,2552.03,1195.5,88.13,0.0226,PNY RTX 4060 Ti 8GB GDDR6 Graphics Card  | Intel Core i7-14700K QS 2.50GHz 20core 2 | ASUS ROG Strix GeForce RTX 4060 OC Editi
-14,ESTRELLA,8,4,2445.4,4566.02,2120.62,86.72,0.0255,"Panorama RTX 5080, 24-Core Ultra 9 285K, | Intel core i7-14700k LGA1700 16c/28t sup | ASUS NVIDIA GeForce RTX 4060 Dual 8GB GD"
-9,ESTRELLA,10,4,2162.19,4015.59,1853.4,85.72,0.0216,"Laptop Gamer Nitro Lite Intel Core I5-13 | Dell G16 7630 Gaming Laptop i7-13650HX R | ASUS TUF F15 Gaming Laptop 15.6"" 144Hz, "
-3,ESTRELLA,6,0,63.1,116.94,53.84,85.32,0.0117,LOT Samsung 16GB 8GB 4GB 2GB 1GB 2RX8 DD | LOT Samsung 16GB 8GB 4GB 2GB 1GB 2RX8 DD | LOT Samsung 16GB 8GB 4GB 2GB 1GB 2RX8 DD
-17,ESTRELLA,6,4,1693.02,3105.69,1412.66,83.44,0.009,"Laptop Gamer Nitro Lite Intel Core I5-13 | Dell G16 7630 Gaming Laptop i7-13650HX R | ASUS TUF F15 Gaming Laptop 15.6"" 144Hz, "
-18,ESTRELLA,3,2,1167.6,2117.1,949.5,81.32,0.0074,"Laptop Gamer Nitro Lite Intel Core I5-13 | ASUS TUF F15 Gaming Laptop 15.6"" 144Hz,  | MSI MAG Coreliquid A12 240 - AIO ARGB CP"
-27,ESTRELLA,1,0,166.01,289.99,123.98,74.68,0.0001,MSI MPG X870E EDGE TI WIFI AM5 ATX Mothe
+15,AGRESIVO,1,1,16.3,53.04,36.75,225.5,0.2799,Thermalright FW 240 SE ARGB Black-AIO CP
+14,OPTIMO,3,3,107.72,342.71,234.99,218.15,0.2117,Bestoss 1TB PCIe 4.0 NVMe M.2 2280 SSD w | Seasonic CORE GX 850W Power Supply ATX 3 | Thermalright FW 240 SE ARGB Black-AIO CP
+12,OPTIMO,4,4,664.17,2108.62,1444.45,217.48,0.2018,"Envision S13 24-core Ultra 9 285K, 64GB  | Bestoss 1TB PCIe 4.0 NVMe M.2 2280 SSD w | Seasonic CORE GX 850W Power Supply ATX 3"
+23,ESTRELLA,4,2,94.44,282.99,188.56,199.66,0.0086,msi | msi | Thermalright FW240 White ARGB CPU Water 
+18,ESTRELLA,2,2,51.52,154.31,102.79,199.51,0.0069,msi | Thermalright FW 360 White ARGB V2 CPU Wa
+25,ESTRELLA,13,4,249.88,742.94,493.05,197.31,0.1066,msi | Thermalright FW 360 White ARGB V2 CPU Wa | Thermalright FW 240 Black ARGB-240mm AIO
+20,ESTRELLA,10,2,204.68,608.31,403.63,197.21,0.0104,msi | msi | Thermalright FW 360 White ARGB V2 CPU Wa
+5,OPTIMO,14,4,292.36,863.05,570.69,195.2,0.208,Thermalright CORE Vision 360 Black ARGB- | msi | MSI MAG Coreliquid A13 360 - AIO ARGB CP
+21,ESTRELLA,14,4,277.81,818.28,540.47,194.55,0.1368,Thermalright CORE Vision 360 Black ARGB- | msi | Thermalright FW 240 Black ARGB-240mm AIO
+7,ESTRELLA,14,3,275.3,808.62,533.33,193.73,0.0209,msi | GAMDIAS CHIONE E4 240mm AIO CPU Water Co | Cooler Master MasterLiquid LC240E RGB Cl
+6,ESTRELLA,3,2,820.44,2403.93,1583.49,193.0,0.0051,"Panorama XL RTX 5070, Intel Ultra 7 265K | Lian Li GA II Trinity SL-INF 360MM - AIO | Intel Core i7-7700 Desktop Processor 4 C"
+9,AGRESIVO,4,4,280.65,822.2,541.55,192.97,0.3817,Gigastone 2TB Game Turbo PCIe Gen4x4 SSD | Intel | ASRock
+8,ESTRELLA,3,3,78.51,229.92,151.41,192.85,0.0242,ASRock | Cooler Master MasterLiquid LC240E RGB Cl | Intel Core i7-7700 Desktop Processor 4 C
+24,ESTRELLA,13,3,284.07,828.42,544.34,191.62,0.0195,msi | msi | Thermalright FW 360 White ARGB V2 CPU Wa
+0,OPTIMO,23,5,459.3,1335.18,875.88,190.7,0.1565,Thermalright CORE Vision 360 Black ARGB- | msi | msi
+17,ESTRELLA,4,4,762.81,2217.0,1454.2,190.64,0.0915,"Panorama XL RTX 5060 Ti, Intel 20-Core U | KOOTION 2TB NVMe Internal SSD PCIe 4.0,  | Thermalrlght Frozen Notte 240 White ARGB"
+29,ESTRELLA,5,4,816.9,2373.7,1556.79,190.57,0.0898,"Panorama XL RTX 5060 Ti, Intel 20-Core U | KOOTION 2TB NVMe Internal SSD PCIe 4.0,  | SIX NVME M.2 SSD PCIe 4.0-1TB m.2 2280 s"
+28,ESTRELLA,15,5,294.88,848.5,553.62,187.74,0.092,msi | msi | Thermalright FW 240 Black ARGB-240mm AIO
+27,ESTRELLA,17,5,331.38,952.93,621.54,187.56,0.0878,msi | MSI MAG Coreliquid A13 360 - AIO ARGB CP | Thermalright FW 360 White ARGB V2 CPU Wa
+26,ESTRELLA,11,4,216.45,618.73,402.28,185.85,0.0303,msi | msi | Thermalright FW 360 White ARGB V2 CPU Wa
+1,ESTRELLA,38,4,783.78,2223.54,1439.76,183.69,0.0554,"msi | msi | CoolerMaster MasterLiquid ML240L RGB V2,"
+22,OPTIMO,6,5,2794.94,6084.58,3289.65,117.7,0.1828,"Phantom Gaming PC Desktop Computer, Inte | Bestoss M.2 2280 NVMe SSD 2TB Internal P | Computadora PC GAMER Ryzen 5 5500 + RAM "
+16,ESTRELLA,3,3,2514.82,4374.8,1859.98,73.96,0.007,"Panorama XL RTX 5060 Ti, Intel 20-Core U | Tarjeta de video GeForce RTX 5070 Ti 16  | Thermalrlght Frozen Notte 240 White ARGB"
+19,ESTRELLA,10,6,5246.4,8405.02,3158.62,60.21,0.0775,"Panorama XL RTX 5060 Ti, Intel 20-Core U | Tarjeta de video GeForce RTX 5070 Ti 16  | Tarjeta Gráfica Geforce Eagle Rtx 5070 P"
+11,OPTIMO,5,5,1267.99,1815.41,547.42,43.17,0.0772,"Tarjeta De Video Geforce Rtx5060 8Gb Gdd | Procesador Core i5-14400 2.50/4.70GHz, 2 | SIX NVME M.2 SSD PCIe 4.0-1TB m.2 2280 s"
+10,OPTIMO,9,5,4597.22,6503.07,1905.86,41.46,0.0931,Tarjeta de video GeForce RTX 5070 Ti 16  | Tarjeta Gráfica Geforce Eagle Rtx 5070 P | Tarjeta De Video Geforce Rtx5060 8Gb Gdd
+4,SEGURO,5,4,3065.5,4090.45,1024.95,33.44,0.062,"Tarjeta de video GeForce RTX 5070 Ti 16  | Tarjeta De Video Geforce Rtx5060 8Gb Gdd | Procesador Core i5-14400 2.50/4.70GHz, 2"
+3,SEGURO,4,1,5694.71,6580.8,886.09,15.56,0.0019,Tarjeta Gráfica Geforce Eagle Rtx 5070 P | Prime RTX 5070 Ti - Tarjeta Gráfica NVID | Prime RTX 5070 Ti - Tarjeta Gráfica NVID
+2,SEGURO,7,3,2920.83,3339.09,418.26,14.32,0.0613,Tarjeta Gráfica Geforce Rtx 3050 6Gb Gdd | Computadora PC GAMER Ryzen 5 5500 + RAM  | Tarjeta de video GeForce RTX 5050 WINDFO
+13,SEGURO,1,1,1878.69,2072.0,193.31,10.29,0.0001,Prime RTX 5070 Ti - Tarjeta Gráfica NVID
