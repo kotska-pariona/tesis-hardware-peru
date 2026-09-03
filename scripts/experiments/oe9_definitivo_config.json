@@ -1,0 +1,21 @@
+{
+  "experimento": "OE9-DEFINITIVO",
+  "version": "2.0",
+  "fecha_programada": "Semana 15-16 (Sep 2026)",
+  "parametros": {
+    "n_skus": 500,
+    "pop_size": 200,
+    "n_gen": 500,
+    "lambda_obs": 10.0,
+    "rj_threshold": 0.5,
+    "budget_usd": 5000,
+    "seed": 42
+  },
+  "metas": {
+    "n_soluciones_pareto": 46,
+    "roi_max_pct": 300,
+    "reduccion_riesgo_pct": 50
+  },
+  "estado": "PENDIENTE",
+  "nota": "Experimento preliminar: 42 SKUs, 200 gen → 23 sol, ROI=261%"
+}
