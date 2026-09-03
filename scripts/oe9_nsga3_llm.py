@@ -210,7 +210,7 @@ def create_initial_population(df: pd.DataFrame, budget_usd: float, n_min: int, p
 def run_nsga3(df: pd.DataFrame, n_gen: int, pop_size: int, budget_usd: float, verbose: bool = True) -> tuple:
     problem = PortfolioOE9(df=df, budget_usd=budget_usd, n_min=N_MIN_SKUS, rj_max=RJ_MAX)
 
-    ref_dirs = get_reference_directions("das-dennis", 7, n_partitions=4)
+    ref_dirs = get_reference_directions("das-dennis", 7, n_partitions=5)
 
     X_init = create_initial_population(df, budget_usd, N_MIN_SKUS, max(pop_size, len(ref_dirs)))
 
