@@ -117,3 +117,4 @@ models/test_predictions_*.csv
 # ── Excepción: feature matrices OE9 (deben estar en Git) ──
 !data/features/
 !data/features/*.csv
+data/raw/MASTER_hardware_peru.csv
