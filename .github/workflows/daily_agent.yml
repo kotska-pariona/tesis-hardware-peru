@@ -1,5 +1,4 @@
 # Hardware Peru — Data Agent v6.5
-# [W27] checkout lfs:true  [W28] git lfs install  [W29] git lfs pull  [W30] merge.lfs.driver
 name: Hardware Peru — Data Agent v6.5
 
 on:
@@ -47,7 +46,7 @@ jobs:
         uses: actions/checkout@v4.2.2
         with:
           fetch-depth: 0
-          lfs: true
+          lfs: false
 
       - name: "🐍 Setup Python 3.11"
         uses: actions/setup-python@v5.4.0
@@ -182,10 +181,9 @@ jobs:
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          git lfs install
-          git config merge.lfs.driver true
-
+          # Excluir MASTER del staging — gestionado por DVC
           git add data/raw/
+          git reset HEAD data/raw/MASTER_hardware_peru.csv 2>/dev/null || true
 
           if git diff --staged --quiet; then
             echo "ℹ️ Sin cambios nuevos para commitear"
@@ -203,7 +201,6 @@ jobs:
           REBASE_OK=false
           for i in 1 2 3; do
             git fetch origin main
-            git lfs pull origin main 2>/dev/null || true
             if git rebase origin/main; then
               REBASE_OK=true
               break
@@ -228,7 +225,6 @@ jobs:
             else
               echo "⚠️ push falló (intento $i/3)"
               git fetch origin main
-              git lfs pull origin main 2>/dev/null || true
               git rebase origin/main || git merge origin/main --no-edit -X ours || true
               sleep $((i * 5))
             fi
