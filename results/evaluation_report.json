@@ -1,13 +1,13 @@
 {
-  "fecha_evaluacion": "2026-09-02T22:57:06.948351",
+  "fecha_evaluacion": "2026-10-02T19:19:22.156613",
   "oe3": {},
   "oe4": {
     "inference_ok": true,
     "num_labels": 3,
     "label_map": {
-      "0": "LABEL_0",
-      "1": "LABEL_1",
-      "2": "LABEL_2"
+      "0": "VIGENTE",
+      "1": "EN_RIESGO",
+      "2": "OBSOLETO"
     }
   }
 }
