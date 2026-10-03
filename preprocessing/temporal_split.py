@@ -187,6 +187,16 @@ def run_temporal_split(
           f"val={val_ratio:.1%} | test={test_ratio:.1%}")
 
     df = pd.read_csv(input_path, low_memory=False)
+
+    # ── Filtro de categorías fuera del scope de hardware ──────────────
+    CATS_EXCLUIR = ['celulares', 'smartwatch', 'televisores', 'videojuegos']
+    n_antes = len(df)
+    df = df[~df["category"].isin(CATS_EXCLUIR)].copy()
+    n_excluidos = n_antes - len(df)
+    print(f"   🚫 Categorías excluidas {CATS_EXCLUIR}: {n_excluidos:,} filas eliminadas")
+    print(f"   ✅ Registros para modelado: {len(df):,}")
+    # ────────────────────────────────────────────────────────────────────
+
     print(f"\n📊 MASTER cargado: {len(df):,} filas | {df.shape[1]} columnas")
 
     # [T2] Parseo robusto — fail-fast
