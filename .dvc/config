@@ -1,5 +1,5 @@
 [core]
-    remote = githubremote
+    remote = localbackup
 ['remote "gdrive"']
     url = gdrive://TU_FOLDER_ID
     gdrive_acknowledge_abuse = true
