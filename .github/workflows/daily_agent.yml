@@ -181,9 +181,13 @@ jobs:
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          # Excluir MASTER del staging — gestionado por DVC
-          git add data/raw/
-          git reset HEAD data/raw/MASTER_hardware_peru.csv 2>/dev/null || true
+          # Agregar batch CSVs y reportes — excluir archivos > 100MB
+          git add data/raw/batch_*.csv        2>/dev/null || true
+          git add data/raw/batch_24h_*.csv    2>/dev/null || true
+          git add data/raw/report_*.json      2>/dev/null || true
+          git add data/raw/.dolar_cache.json  2>/dev/null || true
+          git add data/raw/.agent_state.json  2>/dev/null || true
+          # NO agregar MASTER (388 MB — supera límite GitHub)
 
           if git diff --staged --quiet; then
             echo "ℹ️ Sin cambios nuevos para commitear"
