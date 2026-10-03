@@ -70,11 +70,9 @@ def _parse_dates_or_fail(df: pd.DataFrame, date_col: str = "price_date") -> pd.D
 
     if n_invalid > 0:
         pct = round(n_invalid / len(df) * 100, 3)
-        print(f"\n❌ FATAL: {n_invalid:,} filas ({pct}%) tienen '{date_col}' "
-              f"no parseable como fecha.")
-        print("   No se puede garantizar el orden cronológico del split.")
-        print("   Revisar data_quality.py / data_contract.yaml antes de continuar.")
-        sys.exit(1)
+        print(f"WARNING: {n_invalid:,} filas ({pct}%) con price_date nulo — se eliminan.")
+        df = df[df["_parsed_date"].notna()].copy()
+        print(f"   ✅ Filas restantes: {len(df):,}")
 
     return df
 

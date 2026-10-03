@@ -384,6 +384,11 @@ def run_feature_pipeline(input_dir: Path, output_dir: Path,
     train_feat.to_csv(output_dir / "train_features.csv", index=False)
     val_feat.to_csv(output_dir   / "val_features.csv",   index=False)
     test_feat.to_csv(output_dir  / "test_features.csv",  index=False)
+    # Aliases requeridos por mice_imputer.py y pe2_lgbm.py
+    train_feat.to_csv(output_dir / "train.csv", index=False)
+    val_feat.to_csv(output_dir   / "val.csv",   index=False)
+    test_feat.to_csv(output_dir  / "test.csv",  index=False)
+    print("   ✅ Aliases train/val/test.csv generados para compatibilidad")
 
     # ── 4. Reporte ───────────────────────────────────────────────
     cols_after = set(train_feat.columns)
@@ -427,3 +432,20 @@ if __name__ == "__main__":
         lags    = tuple(args.lags)    if args.lags    else None,
         windows = tuple(args.windows) if args.windows else None,
     )
+# Fix: importar clase antes de cargar pickle
+class RollingZScoreNormalizer:
+    def __init__(self, window=7):
+        self.window = window
+    def transform(self, series):
+        mean = series.rolling(self.window).mean()
+        std  = series.rolling(self.window).std().replace(0, 1)
+        return (series - mean) / std
+
+# Fix: importar clase antes de cargar pickle
+class RollingZScoreNormalizer:
+    def __init__(self, window=7):
+        self.window = window
+    def transform(self, series):
+        mean = series.rolling(self.window).mean()
+        std  = series.rolling(self.window).std().replace(0, 1)
+        return (series - mean) / std

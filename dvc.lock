@@ -7,12 +7,12 @@ stages:
     deps:
     - path: data/raw/MASTER_hardware_peru.csv
       hash: md5
-      md5: 5ce6332c2cfc9c86d4397b93ad6abc50
-      size: 118196271
+      md5: d340958ce0712ba8c82213d71be84b4e
+      size: 405174682
     - path: preprocessing/temporal_split.py
       hash: md5
-      md5: bee59dfb2ffde320e51b3b93230c428b
-      size: 14484
+      md5: dab0ee65fff8ee194279a039650e3886
+      size: 14376
     params:
       params.yaml:
         preprocessing.train_ratio: 0.75
@@ -20,8 +20,8 @@ stages:
     outs:
     - path: data/splits/
       hash: md5
-      md5: 53cad70d4e5461b81eba06cb17a4779e.dir
-      size: 118197781
+      md5: 99fbccab959afbbd1353b21b794b840c.dir
+      size: 395810604
       nfiles: 4
   feature_engineering:
     cmd: python preprocessing/feature_engineering.py --input-dir data/splits 
@@ -29,21 +29,21 @@ stages:
     deps:
     - path: data/splits/
       hash: md5
-      md5: 53cad70d4e5461b81eba06cb17a4779e.dir
-      size: 118197781
+      md5: 99fbccab959afbbd1353b21b794b840c.dir
+      size: 395810604
       nfiles: 4
     - path: preprocessing/feature_engineering.py
       hash: md5
-      md5: 66bd0f4d055eefd6af47ad1fcd3a2031
-      size: 18731
+      md5: 10c827d37df554361f31ce38c5168447
+      size: 19719
     params:
       params.yaml:
         preprocessing.zscore_window: 90
     outs:
     - path: data/features/
       hash: md5
-      md5: 7e0037df75983621cc92ebdc14781f10.dir
-      size: 280854319
+      md5: 66a95b28528d24e0bc8df8a31b294155.dir
+      size: 957304924
       nfiles: 7
   preprocess:
     cmd: python preprocessing/mice_imputer.py --input-dir data/features 
@@ -51,8 +51,8 @@ stages:
     deps:
     - path: data/features/
       hash: md5
-      md5: 7e0037df75983621cc92ebdc14781f10.dir
-      size: 280854319
+      md5: 66a95b28528d24e0bc8df8a31b294155.dir
+      size: 957304924
       nfiles: 7
     - path: preprocessing/mice_imputer.py
       hash: md5
@@ -64,6 +64,6 @@ stages:
     outs:
     - path: data/processed/
       hash: md5
-      md5: 662f5ade6b1c1022579ee15597845595.dir
-      size: 188613323
+      md5: 6b881a4b7f7cbaf982a34d34a1326335.dir
+      size: 628969123
       nfiles: 5
