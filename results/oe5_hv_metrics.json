@@ -1,0 +1,19 @@
+{
+  "timestamp": "2026-10-02T20:57:29.132612",
+  "hv_normalized": 0.903148,
+  "ref_point": [
+    0.0,
+    0.0
+  ],
+  "n_solutions": 75,
+  "roi_range": [
+    65.87,
+    73.2
+  ],
+  "riesgo_range": [
+    3.2508,
+    6.5581
+  ],
+  "meta_hv": 0.85,
+  "cumple_meta": true
+}
