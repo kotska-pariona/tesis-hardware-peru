@@ -91,25 +91,16 @@ sync_and_fix.sh
 data/MASTER_hardware_peru_REBUILT.csv
 models/pe4_bert_obsolescence/model.safetensors
 models/pe4_bert_obsolescence/sentencepiece.bpe.model
-data/raw/*.csv
-data/raw/batch_*.csv
 data/splits/*.csv
 data/features/*.csv
 models/test_predictions*.csv
 service_account.json
 venv_pe4_clean/
 *.swp
-data/raw/MASTER_hardware_peru.csv
-data/raw/MASTER_hardware_peru_CONSOLIDADO.csv
-data/raw/report_*.json
-data/raw/MASTER_hardware_peru.csv
-data/raw/MASTER_hardware_peru_CONSOLIDADO.csv
-data/raw/report_*.json
 
 # ── Datos grandes — gestionados por DVC ──────────────────
 data/corpus_obsolescencia*.csv
 data/embeddings_meta.csv
-data/raw/MASTER_hardware_peru_CONSOLIDADO.csv
 logs/pe2_tft*/
 logs/pe2_tft_v2*/
 models/test_predictions_*.csv
@@ -117,4 +108,3 @@ models/test_predictions_*.csv
 # ── Excepción: feature matrices OE9 (deben estar en Git) ──
 !data/features/
 !data/features/*.csv
-data/raw/MASTER_hardware_peru.csv
