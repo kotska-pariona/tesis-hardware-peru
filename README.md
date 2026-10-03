@@ -1,47 +1,42 @@
-"# kotska1" 
+# HDS-ROI v6.0 — Sistema Híbrido ML + Computación Evolutiva
+## Optimización de ROI en Dropshipping de Hardware — Perú
 
+[![Python](https://img.shields.io/badge/Python-3.12-blue)](https://python.org)
+[![DVC](https://img.shields.io/badge/DVC-3.67-purple)](https://dvc.org)
+[![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 
-<!-- PE4_RESULTS_START -->
-## Resultados PE4 - Clasificacion de Obsolescencia
-
-![F1](https://img.shields.io/badge/F1--macro-0.9966-3fb950?style=flat-square)
-![Acc](https://img.shields.io/badge/Accuracy-0.9973-58a6ff?style=flat-square)
-![Meta](https://img.shields.io/badge/Meta>=0.90-Alcanzada-brightgreen?style=flat-square)
-
-### Ablacion de Modelos
-
-| Modelo | F1-macro | Accuracy | F1 Vigente | F1 Transicion | F1 Obsoleto |
-|--------|:--------:|:--------:|:----------:|:-------------:|:-----------:|
-| BERT-base-multilingual | 0.9921 | 0.9929 | 0.9939 | 0.9931 | 0.9892 |
-| **multilingual-E5-large** | **0.9966** | **0.9973** | **0.9982** | **0.9972** | **0.9944** |
-| Delta E5 vs BERT | **+0.0045** | **+0.0044** | **+0.0043** | **+0.0041** | **+0.0052** |
-
-multilingual-E5-large supera a BERT-base en todas las metricas.
-Mayor ganancia en clase Obsoleto (+0.0052).
-
-![Comparativa PE4](results/pe4_ablacion_comparativa.png)
-
-- Dataset: 34,701 registros | 3 clases
-- Epocas: 5 | Batch: 8 | LR: 2e-5
-- Mejor epoca: 4/5 | Val F1-macro: 0.9969
-- Hardware: Tesla T4
-<!-- PE4_RESULTS_END -->
-## Modelos en HuggingFace
-
-| Modelo | HuggingFace | Métricas |
-|--------|------------|---------|
-| PE4 multilingual-E5-large (fine-tuned) | [kotska-pariona/pe4-e5-obsolescence](https://huggingface.co/kotska-pariona/pe4-e5-obsolescence) | F1-macro=0.9966 |
-
-> Modelo PE3 (LightGBM+MCP): trackeado en DVC (Google Drive remote)
+**Autor:** Kotska Rony Pariona Martinez | UNI-FIIS  
+**Grado:** Maestro en Ciencias — Inteligencia Artificial  
+**Repo:** https://github.com/kotska-pariona/tesis-hardware-peru
 
 ---
 
-## Pendientes Academicos
+## Estado del Sistema (02/10/2026)
 
-### OE8 - Evaluacion SUS (Usabilidad) - Octubre 2026
-- Estado: Programada para octubre 2026
-- Instrumento: Cuestionario SUS (System Usability Scale, 10 items)
-- Meta: SUS Score >= 70 (clasificacion "Bueno")
+| OE | Componente | Resultado | Estado |
+|---|---|---|---|
+| OE1 | Pipeline ETL | 336K+ reg, 9 fuentes, 97 ejecuciones | ✅ |
+| OE2 | LightGBM predicción | MAPE 0.64%, R²=0.9968 | ✅ |
+| OE3 | Competitividad CP | MAPE 0.91%, DA 92.9% | ✅ |
+| OE4 | E5-large obsolescencia | F1-Macro 0.9966 | ✅ |
+| OE5 | NSGA-III base | 75 soluciones Pareto | ✅ |
+| OE6 | Mondrian CP | Cobertura 95.97% | ✅ |
+| OE7 | Dashboard Plotly | 9 páginas, puerto 8050 | ✅ |
+| OE8 | Evaluación SUS | Pendiente octubre 2026 | ⚠️ |
+| OE9 | NSGA-III + SCPO | ROI máx. 93.88%, 46 Pareto | ✅ |
+| OE10 | Portafolios ROI | +43% / +68% / +94% | ✅ |
 
-### Asesor
-- Estado: Por designar - completar en portada de main.tex
+## Modelos en HuggingFace
+
+| Modelo | HuggingFace | Métrica |
+|---|---|---|
+| E5-large fine-tuned | [kotska-pariona/pe4-e5-obsolescence](https://huggingface.co/kotska-pariona/pe4-e5-obsolescence) | F1=0.9966 |
+
+## Reproducibilidad
+
+\`\`\`bash
+git clone https://github.com/kotska-pariona/tesis-hardware-peru
+dvc pull
+dvc repro
+python dashboard/app.py
+\`\`\`
