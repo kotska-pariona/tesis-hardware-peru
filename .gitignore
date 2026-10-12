@@ -115,3 +115,8 @@ data/raw/MASTER_normalizado.csv
 
 # batch_24h se sube normalmente (son ~2MB c/u, OK para git normal)
 # MASTER_exchange_rate.csv también es pequeño, se puede subir normal
+
+# batch_24h son grandes (20-48MB) — NO subir a GitHub
+# El workflow sube los batch individuales (local/ebay/etc) que son más pequeños
+data/raw/batch_24h_*.csv
+data/raw/MASTER_exchange_rate.csv
