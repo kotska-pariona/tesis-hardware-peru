@@ -250,7 +250,7 @@ def scrape_category(cat_id: str, max_pages: int = MAX_PAGES) -> list[dict]:
 
 
 # ── Punto de entrada principal ─────────────────────────────────────────────────
-def scrape_all(max_pages: int = MAX_PAGES) -> list[dict]:
+def scrape_all(max_pages: int = MAX_PAGES, **kwargs) -> list[dict]:
     """Scrapea todas las categorías configuradas."""
     all_results = []
     for cat_id in CATEGORIES:

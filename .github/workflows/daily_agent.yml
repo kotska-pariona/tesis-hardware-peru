@@ -183,7 +183,6 @@ jobs:
 
           # Agregar batch CSVs y reportes — excluir archivos > 100MB
           git add data/raw/batch_*.csv        2>/dev/null || true
-          git add data/raw/batch_24h_*.csv    2>/dev/null || true
           git add data/raw/report_*.json      2>/dev/null || true
           git add data/raw/.dolar_cache.json  2>/dev/null || true
           git add data/raw/.agent_state.json  2>/dev/null || true
@@ -205,6 +204,7 @@ jobs:
           REBASE_OK=false
           for i in 1 2 3; do
             git fetch origin main
+            git stash --include-untracked 2>/dev/null || true
             if git rebase origin/main; then
               REBASE_OK=true
               break
