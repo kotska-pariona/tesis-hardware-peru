@@ -108,3 +108,10 @@ models/test_predictions_*.csv
 # ── Excepción: feature matrices OE9 (deben estar en Git) ──
 !data/features/
 !data/features/*.csv
+# ── Archivos grandes — NO subir a GitHub (ex-LFS) ──────────────────────
+data/raw/MASTER_hardware_peru.csv
+data/raw/MASTER_hardware_peru_CONSOLIDADO.csv
+data/raw/MASTER_normalizado.csv
+
+# batch_24h se sube normalmente (son ~2MB c/u, OK para git normal)
+# MASTER_exchange_rate.csv también es pequeño, se puede subir normal
