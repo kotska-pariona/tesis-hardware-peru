@@ -1,0 +1,68 @@
+[1/6] Cargando splits...
+  train=219,870  val=50,053  test=37,142
+[2/6] Construyendo features...
+  Features: 39
+  X_train: (219870, 39)  X_val: (50053, 39)  X_test: (37142, 39)
+
+[3/6] Entrenando PE2 v5.1...
+Training until validation scores don't improve for 150 rounds
+[200]	train's l1: 0.0150661	train's rmse: 0.0713555	val's l1: 0.129861	val's rmse: 0.37449
+[400]	train's l1: 0.00815624	train's rmse: 0.0380829	val's l1: 0.124802	val's rmse: 0.370506
+[600]	train's l1: 0.00747227	train's rmse: 0.0353033	val's l1: 0.124134	val's rmse: 0.369454
+[800]	train's l1: 0.00708167	train's rmse: 0.0339	val's l1: 0.123639	val's rmse: 0.368542
+[1000]	train's l1: 0.00676328	train's rmse: 0.0328238	val's l1: 0.123146	val's rmse: 0.367695
+[1200]	train's l1: 0.0065817	train's rmse: 0.0322662	val's l1: 0.122985	val's rmse: 0.367509
+[1400]	train's l1: 0.00641148	train's rmse: 0.0317514	val's l1: 0.122863	val's rmse: 0.367371
+Early stopping, best iteration is:
+[1361]	train's l1: 0.00644995	train's rmse: 0.0319211	val's l1: 0.122838	val's rmse: 0.367256
+
+[4/6] Modelo guardado: models\pe2_lgbm\lgbm_pe2_v5.txt  (best_iter=1361)
+
+[5/6] Evaluando...
+
+  [VAL] n=50,053
+    MAE=54.5407  RMSE=267.3641
+    MAPE=22.7544%  [FAIL]  WMAPE=10.5358%  [FAIL]  R2=0.872739  [OK]
+
+  [TEST] n=37,142
+    MAE=166.6833  RMSE=472.2681
+    MAPE=65.0645%  [FAIL]  WMAPE=30.2218%  [FAIL]  R2=0.680844  [FAIL]
+
+  WMAPE por hw_type [TEST]:
+    [FAIL] case            WMAPE=34.59%  n=1,544
+    [FAIL] cooler          WMAPE=46.07%  n=705
+    [FAIL] cpu             WMAPE=21.09%  n=2,607
+    [FAIL] gpu             WMAPE=19.44%  n=3,004
+    [FAIL] laptop          WMAPE=35.41%  n=2,432
+    [FAIL] monitor         WMAPE=29.85%  n=3,082
+    [FAIL] motherboard     WMAPE=33.27%  n=3,212
+    [FAIL] otro            WMAPE=39.12%  n=12,192
+    [FAIL] psu             WMAPE=36.94%  n=1,679
+    [FAIL] ram             WMAPE=31.12%  n=5,287
+    [FAIL] ssd             WMAPE=23.18%  n=1,398
+
+  WMAPE por hw_level [TEST]:
+    [FAIL] L1  WMAPE=26.02%  n=18,919
+    [FAIL] L2  WMAPE=35.76%  n=13,885
+    [FAIL] L3  WMAPE=34.78%  n=4,338
+
+  Feature importance (gain) top 15:
+    sku_mean                               9065995.2
+    sku_max                                3201299.9
+    sku_min                                3160388.6
+    ratio_lag1_vs_sku_mean                  963795.9
+    lag_1                                   856424.9
+    sku_std                                 821408.6
+    lag_2                                   602415.5
+    ratio_lag1_vs_gk_median                 576925.0
+    pct_change_1                            576471.1
+    ratio_lag1_vs_hw_mean                   452756.5
+    gk_count                                447300.9
+    ratio_lag1_vs_gk_mean                   446362.0
+    pct_change_2                            364153.5
+    day_of_week                             351560.1
+    lag_3                                   346608.9
+
+[6/6] Metricas guardadas: results\pe2_lgbm_v5_metrics.json
+
+=== PE2 v5.1 completado. ===

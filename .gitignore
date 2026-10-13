@@ -120,3 +120,5 @@ data/raw/MASTER_normalizado.csv
 # El workflow sube los batch individuales (local/ebay/etc) que son más pequeños
 data/raw/batch_24h_*.csv
 data/raw/MASTER_exchange_rate.csv
+bfg.jar
+*.jar

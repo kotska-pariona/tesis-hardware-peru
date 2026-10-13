@@ -135,7 +135,7 @@ def _cargar_predicciones_multi():
     print("\n  [Predicciones] Cargando predicciones multihorizonte...")
 
     rutas = [
-        RESULTS_DIR / "predicciones_multihorizonte.json",
+        BASE_DIR / "data" / "raw" / "predicciones_multihorizonte.json",
         BASE_DIR / "predicciones_multihorizonte.json",
     ]
     for ruta in rutas:

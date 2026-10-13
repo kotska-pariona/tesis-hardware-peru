@@ -1,11 +1,13 @@
 # =============================================================================
-# HDS-ROI v6.0 — Predicción Multihorizonte (OE2) — v12
+# HDS-ROI v6.0 — Predicción Multihorizonte (OE2) — v13
 #
 # FIX-I  (v11): price_pen solo de fuentes locales (Falabella/Hiraoka/Ripley)
 # FIX-H  (v11): MARKUP_HW por tier como fallback
 # FIX-P10 (v12): Lee markup_real.json generado por normalizar_master.py v2.0
-#                → MARKUP_HW se actualiza con datos reales del mercado peruano
-#                → si el JSON no existe, usa MARKUP_HW hardcodeado como fallback
+# FIX-FECHA (v13): FECHA_BASE dinámica (datetime.now()) — elimina hardcodeo
+# FIX-HIST  (v13): historia_fechas/precios últimos 30 días reales
+# FIX-FUTURO(v13): fechas_fut anclan desde hoy, no desde FECHA_BASE
+# FIX-CLIP  (v13): precio predicho ≥ 10% del precio de compra (anti-colapso)
 # =============================================================================
 
 import json
@@ -18,7 +20,6 @@ from pathlib import Path
 
 # ══════════════════════════════════════════════════════════════════════════
 # HDS-ROI v6.1 — Señal por Modelo Específico (precios_por_modelo.json)
-# Generado por: paso5_integracion_pe2.py
 # ══════════════════════════════════════════════════════════════════════════
 import json as _json, re as _re, os as _os
 
@@ -54,10 +55,6 @@ def _normalizar_modelo(titulo):
     return None
 
 def get_roi_por_modelo(titulo):
-    """
-    Dado el título de un producto, retorna dict con ROI y datos de precio
-    si el modelo está en el índice. Retorna None si no se encuentra.
-    """
     if not _os.path.exists(_MODELO_JSON):
         return None
     with open(_MODELO_JSON, 'r', encoding='utf-8') as _f:
@@ -66,17 +63,16 @@ def get_roi_por_modelo(titulo):
     if modelo and modelo in _idx:
         d = _idx[modelo]
         return {
-            'modelo':     modelo,
-            'roi_pct':    d['roi_pct'],
-            'markup':     d['markup_neto'],
-            'confianza':  d['confianza'],
-            'venta_usd':  d['precio_venta_pe_usd'],
-            'costo_usd':  d['costo_importado_usd'],
+            'modelo':       modelo,
+            'roi_pct':      d['roi_pct'],
+            'markup':       d['markup_neto'],
+            'confianza':    d['confianza'],
+            'venta_usd':    d['precio_venta_pe_usd'],
+            'costo_usd':    d['costo_importado_usd'],
             'ganancia_usd': round(d['precio_venta_pe_usd']*0.95 - d['costo_importado_usd'], 2),
         }
     return None
 
-# Pre-cargar índice al iniciar (evitar I/O repetido)
 _IDX_MODELOS = {}
 if _os.path.exists(_MODELO_JSON):
     with open(_MODELO_JSON, 'r', encoding='utf-8') as _f:
@@ -97,7 +93,10 @@ MARKUP_JSON = BASE_DIR / "data" / "raw" / "markup_real.json"
 
 HORIZONTES = [1, 7, 14, 30]
 TOP_N_SKUS = 30
-FECHA_BASE = datetime(2026, 8, 5)
+
+# ── FIX-FECHA (v13): fecha dinámica — nunca más hardcodeada ──────────────
+FECHA_HOY  = datetime.now()          # Oct 3, 2026 (o la fecha real del sistema)
+FECHA_BASE = FECHA_HOY               # alias para compatibilidad interna
 
 FEATURE_COLS = [
     "lag_1","lag_2","lag_3",
@@ -153,8 +152,6 @@ UNIDADES_MAX_HW = {
     "monitor":2,"laptop":2,"otro":3,
 }
 
-# FIX-H: markup fallback hardcodeado — se sobreescribe con markup_real.json
-# si normalizar_master.py v2.0 ya fue ejecutado (FIX-P10)
 MARKUP_HW = {
     "psu":         1.85,
     "motherboard": 1.75,
@@ -492,10 +489,15 @@ def seleccionar_skus_diversificados(df: pd.DataFrame) -> list:
     return seleccionados
 
 # ─────────────────────────────────────────────────────────────────────
-# 4. PREDICCIÓN ROLLING
+# 4. PREDICCIÓN ROLLING — FIX-CLIP (v13)
 # ─────────────────────────────────────────────────────────────────────
 
-def predecir_rolling(modelo, hist_vals: np.ndarray, horizonte: int) -> list:
+def predecir_rolling(modelo, hist_vals: np.ndarray, horizonte: int,
+                     precio_minimo: float = 1.0) -> list:
+    """
+    FIX-CLIP (v13): precio predicho nunca cae por debajo de precio_minimo.
+    precio_minimo = max(1.0, precio_compra * 0.10) → evita colapso a $0.
+    """
     hist   = list(hist_vals.astype(float))
     cols_m = getattr(modelo, "feature_name_", FEATURE_COLS)
     preds  = []
@@ -505,16 +507,14 @@ def predecir_rolling(modelo, hist_vals: np.ndarray, horizonte: int) -> list:
         for c in cols_m:
             if c not in X.columns: X[c] = 0.0
         pred = float(modelo.predict(X[cols_m])[0])
-        preds.append(max(pred, 0.01))
+        # FIX-CLIP: nunca por debajo del precio mínimo
+        pred = max(pred, precio_minimo)
+        preds.append(pred)
         hist.append(pred)
     return preds
 
 # ─────────────────────────────────────────────────────────────────────
 # 5. OPORTUNIDAD
-# Jerarquía precio_venta:
-#   1. precio_venta_local_usd  → SKU exacto en Falabella/Hiraoka
-#   2. precio_pen_local / TC   → price_pen de fuente local (FIX-I)
-#   3. precio_compra × MARKUP  → MARKUP_HW real (FIX-P10) o fallback (FIX-H)
 # ─────────────────────────────────────────────────────────────────────
 
 def calcular_oportunidad(row_info: dict, precio_actual_usd: float,
@@ -544,7 +544,6 @@ def calcular_oportunidad(row_info: dict, precio_actual_usd: float,
                 shipping_usd = 15.0
 
         pv_local     = float(row_info.get("precio_venta_local_usd",  0) or 0)
-        # FIX-I: precio_pen_local = solo de filas con _rol_fuente=="venta"
         pv_pen_local = float(row_info.get("precio_pen_local",        0) or 0)
 
         if pv_local > 0:
@@ -554,7 +553,6 @@ def calcular_oportunidad(row_info: dict, precio_actual_usd: float,
             precio_venta_usd = pv_pen_local / TC
             metodo_venta     = "precio_pen_local"
         else:
-            # FIX-H + FIX-P10: markup desde datos reales si disponible
             precio_venta_usd = precio_compra_usd * markup
             metodo_venta     = f"markup_x{markup:.2f}"
 
@@ -619,9 +617,13 @@ def calcular_oportunidad(row_info: dict, precio_actual_usd: float,
 # ─────────────────────────────────────────────────────────────────────
 
 def main():
-    print("\n" + "="*65)
-    print("  HDS-ROI v6.0 — Predicción Multihorizonte + Oportunidades")
-    print("="*65)
+    # ── FIX-FECHA (v13): fecha dinámica al momento de ejecución ──────
+    FECHA_HOY  = datetime.now()
+    FECHA_BASE = FECHA_HOY
+    print(f"\n{'='*65}")
+    print(f"  HDS-ROI v6.0 — Predicción Multihorizonte + Oportunidades")
+    print(f"  Fecha de ejecución: {FECHA_HOY.strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"{'='*65}")
 
     # ── FIX-P10: Cargar markup_real.json si existe ────────────────
     print(f"\n[0/5] FIX-P10: Cargando markup real desde {MARKUP_JSON.name} ...")
@@ -644,9 +646,7 @@ def main():
         except Exception as e:
             print(f"      ⚠️  Error leyendo markup_real.json: {e} → MARKUP_HW por defecto")
     else:
-        print(f"      ℹ️  {MARKUP_JSON.name} no encontrado")
-        print("      ℹ️  Ejecutar normalizar_master.py v2.0 para generarlo")
-        print("      ℹ️  Usando MARKUP_HW hardcodeado como fallback")
+        print(f"      ℹ️  {MARKUP_JSON.name} no encontrado → MARKUP_HW hardcodeado")
 
     # ── [1/5] Cargar MASTER ───────────────────────────────────────
     df = cargar_master()
@@ -660,13 +660,11 @@ def main():
     # ── [3/5] Selección diversificada ────────────────────────────
     top_skus = seleccionar_skus_diversificados(df)
 
-    # Fuentes internacionales (compra)
     df_top = df[
         df["sku"].isin(top_skus) &
         df["_rol_fuente"].isin(["compra","desconocida"])
     ].copy()
 
-    # Fuentes locales (venta) — precio_pen SOLO de aquí (FIX-I)
     df_local             = df[df["_rol_fuente"] == "venta"].copy()
     precio_venta_por_sku = {}
     precio_pen_por_sku   = {}
@@ -709,29 +707,50 @@ def main():
         reviews  = int(df_sku["_reviews"].median())
         shipping = float(df_sku["_shipping"].median())
 
-        # FIX-I: precio_pen SOLO de fuentes locales
         precio_pen_local       = float(precio_pen_por_sku.get(sku_id,  0.0))
         precio_venta_local_usd = float(precio_venta_por_sku.get(sku_id, 0.0))
 
         precio_actual = float(serie.iloc[-1])
-        hist_fechas   = [str(d) for d in serie.index[-30:]]
-        hist_precios  = [round(float(p), 2) for p in serie.values[-30:]]
+
+        # ── FIX-HIST (v13): historia = últimos 30 días reales ─────
+        # Filtra solo observaciones de los últimos 30 días del dataset
+        # para que el gráfico no muestre datos de julio cuando estamos en oct
+        fecha_corte_hist = pd.Timestamp(serie.index[-1]) - pd.Timedelta(days=30)
+        serie_hist = serie[serie.index >= fecha_corte_hist.date()]
+        if len(serie_hist) < 2:
+            serie_hist = serie.tail(10)   # fallback: últimos 10 puntos
+
+        hist_fechas  = [str(d) for d in serie_hist.index]
+        hist_precios = [round(float(p), 2) for p in serie_hist.values]
+
+        # ── FIX-CLIP (v13): precio mínimo = 10% del precio actual ─
+        precio_minimo_clip = max(1.0, precio_actual * 0.10)
 
         pred_por_horizonte = {}
         pred_7d_precio     = precio_actual
 
         for h in HORIZONTES:
-            preds = predecir_rolling(modelo, serie.values, h)
+            # Predicción rolling con clip anti-colapso
+            preds = predecir_rolling(
+                modelo, serie.values, h,
+                precio_minimo=precio_minimo_clip
+            )
             if h == 7:
                 pred_7d_precio = preds[-1]
 
-            fechas_fut = [(FECHA_BASE + timedelta(days=i+1)).strftime("%Y-%m-%d")
-                          for i in range(h)]
-            var_pct = ((preds[-1]-precio_actual)/precio_actual*100
+            # ── FIX-FUTURO (v13): fechas desde HOY, no desde FECHA_BASE ──
+            fechas_fut = [
+                (FECHA_HOY + timedelta(days=i+1)).strftime("%Y-%m-%d")
+                for i in range(h)
+            ]
+
+            var_pct = ((preds[-1] - precio_actual) / precio_actual * 100
                        if precio_actual > 0 else 0.0)
             margen  = precio_actual * 0.015 * np.sqrt(h)
-            ci_lo   = [round(max(p-margen*(i+1)/h, 0.01), 2) for i, p in enumerate(preds)]
-            ci_hi   = [round(p+margen*(i+1)/h, 2)            for i, p in enumerate(preds)]
+            ci_lo   = [round(max(p - margen*(i+1)/h, precio_minimo_clip), 2)
+                       for i, p in enumerate(preds)]
+            ci_hi   = [round(p + margen*(i+1)/h, 2)
+                       for i, p in enumerate(preds)]
 
             pred_por_horizonte[str(h)] = {
                 "fechas":        fechas_fut,
@@ -740,7 +759,9 @@ def main():
                 "ci_upper":      ci_hi,
                 "precio_final":  round(preds[-1], 2),
                 "variacion_pct": round(var_pct, 2),
-                "tendencia":     ("SUBE" if var_pct>1 else "BAJA" if var_pct<-1 else "ESTABLE"),
+                "tendencia":     ("SUBE" if var_pct > 1
+                                  else "BAJA" if var_pct < -1
+                                  else "ESTABLE"),
             }
 
         oportunidad = calcular_oportunidad(
@@ -770,8 +791,8 @@ def main():
             "n_observaciones":   int(len(serie)),
             "fecha_ultimo_dato": str(serie.index[-1]),
             "precio_actual_usd": round(precio_actual, 2),
-            "historia_fechas":   hist_fechas,
-            "historia_precios":  hist_precios,
+            "historia_fechas":   hist_fechas,    # ← FIX-HIST: últimos 30 días
+            "historia_precios":  hist_precios,   # ← FIX-HIST: últimos 30 días
             "predicciones":      pred_por_horizonte,
             "oportunidad":       oportunidad,
         }
@@ -811,21 +832,20 @@ def main():
         _make_top_item(v) for _, v in ranking[:10]
         if v["oportunidad"]["accion"] in ("COMPRAR YA", "COMPRAR")
     ]
-
     if not top5:
         print("  ⚠️  Sin COMPRAR/COMPRAR YA — incluyendo EVALUAR")
         top5 = [_make_top_item(v) for _, v in ranking[:5]]
 
-    # Markup usado — auditable (FIX-P10)
     markup_usado = {k: round(v, 3) for k, v in MARKUP_HW.items()}
 
     resumen = {
-        "fecha_generacion":       datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "fecha_corte":            FECHA_BASE.strftime("%Y-%m-%d"),
+        # ── FIX-FECHA (v13): fecha_corte = HOY (dinámica) ────────
+        "fecha_generacion":       FECHA_HOY.strftime("%Y-%m-%d %H:%M:%S"),
+        "fecha_corte":            FECHA_HOY.strftime("%Y-%m-%d"),   # ← FIX
         "horizontes_dias":        HORIZONTES,
         "n_skus":                 len(resultados),
         "modelo_usado":           MODEL_PATH.name,
-        "seleccion":              "diversificada_2fases_v12",
+        "seleccion":              "diversificada_2fases_v13",
         "markup_usado":           markup_usado,
         "markup_fuente":          (
             "markup_real.json" if MARKUP_JSON.exists() else "hardcodeado_fallback"

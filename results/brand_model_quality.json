@@ -1,0 +1,57 @@
+{
+  "case": {
+    "brand_coverage": 29.0,
+    "model_coverage": 89.3,
+    "n": 11227
+  },
+  "cooler": {
+    "brand_coverage": 94.7,
+    "model_coverage": 59.3,
+    "n": 3941
+  },
+  "cpu": {
+    "brand_coverage": 97.0,
+    "model_coverage": 78.1,
+    "n": 15638
+  },
+  "gpu": {
+    "brand_coverage": 84.7,
+    "model_coverage": 95.6,
+    "n": 30306
+  },
+  "laptop": {
+    "brand_coverage": 98.2,
+    "model_coverage": 79.4,
+    "n": 17067
+  },
+  "monitor": {
+    "brand_coverage": 85.0,
+    "model_coverage": 83.7,
+    "n": 12430
+  },
+  "motherboard": {
+    "brand_coverage": 98.8,
+    "model_coverage": 93.0,
+    "n": 24324
+  },
+  "otro": {
+    "brand_coverage": 74.6,
+    "model_coverage": 0.0,
+    "n": 66948
+  },
+  "psu": {
+    "brand_coverage": 66.6,
+    "model_coverage": 87.6,
+    "n": 12441
+  },
+  "ram": {
+    "brand_coverage": 83.1,
+    "model_coverage": 41.2,
+    "n": 39241
+  },
+  "ssd": {
+    "brand_coverage": 100.0,
+    "model_coverage": 92.3,
+    "n": 6085
+  }
+}

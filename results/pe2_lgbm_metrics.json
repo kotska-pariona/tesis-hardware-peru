@@ -1,62 +1,26 @@
 {
   "model": "LightGBM",
   "oe": "OE2",
-  "timestamp": "2026-08-11T11:11:07.091325",
-  "justificacion": "TFT descartado: solo 9 días de historia (necesita 30+). LightGBM elegido por robustez con datos tabulares escasos.",
-  "config": {
-    "num_boost_round": 2000,
-    "best_iteration": 451,
-    "features": [
-      "lag_1",
-      "lag_2",
-      "lag_3",
-      "ma_2",
-      "ma_3",
-      "ma_5",
-      "std_3",
-      "std_5",
-      "pct_change_1",
-      "pct_change_2",
-      "sku_mean",
-      "sku_std",
-      "sku_min",
-      "sku_max",
-      "day_of_week",
-      "day_of_month",
-      "month",
-      "is_weekend",
-      "sku_enc",
-      "source_enc",
-      "category_enc"
-    ],
-    "objective": "regression_l1",
-    "learning_rate": 0.05,
-    "num_leaves": 127
-  },
-  "naive_baseline": {
-    "test_mape": 0.8645,
-    "test_r2": 0.995914
-  },
+  "num_trees": 451,
   "metrics_val": {
-    "mae": 3.8486,
-    "rmse": 45.2602,
-    "mape": 0.3596,
-    "wmape": 0.7488,
-    "r2": 0.996631,
-    "n": 29278
+    "mae": 7.1384,
+    "rmse": 96.0171,
+    "mape": 0.9066,
+    "wmape": 1.518,
+    "r2": 0.982627,
+    "n": 55239
   },
   "metrics_test": {
-    "mae": 4.1075,
-    "rmse": 40.6752,
-    "mape": 0.6364,
-    "wmape": 0.876,
-    "r2": 0.996768,
-    "n": 56029
+    "mae": 21.8273,
+    "rmse": 208.9973,
+    "mape": 3.431,
+    "wmape": 4.2735,
+    "r2": 0.934442,
+    "n": 40182
   },
   "metas_tesis": {
-    "mape_lt_2pct": true,
-    "wmape_lt_2pct": true,
+    "mape_lt_2pct": false,
+    "wmape_lt_2pct": false,
     "r2_gt_085": true
-  },
-  "checkpoint": "models\\pe2_lgbm\\lgbm_pe2.txt"
+  }
 }

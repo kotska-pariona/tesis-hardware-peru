@@ -1,0 +1,90 @@
+{
+  "case": {
+    "brand": 21.6,
+    "model": 89.3,
+    "full": 17.2,
+    "keys": 385,
+    "skus": 2397,
+    "ratio": 6.2
+  },
+  "cooler": {
+    "brand": 94.0,
+    "model": 25.5,
+    "full": 24.0,
+    "keys": 230,
+    "skus": 1504,
+    "ratio": 6.5
+  },
+  "cpu": {
+    "brand": 96.3,
+    "model": 79.2,
+    "full": 78.0,
+    "keys": 694,
+    "skus": 3714,
+    "ratio": 5.4
+  },
+  "gpu": {
+    "brand": 82.6,
+    "model": 95.6,
+    "full": 78.2,
+    "keys": 331,
+    "skus": 4678,
+    "ratio": 14.1
+  },
+  "laptop": {
+    "brand": 98.2,
+    "model": 26.1,
+    "full": 25.9,
+    "keys": 322,
+    "skus": 2924,
+    "ratio": 9.1
+  },
+  "monitor": {
+    "brand": 87.3,
+    "model": 87.1,
+    "full": 76.0,
+    "keys": 772,
+    "skus": 2876,
+    "ratio": 3.7
+  },
+  "motherboard": {
+    "brand": 98.5,
+    "model": 93.0,
+    "full": 92.2,
+    "keys": 1135,
+    "skus": 5353,
+    "ratio": 4.7
+  },
+  "otro": {
+    "brand": 74.4,
+    "model": 0.0,
+    "full": 0.0,
+    "keys": 886,
+    "skus": 20403,
+    "ratio": 23.0
+  },
+  "psu": {
+    "brand": 71.9,
+    "model": 87.6,
+    "full": 60.4,
+    "keys": 562,
+    "skus": 2615,
+    "ratio": 4.7
+  },
+  "ram": {
+    "brand": 84.1,
+    "model": 58.4,
+    "full": 49.4,
+    "keys": 1293,
+    "skus": 7043,
+    "ratio": 5.4
+  },
+  "ssd": {
+    "brand": 100.0,
+    "model": 92.3,
+    "full": 92.3,
+    "keys": 382,
+    "skus": 942,
+    "ratio": 2.5
+  }
+}

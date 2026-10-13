@@ -1,0 +1,56 @@
+{
+  "model": "LightGBM_v3_logtarget",
+  "oe": "OE2",
+  "num_trees": 2153,
+  "price_floor_usd": 15,
+  "target_transform": "log1p",
+  "features": [
+    "lag_1",
+    "lag_2",
+    "lag_3",
+    "ma_2",
+    "ma_3",
+    "ma_5",
+    "std_3",
+    "std_5",
+    "pct_change_1",
+    "pct_change_2",
+    "sku_mean",
+    "sku_std",
+    "sku_min",
+    "sku_max",
+    "sku_count",
+    "hw_mean",
+    "hw_std",
+    "day_of_week",
+    "day_of_month",
+    "month",
+    "is_weekend",
+    "sku_enc",
+    "source_enc",
+    "category_enc",
+    "hw_type_enc",
+    "source_rol_enc"
+  ],
+  "metrics_val": {
+    "mae": 6.771,
+    "rmse": 98.7268,
+    "mape": 0.8688,
+    "wmape": 1.3471,
+    "r2": 0.982346,
+    "n": 51603
+  },
+  "metrics_test": {
+    "mae": 11.3913,
+    "rmse": 144.8726,
+    "mape": 1.2312,
+    "wmape": 2.1121,
+    "r2": 0.96955,
+    "n": 38009
+  },
+  "metas_tesis": {
+    "mape_lt_2pct": true,
+    "wmape_lt_2pct": false,
+    "r2_gt_085": true
+  }
+}
