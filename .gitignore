@@ -122,3 +122,7 @@ data/raw/batch_24h_*.csv
 data/raw/MASTER_exchange_rate.csv
 bfg.jar
 *.jar
+
+# ── Datos procesados grandes — solo locales ─────────────────────────────
+data/processed_v2/
+data/processed/
