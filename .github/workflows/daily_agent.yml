@@ -204,15 +204,14 @@ jobs:
           REBASE_OK=false
           for i in 1 2 3; do
             git fetch origin main
-            git stash --include-untracked 2>/dev/null || true
+            git checkout -- . 2>/dev/null || true
+            git clean -fd 2>/dev/null || true
             if git rebase origin/main; then
-              git stash pop 2>/dev/null || true
               REBASE_OK=true
               break
             else
               echo "⚠️ rebase falló (intento $i/3)"
               git rebase --abort 2>/dev/null || true
-              git stash pop 2>/dev/null || true
               sleep $((i * 5))
             fi
           done
