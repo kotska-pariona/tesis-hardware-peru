@@ -126,3 +126,13 @@ bfg.jar
 # ── Datos procesados grandes — solo locales ─────────────────────────────
 data/processed_v2/
 data/processed/
+
+# ── Modelos grandes — solo locales (>50MB) ─────────────────────────────
+models/pe2_lgbm/lgbm_pe2_v2.txt
+models/pe2_lgbm/lgbm_pe2_v3.txt
+models/pe2_lgbm/lgbm_pe2_v4.txt
+
+# ── Modelos LightGBM grandes — solo locales (>50MB) ────────────────────
+models/pe2_lgbm/lgbm_pe2_v2.txt
+models/pe2_lgbm/lgbm_pe2_v3.txt
+models/pe2_lgbm/lgbm_pe2_v4.txt
