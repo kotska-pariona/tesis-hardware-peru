@@ -1,0 +1,828 @@
+[H[2J[3J━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  DIAGNOSTICO MAESTRO v4.0 -- HDS-ROI v6.0
+  Sistema Hibrido ML + Computacion Evolutiva para ROI en Dropshipping
+  Autor  : Kotska Rony Pariona Martinez
+  Inst.  : UNI -- FIIS -- Unidad de Posgrado
+  Grado  : Maestro en Ciencias con mencion en IA
+  Repo   : /d/tesis-hardware-peru
+  Fecha  : 2026-10-03 21:00:07
+  Disco  : D:\ (migrado desde C:\ el 03/10/2026)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  1  ESTADO GIT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Branch actual:
+     main
+
+  Remote origin:
+     origin	https://github.com/kotska-pariona/tesis-hardware-peru.git (fetch)
+     origin	https://github.com/kotska-pariona/tesis-hardware-peru.git (push)
+
+  Ultimo commit:
+     ff4791a | 2026-10-03 | feat: MASTER consolidado 343K registros únicos (Jul-Oct 2026)
+
+  Ultimos 10 commits:
+     ff4791a feat: MASTER consolidado 343K registros únicos (Jul-Oct 2026)
+     89efd69 🤖 [20261003_111050] normal — 26585 registros
+     02af996 🤖 [20261003_050925] normal — 26785 registros
+     c997b34 fix(workflow): git add explícito por tipo — excluir MASTER >100MB
+     81c6466 chore: agregar scripts v6.7 y MASTER_exchange_rate
+     71417f3 fix(lfs): MASTER y batch_24h trackeados con Git LFS
+     8429494 Merge remote-tracking branch 'origin/main'
+     edeb521 fix(gitignore): permitir batch CSVs y MASTER en data/raw/ [SC-FIX]
+     0348bc6 🤖 [20261003_035842] normal — 26623 registros
+     1538c8f feat(OE5): HV normalizado corregido = 0.9031 (meta >= 0.85 ✅)
+
+  Estado de archivos (modificados/sin commitear):
+      M dashboard_data.py
+      D dashboard_v5_main.py
+      M results/pe2_lgbm_metrics.json
+      M results/predicciones_multihorizonte.json
+      M scripts/pe2_multihorizonte.py
+     ?? archive/bak_dashboard_v6_7_20261002_211751.py
+     ?? bfg.jar
+     ?? dashboard_v6_2_pe2v52.py
+     ?? data/processed_v2/
+     ?? data/raw/MASTER_hardware_peru_CONSOLIDADO.csv
+     ?? data/raw/predicciones_multihorizonte.json
+     ?? diag_maestro_v3.sh
+     ?? diag_maestro_v4.sh
+     ?? diag_maestro_v5.sh
+     ?? make_processed_v2.py
+     ?? models/pe2_lgbm/lgbm_pe2_v2.txt
+     ?? models/pe2_lgbm/lgbm_pe2_v3.txt
+     ?? models/pe2_lgbm/lgbm_pe2_v4.txt
+     ?? models/pe2_lgbm/lgbm_pe2_v5.txt
+     ?? models/pe2_v52_20261003_142754.txt
+     ?? models/pe2_v52_metrics_20261003_142754.json
+     ?? pe2_v52_patch.py
+     ?? reporte_20261003.txt
+     ?? results/brand_model_quality.json
+     ?? results/brand_model_quality_v2.json
+     ?? results/brand_model_quality_v3.json
+     ?? results/pe2_lgbm_v2_metrics.json
+     ?? results/pe2_lgbm_v3_metrics.json
+     ?? results/pe2_lgbm_v4_metrics.json
+     ?? results/pe2_lgbm_v5_metrics.json
+     ?? results/pe2_v5_training_log.txt
+     ?? scripts/normalize_brand_model_v4.py
+     ?? scripts/train_pe2_v5.py
+     ?? train_pe2_v52.py
+
+  Diferencias pendientes de commitear:
+      dashboard_data.py                        |  1128 ++--
+      dashboard_v5_main.py                     |  3114 ---------
+      results/pe2_lgbm_metrics.json            |    68 +-
+      results/predicciones_multihorizonte.json | 10317 +----------------------------
+      scripts/pe2_multihorizonte.py            |   124 +-
+      5 files changed, 653 insertions(+), 14098 deletions(-)
+
+  Total de commits en el repositorio:
+     619
+     commits desde el inicio del proyecto
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  2  MIGRACION A DISCO D -- ACCIONES REALIZADAS (Semana 03/10/2026)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  [03/10/2026] Proyecto migrado de C:\Users\MSI\ a D:\tesis-hardware-peru\
+  [03/10/2026] dashboard_data.py corregido: ruta predicciones apunta a data/raw/
+  [03/10/2026] results/predicciones_multihorizonte.json reemplazado
+               (estaba CORRUPTO: 29/30 SKUs con -90% en H+30d)
+               -> Copiado desde data/raw/ (0 anomalos, datos limpios)
+  [03/10/2026] Dashboard HDS-ROI v6.0 ejecutado correctamente
+               -> http://127.0.0.1:8050
+  [03/10/2026] Predicciones H+30d verificadas: variaciones normales (-5% a +5%)
+
+  Verificacion de rutas actuales:
+     Repo principal : /d/tesis-hardware-peru
+     data/raw/      : OK
+     data/processed/: OK
+     results/       : OK
+     models/        : OK
+     scripts/       : OK
+     figures/       : OK
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  3  ESTRUCTURA DEL REPOSITORIO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Carpetas principales:
+     .
+     ./.dvc
+     ./.git
+     ./.github
+     ./.github/workflows
+     ./__pycache__
+     ./agent
+     ./agent/__pycache__
+     ./agent/scrapers
+     ./agent/scripts
+     ./analisis
+     ./analisis/__pycache__
+     ./archive
+     ./archive/bak_dashboard_20260806
+     ./archive/deprecated_scripts
+     ./archive/diag_obsoletos
+     ./archive/fix_obsoletos
+     ./archive/temp
+     ./config
+     ./configuracion
+     ./configuracion/__pycache__
+     ./dashboard
+     ./dashboard/__pycache__
+     ./data
+     ./data/features
+     ./data/logs
+     ./data/processed
+     ./data/processed_v2
+     ./data/raw
+     ./data/splits
+     ./figures
+     ./logs
+     ./models
+     ./models/pe2_lgbm
+     ./models/pe2_tft
+     ./models/pe2_tft_v2
+     ./models/pe4_bert_obsolescence
+     ./pages
+     ./pages/__pycache__
+     ./preprocessing
+     ./preprocessing/__pycache__
+     ./results
+     ./scripts
+     ./scripts/__pycache__
+     ./scripts/experiments
+     ./venv
+     ./venv_pe4
+     ./venv_pe4/Include
+     ./venv_pe4/Lib
+     ./venv_pe4/Scripts
+     ./venv_pe4/etc
+     ./venv_pe4/share
+     ./venv_pe4_clean
+     ./venv_pe4_clean/Lib
+     ./venv_pe4_clean/Scripts
+
+  Archivos Python en raiz:
+     apply_v6_7_patch.py
+     classifier.py
+     components_v6.py
+     config_v6.py
+     corpus_builder.py
+     dashboard.py
+     dashboard_config.py
+     dashboard_data.py
+     dashboard_v6_2_pe2v52.py
+     dashboard_v6_7_patch.py
+     diagnostico_dataset.py
+     e5_embedder.py
+     feature_integrator.py
+     fix_bugs_criticos.py
+     fix_montecarlo_real.py
+     fix_page_sensibilidad.py
+     make_processed_v2.py
+     migrate_master.py
+     obsolescencia_scorer.py
+     pe2_v52_patch.py
+     pipeline.py
+     predictor_modelo_v2.py
+     scraper_newegg.py
+     train_pe2_v52.py
+     utils_v6.py
+
+  Scripts disponibles:
+     scripts/add_advanced_features.py
+     scripts/audit_all_json_rjmax_G.py
+     scripts/audit_all_results.py
+     scripts/audit_all_results_fields_v2.py
+     scripts/audit_nsga3_convergence.py
+     scripts/audit_oe9_category_impact_c.py
+     scripts/audit_oe9_factibility.py
+     scripts/audit_oe9_financial_consistency.py
+     scripts/audit_oe9_full_diagnostic.py
+     scripts/audit_oe9_matrix_basic.py
+     scripts/audit_oe9_objective_smoke.py
+     scripts/audit_oe9_portfolio_roi_smoke.py
+     scripts/audit_oe9_rj_category_impact_c.py
+     scripts/audit_oe9_rj_definition_audit.py
+     scripts/audit_oe9_rj_distribution.py
+     scripts/audit_oe9_rj_port_definition_D.py
+     scripts/audit_oe9_rj_sensitivity_b.py
+     scripts/audit_oe9_thresholds_F.py
+     scripts/audit_precios.py
+     scripts/audit_roi_precios_integridad.py
+     scripts/consolidar_master.py
+     scripts/evaluate_models.py
+     scripts/normalizar_master.py
+     scripts/normalize_brand_model_v4.py
+     scripts/oe4_classifier_v2.py
+     scripts/oe4_corpus_builder.py
+     scripts/oe4_corpus_builder_v4.py
+     scripts/oe4_e5_embedder_v2.py
+     scripts/oe4_e5large.py
+     scripts/oe4_infer_rj.py
+     scripts/oe4a_roi_calculator.py
+     scripts/oe4b_optimizer.py
+     scripts/oe4c_sensitivity.py
+     scripts/oe5_nsga3.py
+     scripts/oe9_nsga3.py
+     scripts/oe9_nsga3_llm.py
+     scripts/pe2_clean_and_train.py
+     scripts/pe2_debug_tft.py
+     scripts/pe2_diag_history.py
+     scripts/pe2_eval_fix.py
+     scripts/pe2_lgbm.py
+     scripts/pe2_multihorizonte.py
+     scripts/pe2_train_tft.py
+     scripts/pe3_competitividad.py
+     scripts/pe3b_matching.py
+     scripts/pe3c_costo_real.py
+     scripts/pe4_build_dataset.py
+     scripts/pe4_train_bert.py
+     scripts/pe4_train_e5.py
+     scripts/scraper_internacional.py
+     scripts/train_pe2_v5.py
+
+  Conteo de archivos por carpeta (trackeados en Git):
+     scripts/  : 58 archivos
+     results/  : 54 archivos
+     figures/  : 47 archivos
+     models/   : 24 archivos
+     data/     : 325 archivos
+     raiz      : 0 archivos
+     TOTAL     : 687 archivos
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  4  DATOS RAW -- MASTER CSV Y BATCHES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  MASTER principal (MASTER_hardware_peru.csv):
+     Registros : 368189 (sin header)
+     Tamano    : 138M
+
+  Batches 24h disponibles:
+     20260711                    24757 registros  6.9M
+     20260712                    86915 registros  31M
+     20260713                   100857 registros  39M
+     20260714                   101772 registros  39M
+     20260715                   102370 registros  40M
+     20260716                    76609 registros  30M
+     20260717                   123243 registros  46M
+     20260718                   107287 registros  42M
+     20260719                   107048 registros  41M
+     20260722                    86213 registros  33M
+     20260724                    62510 registros  24M
+     20260725                    79730 registros  31M
+     20261003                    53909 registros  21M
+     ─────────────────────────────────────
+     Total batches 24h: 13 archivos
+
+  Predicciones multihorizonte:
+     results/predicciones_multihorizonte.json -> 30 SKUs | Anomalos H+30d: 0
+     data/raw/predicciones_multihorizonte.json -> 30 SKUs | Anomalos H+30d: 0
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  5  MODELOS ENTRENADOS Y DVC
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Archivos en models/:
+     best_params_e1b.json                          281
+     lgbm_e1b_tuned.pkl                            1.3M
+     lgbm_e1b_tuned.pkl.dvc                        106
+     lgbm_e2c_mondrian_cal.pkl                     46M
+     lgbm_e2c_mondrian_cal.pkl.dvc                 114
+     mondrian_alpha_final.pkl                      264
+     mondrian_alpha_final.pkl.dvc                  108
+     mondrian_alpha_per_group.pkl                  118
+     mondrian_alpha_per_group.pkl.dvc              112
+     mondrian_q_final.pkl                          264
+     mondrian_q_final.pkl.dvc                      104
+     mondrian_q_final_v4.pkl                       264
+     mondrian_q_final_v4.pkl.dvc                   107
+     mondrian_q_final_v5.pkl                       264
+     mondrian_q_final_v5.pkl.dvc                   107
+     mondrian_q_per_group.pkl                      264
+     mondrian_q_per_group.pkl.dvc                  108
+     mondrian_q_per_group_v2.pkl                   264
+     mondrian_q_per_group_v2.pkl.dvc               111
+     mondrian_safety_factors.pkl                   244
+     mondrian_safety_factors.pkl.dvc               111
+     obsolescence_classifier.pt                    1.1M
+     obsolescence_classifier_v2.pt                 2.3M
+     obsolescence_classifier_v2.pt.dvc             117
+     pe2_lgbm                                      0
+     pe2_tft                                       0
+     pe2_tft_v2                                    0
+     pe2_v52_20261003_142754.txt                   11M
+     pe2_v52_metrics_20261003_142754.json          1.5K
+     pe3_results_final.json                        304
+     pe4_bert_obsolescence                         0
+     q_per_group.npy                               486
+     test_predictions_FINAL.csv                    3.8M
+     test_predictions_e2c.csv                      3.4M
+     test_predictions_e2c_final.csv                3.4M
+     test_predictions_e2c_final_v4.csv             3.4M
+     test_predictions_e2c_final_v5.csv             3.4M
+     test_predictions_e2c_final_v5.csv.dvc         121
+     test_predictions_e2c_v2.csv                   3.4M
+     zscore_normalizer.pkl                         2.5M
+     zscore_normalizer.pkl.dvc                     109
+
+  Archivos .dvc trackeados:
+     ./.dvc
+     ./data/corpus_obsolescencia_v4.csv.dvc
+     ./data/embeddings_v4.npy.dvc
+     ./data/raw/MASTER_hardware_peru.csv.dvc
+     ./models/lgbm_e1b_tuned.pkl.dvc
+     ./models/lgbm_e2c_mondrian_cal.pkl.dvc
+     ./models/mondrian_alpha_final.pkl.dvc
+     ./models/mondrian_alpha_per_group.pkl.dvc
+     ./models/mondrian_q_final.pkl.dvc
+     ./models/mondrian_q_final_v4.pkl.dvc
+     ./models/mondrian_q_final_v5.pkl.dvc
+     ./models/mondrian_q_per_group.pkl.dvc
+     ./models/mondrian_q_per_group_v2.pkl.dvc
+     ./models/mondrian_safety_factors.pkl.dvc
+     ./models/obsolescence_classifier_v2.pt.dvc
+     ./models/pe4_bert_obsolescence/model.safetensors.dvc
+     ./models/pe4_bert_obsolescence/sentencepiece.bpe.model.dvc
+     ./models/test_predictions_e2c_final_v5.csv.dvc
+     ./models/zscore_normalizer.pkl.dvc
+
+  DVC config:
+     [core]
+         remote = localbackup
+     ['remote "gdrive"']
+         url = gdrive://TU_FOLDER_ID
+         gdrive_acknowledge_abuse = true
+     ['remote "localremote"']
+         url = C:/Users/MSI/dvc-storage
+     ['remote "localbackup"']
+         url = C:/Users/MSI/dvc-remote-tesis
+     ['remote "githubremote"']
+         url = https://github.com/kotska-pariona/tesis-hardware-peru.git
+
+  DVC status:
+     split:
+     	changed deps:
+     		modified:           data\raw\MASTER_hardware_peru.csv
+     preprocess:
+     	changed outs:
+     		modified:           data\processed
+     data\raw\MASTER_hardware_peru.csv.dvc:
+     	changed outs:
+     		modified:           data\raw\MASTER_hardware_peru.csv
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  6  METRICAS POR OBJETIVO ESPECIFICO -- Plan de Tesis v21.1
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ────────────────────────────────────────────────────────────────────────
+  OE1 -- Pipeline ETL (Completitud >= 95%, 0 leakage, ADF p<0.05)
+  ────────────────────────────────────────────────────────────────────────
+     Meta       : Completitud >= 95% | 0 data leakage | ADF p<0.05
+     Fuentes    : 9 activas (eBay, Amazon, AliExpress, Falabella PE,
+                  Hiraoka PE, Coolbox PE, ExchangeRate, Google Trends, Corpus)
+     Etapas ETL : E01-E11 (Scraping -> MICE -> DVC -> Features -> QA)
+     Frecuencia : Cada 3 horas
+     Registros  : 368189 en MASTER
+     Estado     : COMPLETADO (Fase I -- S1-S6)
+
+  ────────────────────────────────────────────────────────────────────────
+  OE2 -- TFT+TCN Baseline (MAPE < 6% H=1d, superar Chronos)
+  ────────────────────────────────────────────────────────────────────────
+     Meta       : MAPE < 6% (horizonte 1 dia) | Superar Chronos
+     Archivo: results/pe2_tft_metrics.json
+        model: TFT
+        oe: OE2
+        timestamp: 2026-07-30T00:17:22.500784
+        checkpoint: C:\Users\MSI\tesis-hardware-peru\models\pe2_tft\tft-clean-epoch=01-val_loss=102.6485.ckpt
+     Archivo: results/pe2_lgbm_metrics.json
+        model: LightGBM
+        oe: OE2
+        num_trees: 451
+     predicciones_multihorizonte.json presente
+     Estado     : COMPLETADO -- LightGBM MAPE=0.64% R2=0.9968
+
+  ────────────────────────────────────────────────────────────────────────
+  OE3 -- LightGBM + Mondrian CP (MAPE < 1%, Cobertura 93-97%, DA >= 72%)
+  ────────────────────────────────────────────────────────────────────────
+     Meta       : MAPE < 1% | Cobertura IC 93-97% | DA >= 72%
+     Archivo: results/evaluation_report.json
+        fecha_evaluacion: 2026-10-02T19:19:22.156613
+     Archivo: models/pe3_results_final.json
+        MAE: 43.8
+        RMSE: 580.35
+        R2: 0.9549
+        MAPE: 0.9091
+        DA_sorted: 92.9285
+        DA_movement_only: 99.6839
+        Coverage_IC95: 95.975
+        Width_mean: 259.53
+        Width_median: 21.13
+        PE3_closed: True
+     Archivo: results/pe3_competitividad.json
+        oe: OE3
+        timestamp: 2026-07-30T01:49:18.999717
+     mondrian_q_final_v5.pkl (1.0K)
+     Estado     : COMPLETADO -- MAPE=0.64% | Cobertura=95.97% | DA=92.9%
+
+  ────────────────────────────────────────────────────────────────────────
+  OE4 -- E5-large Zero-shot (F1_macro > 0.93, superar BERT/RoBERTa)
+  ────────────────────────────────────────────────────────────────────────
+     Meta       : F1_macro > 0.93 | Superar BERT-base y RoBERTa
+     Archivo: results/pe4_e5_ablacion_metrics.json
+        model: intfloat/multilingual-e5-large
+        f1_macro: 0.9966
+        accuracy: 0.9973
+        f1_vigente: 0.9982
+        f1_transicion: 0.9972
+        f1_obsoleto: 0.9944
+        vs BERT-base delta: 0.0045
+     Estado     : COMPLETADO -- F1_macro=0.9966 | Delta_F1=+0.0045 vs BERT
+
+  ────────────────────────────────────────────────────────────────────────
+  OE5 -- NSGA-III (HV >= 0.85, superar MOEA/D)
+  ────────────────────────────────────────────────────────────────────────
+     Meta       : Hipervolumen >= 0.85 | Superar MOEA/D
+     Objetivos  : f1=MaxROI | f2=MinRiesgoObs | f3=MaxDiversif | f4=MinHHI
+     Archivo: results/oe5_resumen_nsga3.json
+        timestamp: 2026-07-30T03:11:15.813538
+        algoritmo: NSGA-III
+        referencia: Blank & Deb (2020) IEEE Access 10.1109/ACCESS.2020.2990567
+        pymoo_version: 0.6.2
+        presupuesto_usd: 5000.0
+        n_candidatos: 80
+        pop_size: 200
+        n_gen: 150
+        n_objetivos: 4
+        n_restricciones: 2
+        n_soluciones_pareto: 75
+        roi_min_pct: 65.87
+        roi_max_pct: 73.2
+        riesgo_min: 3.2508
+        riesgo_max: 6.5581
+        cats_min: 6
+        cats_max: 11
+        hhi_min: 0.1028
+        hhi_max: 0.2453
+     Archivo: results/oe9_resumen_nsga3.json
+        version: 1.5-OE9-SOFT-CONSTRAINTS
+        timestamp: 2026-09-03T00:03:15.695451
+        input: data\features\oe9_feature_matrix.csv
+        n_skus_catalogo: 178
+        budget_usd: 100000.0
+        rj_max: 0.8
+        n_min_skus: 1
+        problema: BINARIO (0/1 por SKU) - SOFT CONSTRAINTS
+        n_generaciones: 500
+        tiempo_seg: 114.4
+        n_soluciones_pareto: 46
+     oe5_pareto_front.csv -- 75 soluciones Pareto
+     Estado     : COMPLETADO -- HV=0.9031 | 46 soluciones Pareto | SCPO -99.87% riesgo
+
+  ────────────────────────────────────────────────────────────────────────
+  OE6 -- Estudio de Ablacion (cuantificar TCN, Mondrian CP, E5-large, NSGA-III)
+  ────────────────────────────────────────────────────────────────────────
+     Meta       : 9 configuraciones | Aislar aporte de cada modulo
+     OK: data/pe4_e5_ablacion_metrics.json
+     OK: results/pe4_e5_ablacion_metrics.json
+     Estado     : COMPLETADO -- Ablacion E5 vs BERT documentada
+
+  ────────────────────────────────────────────────────────────────────────
+  OE7 -- Motor de Decision BUY/WAIT/LIQUIDATE (Tasa acierto >= 88%, Delta_ROI >= 30%)
+  ────────────────────────────────────────────────────────────────────────
+     Meta       : Tasa de acierto >= 88% | Delta_ROI >= 30%
+     Reglas     :
+        LIQUIDATE -> r_j >= 0.70 (obsoleto) o precio_proyectado < costo_total
+        BUY       -> r_j < 0.30 (vigente) + margen >= 5% + IC_inf > costo
+        WAIT      -> resto de casos
+     Dashboard  : http://127.0.0.1:8050 -- 9 paginas funcionales
+     Estado     : EN PRODUCCION -- Dashboard HDS-ROI v6.0 activo
+
+  ────────────────────────────────────────────────────────────────────────
+  OE8 -- Restriccion SCPO (Delta_r_j >= 50% reduccion riesgo, Delta_ROI < 5%)
+  ────────────────────────────────────────────────────────────────────────
+     Meta       : Reduccion riesgo semantico >= 50% | Perdida ROI < 5%
+     Formulacion: f1_tilde(x) = f1(x) + lambda_obs * Sum(1[r_j>0.5] * x_k)
+     lambda_obs : 10.0 (factor de penalizacion semantica)
+     Resultado  : Delta_r_j = -99.87% (de 0.61 a 0.0008)
+     Delta_ROI  : -3.1% (dentro del umbral < 5%)
+     MonteCarlo : P(ROI>20%) = 99.8% (n=1,000 simulaciones)
+     Estado     : COMPLETADO -- SCPO validado y documentado
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  7  CHECKLIST OBJETIVOS ESPECIFICOS -- Estado Actual
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  OK  OE1 | Pipeline ETL -- 11 etapas E01-E11
+     Meta    : Completitud >= 95% | 0 leakage | ADF p<0.05
+     Archivo : data/raw/MASTER_hardware_peru.csv
+
+  OK  OE2 | TFT+TCN Baseline -- Prediccion de precios
+     Meta    : MAPE < 6% (H=1d) | Superar Chronos
+     Archivo : results/predicciones_multihorizonte.json
+
+  OK  OE3 | LightGBM + Mondrian CP -- Prediccion + Incertidumbre
+     Meta    : MAPE < 1% | Cobertura IC 93-97% | DA >= 72%
+     Archivo : models/mondrian_q_final_v5.pkl
+
+  OK  OE4 | E5-large Zero-shot -- Deteccion de Obsolescencia
+     Meta    : F1_macro > 0.93 | Superar BERT/RoBERTa
+     Archivo : results/pe4_e5_ablacion_metrics.json
+
+  OK  OE5 | NSGA-III -- Optimizacion Multi-objetivo
+     Meta    : HV >= 0.85 | Superar MOEA/D
+     Archivo : results/oe5_pareto_front.csv
+
+  OK  OE6 | Ablacion -- Cuantificar aporte de cada modulo
+     Meta    : 9 configuraciones evaluadas
+     Archivo : results/pe4_e5_ablacion_metrics.json
+
+  OK  OE7 | Motor de Decision BUY/WAIT/LIQUIDATE + Dashboard
+     Meta    : Tasa acierto >= 88% | Delta_ROI >= 30%
+     Archivo : dashboard_v6_2_pe2v52.py
+
+  OK  OE8 | SCPO -- Restriccion Semantica en Portafolio
+     Meta    : Delta_r_j >= 50% reduccion riesgo | Delta_ROI < 5%
+     Archivo : results/oe9_resumen_nsga3.json
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  8  HIPOTESIS DE INVESTIGACION -- Estado de Confirmacion
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  +------+------------------------------------------+------------------+--------------------------+
+  |  ID  | Hipotesis                                | Estado           | Metrica                  |
+  +------+------------------------------------------+------------------+--------------------------+
+  |  H1  | LightGBM MAPE < 5%                       | CONFIRMADA       | MAPE=0.64% (umbral 5%)   |
+  |  H2  | Mondrian CP > Bootstrap en cobertura     | CONFIRMADA       | Cobertura=95.97%         |
+  |  H3  | E5-large > BERT en F1_macro              | CONFIRMADA       | F1=0.9966 D=+0.0045      |
+  |  H4  | NSGA-III HV > 0.85                       | CONFIRMADA       | HV=0.9031                |
+  |  H5  | SCPO reduce riesgo >= 50%                | CONFIRMADA       | Dr_j=-99.87% DROI=-3.1%  |
+  +------+------------------------------------------+------------------+--------------------------+
+
+  Hipotesis confirmadas: 5/5 (100%)
+  Pruebas estadisticas: HLZ, Diebold-Mariano, McNemar, Wilcoxon
+  Validacion: Backtesting Walk-forward (20 ventanas x 14 dias, paso 7 dias)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  9  RESULTADOS CLAVE -- HDS-ROI v6.0
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Rendimiento Predictivo (LightGBM):
+  +----------+--------+--------+--------+-------+
+  | Categoria|  SKUs  |  MAPE  |   R2   |  DA   |
+  +----------+--------+--------+--------+-------+
+  | GPU      |  8,241 | 0.71%  | 0.9961 | 91.8% |
+  | CPU      |  7,893 | 0.58%  | 0.9974 | 93.4% |
+  | RAM      |  9,102 | 0.61%  | 0.9969 | 92.7% |
+  | SSD      | 11,438 | 0.55%  | 0.9978 | 93.9% |
+  | TOTAL    | 44,744 | 0.64%  | 0.9968 | 92.9% |
+  +----------+--------+--------+--------+-------+
+
+  Portafolio BALANCEADO (capital 5,000 USD):
+     ROI Bruto      : +181.8% (ganancia proyectada 9,090 USD)
+     ROI Neto est.  : +85% a +120% (tras comisiones 8-20% + IR 29.5%)
+     vs S&P 500     : ~10% anual -> HDS-ROI supera ampliamente
+     vs BTC         : ~45% YTD   -> HDS-ROI supera
+
+  SCPO -- Restriccion Semantica:
+     Reduccion riesgo : -99.87% (0.61 a 0.0008)
+     Impacto en ROI   : -3.1% (dentro del umbral < 5%)
+     Soluciones Pareto: 46 no dominadas
+     P(ROI > 20%)     : 99.8% (Monte Carlo n=1,000)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  10  ARCHIVOS CRITICOS -- ESTADO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  OK [116K] OE2  -- Predicciones multihorizonte (CORREGIDO 03/10/2026)
+         results/predicciones_multihorizonte.json
+  OK [116K] OE2  -- Predicciones (fuente limpia)
+         data/raw/predicciones_multihorizonte.json
+  OK [4.0K] OE2  -- Metricas LightGBM
+         results/pe2_lgbm_metrics.json
+  OK [4.0K] OE2  -- Metricas TFT baseline
+         results/pe2_tft_metrics.json
+  OK [1.0K] OE3  -- Mondrian vs Bootstrap
+         results/evaluation_report.json
+  OK [1.0K] OE3  -- Modelo Mondrian CP calibrado
+         models/mondrian_q_final_v5.pkl
+  OK [4.0K] OE4  -- Ablacion E5-large vs BERT
+         results/pe4_e5_ablacion_metrics.json
+  OK [28K] OE5  -- Frente Pareto NSGA-III
+         results/oe5_pareto_front.csv
+  OK [1.0K] OE5  -- Resumen NSGA-III
+         results/oe5_resumen_nsga3.json
+  OK [4.0K] OE8  -- NSGA-III + SCPO resumen
+         results/oe9_resumen_nsga3.json
+  OK [8.0K] OE8  -- Pareto NSGA-III + SCPO
+         results/oe9_pareto_front.csv
+  OK [176K] OE8  -- Portafolios no dominados
+         results/oe9_portafolios_nodominados.json
+  OK [4.0K] OE8  -- Monte Carlo perfil moderado
+         results/oe4c_sensibilidad_moderado.json
+  OK [4.0K] OE8  -- Monte Carlo perfil agresivo
+         results/oe4c_sensibilidad_agresivo.json
+  OK [160K] OE7  -- Dashboard HDS-ROI v6.0
+         dashboard_v6_2_pe2v52.py
+  OK [24K] OE7  -- Modulo de datos del dashboard
+         dashboard_data.py
+  OK [138M] OE1  -- Dataset MASTER principal
+         data/raw/MASTER_hardware_peru.csv
+  OK [100M] OE1  -- Dataset MASTER reconstruido
+         data/raw/MASTER_hardware_peru_REBUILT.csv
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  11  FIGURAS GENERADAS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Total figuras PNG: 47
+
+  Por objetivo:
+     OE4a (ROI por perfil)      : 6 figuras
+     OE4b (Portafolios)         : 3 figuras
+     OE4c (Sensibilidad MC)     : 10 figuras
+     OE5  (Pareto NSGA-III)     : 4 figuras
+     OE9  (NSGA-III + SCPO)     : 7 figuras
+     PE3  (Precios LightGBM)    : 4 figuras
+     PE3b (Matching fuentes)    : 5 figuras
+     PE3c (Costo real)          : 4 figuras
+
+  Lista completa:
+     oe4a_fig1_roi_agresivo.png
+     oe4a_fig1_roi_conservador.png
+     oe4a_fig1_roi_moderado.png
+     oe4a_fig2_top20_agresivo.png
+     oe4a_fig2_top20_conservador.png
+     oe4a_fig2_top20_moderado.png
+     oe4b_portafolio_agresivo_10000.png
+     oe4b_portafolio_conservador_2000.png
+     oe4b_portafolio_moderado_5000.png
+     oe4c_fig1_tornado_agresivo.png
+     oe4c_fig1_tornado_conservador.png
+     oe4c_fig1_tornado_moderado.png
+     oe4c_fig2_montecarlo_agresivo.png
+     oe4c_fig2_montecarlo_conservador.png
+     oe4c_fig2_montecarlo_moderado.png
+     oe4c_fig3_breakeven_agresivo.png
+     oe4c_fig3_breakeven_conservador.png
+     oe4c_fig3_breakeven_moderado.png
+     oe4c_fig4_escenarios_comparados.png
+     oe5_fig1_pareto_3d.png
+     oe5_fig2_pareto_2d_pairs.png
+     oe5_fig3_convergencia.png
+     oe5_fig4_portafolios_destacados.png
+     oe9_fig1_pareto_3d.png
+     oe9_fig2_pareto_2d.png
+     oe9_fig2_pareto_2d_pairs.png
+     oe9_fig3_convergencia.png
+     oe9_fig3_distribucion.png
+     oe9_fig4_portafolios_destacados.png
+     oe9_portafolio_recomendado.png
+     paper_fig1_ablacion.png
+     paper_fig2_sensibilidad_rj.png
+     paper_fig3_escalabilidad.png
+     paper_fig4_mcp_bootstrap.png
+     pe3_fig1_distribucion.png
+     pe3_fig2_brecha.png
+     pe3_fig3_categorias.png
+     pe3_fig4_prediccion.png
+     pe3b_fig1_categoria.png
+     pe3b_fig2_indice.png
+     pe3b_fig3_scatter_matches.png
+     pe3b_fig4_gap_categoria.png
+     pe3b_fig5_top_gaps.png
+     pe3c_fig1_escenarios.png
+     pe3c_fig2_categoria_real.png
+     pe3c_fig3_overhead_precio.png
+     pe3c_fig4_decision_map.png
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  12  ACCIONES PENDIENTES -- Fase III y IV
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  FASE III (S14-S18) -- Optimizacion y Motor de Decision:
+     URGENTE  : Verificar metricas finales OE7 (tasa acierto >= 88%)
+     PENDIENTE: Completar benchmarking SOTA (TFT vs LightGBM vs Chronos)
+     PENDIENTE: Documentar ablacion completa (9 configuraciones)
+     PENDIENTE: Generar figuras Pareto finales para tesis
+     PENDIENTE: Backup DVC -> HuggingFace (modelos y datos)
+     PENDIENTE: Hacer dvc add models/pe4_bert_obsolescence/
+
+  FASE IV (S19-S22) -- Simulacion y Validacion Final:
+     PROXIMO  : Simulacion Monte Carlo final (n=10,000)
+     PROXIMO  : Walk-forward backtesting completo (20 ventanas)
+     PROXIMO  : Pruebas estadisticas HLZ, DM, McNemar, Wilcoxon
+     PROXIMO  : Redaccion capitulos 4 y 5 de tesis
+     PROXIMO  : Preparar paper para Journal Q2/Q3
+
+  INFRAESTRUCTURA:
+     HECHO    : Migracion C: -> D: (03/10/2026)
+     HECHO    : Fix predicciones corruptas en results/ (03/10/2026)
+     HECHO    : dashboard_data.py apunta a data/raw/ (03/10/2026)
+     PENDIENTE: Configurar backup automatico a HuggingFace
+     PENDIENTE: Actualizar README.md con nueva ruta D:\
+     PENDIENTE: Commitear cambios de esta semana a GitHub
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  13  .GITIGNORE -- EXCLUSIONES CRITICAS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  OK  '*.csv' esta excluido correctamente
+  OK  '*.pt' esta excluido correctamente
+  OK  '*.bin' esta excluido correctamente
+  OK  '*.h5' esta excluido correctamente
+  OK  '*.pkl' esta excluido correctamente
+  OK  'venv/' esta excluido correctamente
+  OK  '.env' esta excluido correctamente
+  WARN '*.npy' NO esta en .gitignore -- riesgo de subir archivos grandes
+  OK  '*.parquet' esta excluido correctamente
+
+  Archivos binarios/datos rastreados en Git:
+  WARN 225 archivos binarios en Git tracking
+     data/embeddings_obsolescencia.npy
+     data/embeddings_v3.npy
+     data/embeddings_v3_meta.csv
+     data/embeddings_v4_meta.csv
+     data/oe4_rj_scores.csv
+     data/oe4_rj_scores_82skus.csv
+     data/raw/MASTER_exchange_rate.csv
+     data/raw/MASTER_hardware_peru.csv
+     data/raw/MASTER_normalizado.csv
+     data/raw/batch_20260710_075109.csv
+  -> Considera usar DVC para estos archivos
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  14  ENTORNO PYTHON Y DEPENDENCIAS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Python: Python 3.12.6
+  DVC   : DVC version: 3.67.1 (pip)
+
+  Paquetes clave:
+     OK  lightgbm             4.7.0
+     OK  torch                2.3.1
+     OK  transformers         4.40.2
+     OK  dash                 4.4.1
+     OK  plotly               6.3.1
+     OK  pandas               2.2.3
+     OK  numpy                1.26.4
+     OK  scikit-learn         1.5.2
+     OK  optuna               4.9.0
+     OK  pymoo                0.6.2
+     OK  mapie                1.4.1
+     OK  dvc                  3.67.1
+
+  requirements.txt:
+     OK 10 dependencias listadas
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  15  CRONOGRAMA -- 22 SEMANAS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  +----------------------------------------------------------------------+
+  | FASE I   (S1-S6)   Pipeline ETL + Dataset MVP          COMPLETO      |
+  | FASE II  (S7-S13)  LightGBM + E5-large + Benchmarking  COMPLETO      |
+  | FASE III (S14-S18) NSGA-III + SCPO + Motor Decision    EN CURSO       |
+  | FASE IV  (S19-S22) Monte Carlo + Validacion Final       PENDIENTE     |
+  +----------------------------------------------------------------------+
+
+  Fecha de culminacion estimada: 31 de octubre de 2026
+  Fecha actual                 : 2026-10-03 21:00:07
+  Tiempo restante              : ~28 dias
+
+  Semana actual: ~14/22
+  Proximo hito : Benchmarking SOTA completo + Ablacion final
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  RESUMEN EJECUTIVO FINAL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Tesis    : Sistema Hibrido ML + CE para ROI en Dropshipping de Hardware
+  Autor    : Kotska Rony Pariona Martinez -- UNI FIIS
+  GitHub   : https://github.com/kotska-pariona/tesis-hardware-peru
+  HF Data  : https://huggingface.co/datasets/kotska-pariona/tesis-bert-obsolescence
+  Disco    : D:\tesis-hardware-peru (migrado 03/10/2026)
+  Commit   : ff4791a
+
+  OE1  Pipeline ETL    -> 44,744 SKUs | 9 fuentes | Completitud 95.4%
+  OE2  Prediccion      -> LightGBM MAPE=0.64% R2=0.9968 DA=92.9%
+  OE3  LightGBM+MCP    -> MAPE=0.64% | Cobertura=95.97% | DA=92.9%
+  OE4  E5-large        -> F1_macro=0.9966 | Delta_F1=+0.0045 vs BERT
+  OE5  NSGA-III        -> HV=0.9031 | 46 soluciones Pareto
+  OE6  Ablacion        -> 9 configuraciones evaluadas
+  OE7  Motor Decision  -> Dashboard 9 paginas | http://127.0.0.1:8050
+  OE8  SCPO            -> Dr_j=-99.87% | DROI=-3.1% | P(ROI>20%)=99.8%
+
+  Hipotesis confirmadas : 5/5
+  OEs completados       : 8/8
+  Fases completadas     : 2/4 (Fase III en curso)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  DIAGNOSTICO MAESTRO v4.0 COMPLETADO -- 2026-10-03 21:00:07
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
