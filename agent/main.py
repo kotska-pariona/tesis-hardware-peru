@@ -134,6 +134,12 @@ _HAS_KAGGLE, scrape_kaggle,       _kaggle_err = _load_optional_scraper(
     "scrape_kaggle",       "scraper_kaggle.py"
 )
 # [O34] Ripley PE — Prioridad 2.1
+_HAS_PCF,    scrape_pcfactory,    _pcf_err    = _load_optional_scraper(
+    "scrape_pcfactory",    "scraper_pcfactory.py"
+)
+_HAS_CBX,    scrape_coolbox,      _cbx_err    = _load_optional_scraper(
+    "scrape_coolbox",      "scraper_coolbox.py"
+)
 _HAS_RIPLEY, scrape_ripley,       _ripley_err = _load_optional_scraper(
     "scrape_ripley",       "scraper_ripley.py"
 )
@@ -165,6 +171,8 @@ _OPTIONAL_SCRAPERS = {
     "Camel        [O18]   ": (_HAS_CAMEL,  _camel_err),
     "Kaggle       [O18]   ": (_HAS_KAGGLE, _kaggle_err),
     "Ripley PE    [O34]   ": (_HAS_RIPLEY, _ripley_err),   # [O35]
+    "PC Factory PE[NEW]   ": (_HAS_PCF,    _pcf_err),
+    "Coolbox PE   [NEW]   ": (_HAS_CBX,    _cbx_err),
 }
 for label, (ok, err) in _OPTIONAL_SCRAPERS.items():
     if ok:
@@ -643,6 +651,52 @@ def run(mode: str, batch_id: str):
         if not _HAS_RIPLEY:
             log.warning("  WARN Ripley PE omitido — scraper no disponible")
         stats["ripley_pe"] = 0
+
+    # ── 3c. PC Factory PE ──────────────────────────────────────────────
+    if _HAS_PCF and mode in ("normal", "local_only", "full"):
+        log.info(_step("PC Factory PE"))
+        if not _near_timeout():
+            try:
+                pcf_records = scrape_pcfactory(batch_id, mode=mode)
+                p = save_batch(
+                    pcf_records, batch_id, "pcfactory_pe",
+                    rate_mid=rate_mid
+                )
+                if p: batches.append(p)
+                stats["pcfactory_pe"] = len(pcf_records)
+                log.info(
+                    f"  OK PC Factory PE: {len(pcf_records):,} registros"
+                )
+            except Exception as e:
+                log.error(f"  ERR PC Factory PE: {e}")
+                stats["pcfactory_pe"] = 0
+    else:
+        if not _HAS_PCF:
+            log.warning("  WARN PC Factory PE omitido — scraper no disponible")
+        stats["pcfactory_pe"] = 0
+
+    # ── 3d. Coolbox PE ───────────────────────────────────────────────
+    if _HAS_CBX and mode in ("normal", "local_only", "full"):
+        log.info(_step("Coolbox PE"))
+        if not _near_timeout():
+            try:
+                cbx_records = scrape_coolbox(batch_id, mode=mode)
+                p = save_batch(
+                    cbx_records, batch_id, "coolbox_pe",
+                    rate_mid=rate_mid
+                )
+                if p: batches.append(p)
+                stats["coolbox_pe"] = len(cbx_records)
+                log.info(
+                    f"  OK Coolbox PE: {len(cbx_records):,} registros"
+                )
+            except Exception as e:
+                log.error(f"  ERR Coolbox PE: {e}")
+                stats["coolbox_pe"] = 0
+    else:
+        if not _HAS_CBX:
+            log.warning("  WARN Coolbox PE omitido — scraper no disponible")
+        stats["coolbox_pe"] = 0
 
     # ── 4. Newegg USA ────────────────────────────────────────────────
     if _HAS_NEWEGG and mode in ("normal", "historical", "full"):
