@@ -1,0 +1,23 @@
+{
+  "batch_id": "20261015_233829",
+  "timestamp": "2026-10-16T00:09:36.643286+00:00",
+  "elapsed_s": 1865.7,
+  "stats": {
+    "dolar": 1,
+    "local": 8229,
+    "mercadolibre_pe": 0,
+    "ripley_pe": 0,
+    "pcfactory_pe": 0,
+    "coolbox_pe": 4993,
+    "newegg_usa": 0,
+    "ebay": 16361,
+    "camel": 0,
+    "pcpartpicker": 0,
+    "kaggle": 0,
+    "importacion": 563,
+    "competencia": 747,
+    "master_total": 26421
+  },
+  "new_added": 26421,
+  "master_total": 26421
+}
