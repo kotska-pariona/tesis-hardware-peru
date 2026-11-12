@@ -1,0 +1,110 @@
+Carpeta,Archivo,Tamaño (KB),Líneas,Última Modificación,Descripción
+agent,main.py,37.6,939,2026-10-14,!/usr/bin/env python3
+agent,pe5_agent.py,42.7,1105,2026-10-02,!/usr/bin/env python3
+agent,scraper_competencia.py,4.9,162,2026-10-02,
+scripts,add_advanced_features.py,0.9,26,2026-10-02,Cargar datos
+scripts,audit_all_json_rjmax_G.py,1.0,40,2026-10-02,
+scripts,audit_all_results.py,5.0,151,2026-10-02,
+scripts,audit_all_results_fields_v2.py,1.4,53,2026-10-02,
+scripts,audit_nsga3_convergence.py,3.3,86,2026-10-02,
+scripts,audit_oe9_category_impact_c.py,2.3,74,2026-10-02,
+scripts,audit_oe9_factibility.py,1.9,54,2026-10-02,rj_max viene del resumen
+scripts,audit_oe9_financial_consistency.py,2.2,69,2026-10-02,
+scripts,audit_oe9_full_diagnostic.py,0.8,25,2026-10-02,
+scripts,audit_oe9_matrix_basic.py,0.8,25,2026-10-02,
+scripts,audit_oe9_objective_smoke.py,3.7,106,2026-10-02,Carga matriz
+scripts,audit_oe9_portfolio_roi_smoke.py,2.0,68,2026-10-02,
+scripts,audit_oe9_rj_category_impact_c.py,2.5,76,2026-10-02,
+scripts,audit_oe9_rj_definition_audit.py,2.3,65,2026-10-02,parse r_j
+scripts,audit_oe9_rj_distribution.py,1.5,43,2026-10-02,
+scripts,audit_oe9_rj_port_definition_D.py,4.9,122,2026-10-02,
+scripts,audit_oe9_rj_sensitivity_b.py,1.3,40,2026-10-02,
+scripts,audit_oe9_thresholds_F.py,0.5,16,2026-10-02,
+scripts,audit_precios.py,0.8,23,2026-10-02,Cargar la matriz
+scripts,audit_roi_precios_integridad.py,4.2,94,2026-10-02,
+scripts,consolidar_master.py,3.8,101,2026-10-02,scripts/consolidar_master.py
+scripts,evaluate_models.py,18.6,417,2026-10-02,
+scripts,normalizar_master.py,13.0,286,2026-10-02,=============================================================================
+scripts,normalize_brand_model_v4.py,13.5,395,2026-10-13,
+scripts,oe4_classifier_v2.py,7.6,191,2026-10-02,
+scripts,oe4_corpus_builder.py,12.0,297,2026-10-02,
+scripts,oe4_corpus_builder_v4.py,11.9,292,2026-10-02,
+scripts,oe4_e5_embedder_v2.py,3.0,86,2026-10-02,
+scripts,oe4_e5large.py,7.9,197,2026-10-02,
+scripts,oe4_infer_rj.py,3.6,87,2026-10-02,
+scripts,oe4a_roi_calculator.py,12.5,299,2026-10-02,
+scripts,oe4b_optimizer.py,27.8,610,2026-10-02,
+scripts,oe4c_sensitivity.py,28.8,670,2026-10-02,
+scripts,oe5_nsga3.py,30.5,738,2026-10-02,
+scripts,oe9_nsga3.py,21.2,559,2026-10-02,=============================================================================
+scripts,oe9_nsga3_llm.py,21.4,565,2026-10-02,
+scripts,optimize_portfolio_simple.py,17.4,468,2026-10-14,!/usr/bin/env python3
+scripts,pe2_clean_and_train.py,22.8,528,2026-10-02,
+scripts,pe2_debug_tft.py,14.6,328,2026-10-02,
+scripts,pe2_diag_history.py,5.9,136,2026-10-02,
+scripts,pe2_eval_fix.py,22.0,504,2026-10-02,
+scripts,pe2_lgbm.py,16.9,397,2026-10-02,
+scripts,pe2_multihorizonte.py,40.4,909,2026-10-13,=============================================================================
+scripts,pe2_train_tft.py,17.3,410,2026-10-02,
+scripts,pe3_competitividad.py,28.2,623,2026-10-02,
+scripts,pe3b_matching.py,29.7,638,2026-10-02,
+scripts,pe3c_costo_real.py,22.6,514,2026-10-02,
+scripts,pe4_build_dataset.py,7.6,181,2026-10-02,
+scripts,pe4_train_bert.py,7.5,186,2026-10-02,
+scripts,pe4_train_e5.py,14.3,332,2026-10-02,-*- coding: utf-8 -*-
+scripts,scraper_internacional.py,13.9,330,2026-10-02,
+scripts,train_pe2_v5.py,13.7,354,2026-10-13,
+scrapers,ripley_pe_scraper.py,7.5,225,2026-10-13,!/usr/bin/env python3
+pages,__init__.py,0.0,0,2026-10-02,
+pages,analisis_modelos.py,4.2,152,2026-10-02,pages/analisis_modelos.py - Análisis de Modelos Individuales
+pages,analisis_riesgo.py,8.2,243,2026-10-02,pages/analisis_riesgo.py - Análisis de Riesgo y Obsolescencia
+pages,app.py,3.2,120,2026-10-02,app.py - Aplicación Principal Dash v6.0
+pages,arbitraje_roi.py,10.5,251,2026-10-02,pages/arbitraje_roi.py
+pages,components_sidebar.py,9.0,238,2026-10-02,components_sidebar.py - Componente de Barra Lateral
+pages,datos_reporte.py,4.3,167,2026-10-02,pages/datos_reporte.py - Reporte de Datos de Scraping y Entrenamiento
+pages,decision_final.py,9.1,277,2026-10-02,pages/decision_final.py - Página de Decisión Final y Recomendaciones
+pages,motor_decision.py,10.8,328,2026-10-02,pages/motor_decision.py - Motor de Decisión (Página Principal)
+pages,oe9_comparativa.py,5.5,208,2026-10-02,pages/oe9_comparativa.py - Comparativa OE9 (24 Soluciones Pareto)
+pages,page_comparativa.py,24.6,538,2026-10-02,pages/page_comparativa.py
+pages,page_obsolescencia.py,28.6,632,2026-11-12,pages/page_obsolescencia.py
+pages,page_optimizer.py,5.5,138,2026-10-14,
+pages,page_prediccion_demanda.py,34.4,771,2026-10-02,pages/page_prediccion_demanda.py
+pages,simulador_compra.py,8.1,271,2026-10-02,pages/simulador_compra.py - Simulador de Compra con Presupuesto
+.,apply_v6_7_patch.py,5.3,120,2026-10-02,!/usr/bin/env python3
+.,classifier.py,20.8,496,2026-10-02,=============================================================================
+.,components_v6.py,6.9,177,2026-10-02,components_v6.py - Componentes Reutilizables para Dashboard v6.0
+.,config_v6.py,5.3,210,2026-10-02,config_v6.py - Configuración centralizada Dashboard v6.0
+.,corpus_builder.py,21.2,493,2026-10-02,=============================================================================
+.,dashboard.py,36.8,847,2026-10-02,=============================================================================
+.,dashboard_config.py,9.3,301,2026-10-02,=============================================================================
+.,dashboard_data.py,23.6,565,2026-11-12,=============================================================================
+.,dashboard_fixed.py,8.6,237,2026-10-14,
+.,dashboard_v6_2_pe2v52.py,158.2,3230,2026-11-12,=============================================================================
+.,dashboard_v6_7_patch.py,31.1,602,2026-10-02,=============================================================================
+.,diag_asesor_v6.sh,39.1,839,2026-10-02,!/usr/bin/env bash
+.,diag_maestro_v3.sh,27.3,581,2026-10-13,!/usr/bin/env bash
+.,diag_maestro_v4.sh,38.9,754,2026-10-13,!/usr/bin/env bash
+.,diag_maestro_v5.sh,34.2,726,2026-10-13,!/usr/bin/env bash
+.,diagnostico_dataset.py,5.8,134,2026-10-02,
+.,diagnostico_hipotesis_d.sh,36.9,854,2026-11-12,!/usr/bin/env bash
+.,dvc.yaml,1.1,46,2026-10-02,
+.,e5_embedder.py,12.5,284,2026-10-02,=============================================================================
+.,feature_integrator.py,27.1,614,2026-10-02,=============================================================================
+.,fix_bugs_criticos.py,16.1,290,2026-10-02,
+.,fix_montecarlo_real.py,7.5,182,2026-10-02,
+.,fix_page_sensibilidad.py,8.3,198,2026-10-02,
+.,generar_inventario.sh,11.5,177,2026-11-12,═══════════════════════════════════════════════════════════════════════════
+.,make_processed_v2.py,7.4,160,2026-10-13,make_processed_v2.py
+.,migrate_master.py,5.7,159,2026-10-02,!/usr/bin/env python3
+.,obsolescencia_scorer.py,17.4,425,2026-10-02,=============================================================================
+.,params.yaml,0.3,14,2026-10-02,
+.,pe2_v52_patch.py,8.7,201,2026-10-13,=============================================================================
+.,pe4_pipeline.sh,18.0,436,2026-10-02,!/usr/bin/env bash
+.,pipeline.py,5.5,140,2026-10-02,
+.,predictor_modelo_v2.py,4.6,120,2026-10-02,
+.,run_dashboard.sh,0.1,4,2026-10-02,!/bin/bash
+.,scraper_newegg.py,6.4,198,2026-10-02,!/usr/bin/env python3
+.,setup_dashboard.sh,42.2,803,2026-10-02,!/usr/bin/env bash
+.,sync_and_fix.sh,4.1,117,2026-10-02,!/usr/bin/env bash
+.,train_pe2_v52.py,12.8,336,2026-10-13,-*- coding: utf-8 -*-
+.,utils_v6.py,5.2,159,2026-10-02,utils_v6.py - Utilidades para Dashboard v6.0
