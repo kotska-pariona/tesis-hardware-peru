@@ -15,3 +15,4 @@ batch_id,buy,cached_at,date,mid,sell,source,version https://git-lfs.github.com/s
 20261106_145451,3.446,2026-11-06T18:56:21.823653+00:00,2026-11-06,3.449,3.452,sunat_oficial_cached,
 20261109_175648,3.427,2026-11-09T21:58:30.921093+00:00,2026-11-09,3.43,3.433,sunat_oficial_cached,
 20261111_150619,3.415,,2026-11-11,3.418,3.421,sunat_oficial,
+20261113_152615,3.401,,2026-11-13,3.404,3.407,sunat_oficial,
